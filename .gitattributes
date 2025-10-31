@@ -1,0 +1,8 @@
+*.png !text !filter !merge !diff
+*.jpg !text !filter !merge !diff
+*.jpeg !text !filter !merge !diff
+*.hdr !text !filter !merge !diff
+*.exr !text !filter !merge !diff
+*.tif !text !filter !merge !diff
+*.tiff !text !filter !merge !diff
+*.tca !text !filter !merge !diff
