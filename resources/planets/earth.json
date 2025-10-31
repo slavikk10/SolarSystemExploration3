@@ -1,0 +1,37 @@
+{
+    "name": "Earth",
+    "averageRadius": 6371000.0,
+    "equatorialRadius": 6378137.0,
+    "polarRadius": 6356752.0,
+    "gravitationalAcceleration": 9.81,
+
+    "x": 1.325642404204230E+08,
+    "y": 2.593482662561163E+04,
+    "z": -7.248338623823936E+07,
+
+    "velocityX": 1.364897762669466E+01,
+    "velocityY": -7.501512110188457E-04,
+    "velocityZ": 2.612917605635382E+01,
+
+    "axialTilt": 23.44,
+    "rotationSpeed": 0.0041667,
+
+    "textures": {
+        "albedo": "resources/textures/planets/earth/earth_surface.jpg",
+        "roughness": "resources/textures/planets/earth/earth_metallic.jpg",
+        "metallic": "resources/textures/planets/earth/earth_metallic.jpg",
+        "height": "resources/textures/planets/earth/earth_height.jpg",
+        "normal": "resources/textures/planets/earth/earth_normal.png"
+    },
+
+    "textureSettings": {
+        "flipHorizontally": true,
+        "skipRM": false
+    },
+
+    "hasAtmosphere": true,
+    "atmosphereSettings": {
+        "breathable": true,
+        "height": 100000.0
+    }
+}

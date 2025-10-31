@@ -1,0 +1,35 @@
+{
+    "name": "Moon",
+    "averageRadius": 1737400.0,
+    "equatorialRadius": 1738100.0,
+    "polarRadius": 1736000.0,
+    "gravitationalAcceleration": 1.62,
+
+    "x": 1.321739891072657E+08,
+    "y": 2.318814651546255E+04,
+    "z": -7.243056717825179E+07,
+
+    "velocityX": 1.347230265701632E+01,
+    "velocityY": -9.255878435564213E-02,
+    "velocityZ": 2.514700497588300E+01,
+
+    "axialTilt": 1.5424,
+    "rotationSpeed": 0.0001525,
+
+    "textures": {
+        "albedo": "resources/textures/planets/moon/moon_surface.jpg",
+        "height": "resources/textures/planets/moon/moon_height.jpg",
+        "normal": "resources/textures/planets/moon/moon_normal.png"
+    },
+
+    "textureSettings": {
+        "flipHorizontally": true,
+        "skipRM": true
+    },
+
+    "hasAtmosphere": true,
+    "atmosphereSettings": {
+        "breathable": true,
+        "height": 100000.0
+    }
+}
