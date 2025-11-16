@@ -7,15 +7,15 @@ C_DEFINES =
 
 C_INCLUDES = -I/Users/vyacheslav/.brew/opt/glfw/include -I/Users/vyacheslav/.brew/opt/assimp/include -I/Users/vyacheslav/.brew/opt/freetype/include -I/Users/vyacheslav/SSE3_OpenGL/include -iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk/System/Library/Frameworks
 
-C_FLAGSarm64 = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -mmacosx-version-min=26.0 -Wno-nullability-completeness
+C_FLAGSarm64 = -g -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=26.0 -Wno-nullability-completeness
 
-C_FLAGS = -g -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -mmacosx-version-min=26.0 -Wno-nullability-completeness
+C_FLAGS = -g -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=26.0 -Wno-nullability-completeness
 
 CXX_DEFINES = 
 
 CXX_INCLUDES = -I/Users/vyacheslav/.brew/opt/glfw/include -I/Users/vyacheslav/.brew/opt/assimp/include -I/Users/vyacheslav/.brew/opt/freetype/include -I/Users/vyacheslav/SSE3_OpenGL/include -iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk/System/Library/Frameworks
 
-CXX_FLAGSarm64 = -g -std=gnu++20 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -mmacosx-version-min=26.0 -Wno-nullability-completeness
+CXX_FLAGSarm64 = -g -std=gnu++20 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=26.0 -Wno-nullability-completeness
 
-CXX_FLAGS = -g -std=gnu++20 -arch arm64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -mmacosx-version-min=26.0 -Wno-nullability-completeness
+CXX_FLAGS = -g -std=gnu++20 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=26.0 -Wno-nullability-completeness
 
