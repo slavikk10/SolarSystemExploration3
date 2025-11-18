@@ -108,7 +108,6 @@ CMakeFiles/sse3.dir/main.cpp.o: /Users/vyacheslav/SSE3_OpenGL/main.cpp \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/_abort.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/_types/_dev_t.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/_types/_mode_t.h \
-  /Users/vyacheslav/SSE3_OpenGL/include/tinyfiledialogs.h \
   /Users/vyacheslav/SSE3_OpenGL/include/glm/glm.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/glm/detail/_fixes.hpp \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/cmath \
@@ -1364,6 +1363,27 @@ CMakeFiles/sse3.dir/main.cpp.o: /Users/vyacheslav/SSE3_OpenGL/main.cpp \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/intrusive_list_view.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/stop_token.h \
   /Users/vyacheslav/SSE3_OpenGL/include/functionsupport.hpp \
+  /Users/vyacheslav/SSE3_OpenGL/include/ui.hpp \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/ft2build.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/ftheader.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/freetype.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/../ft2build.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/fttypes.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/ftconfig.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/../../ft2build.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/ftoption.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/ftstdlib.h \
+  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/setjmp.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/integer-types.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/public-macros.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/mac-support.h \
+  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityMacros.h \
+  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/TargetConditionals.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/ftsystem.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/ftimage.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/fterrors.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/ftmoderr.h \
+  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/fterrdef.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/random \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/bernoulli_distribution.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/uniform_real_distribution.h \
@@ -1415,24 +1435,4 @@ CMakeFiles/sse3.dir/main.cpp.o: /Users/vyacheslav/SSE3_OpenGL/main.cpp \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/seed_seq.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/student_t_distribution.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/weibull_distribution.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/arpa/inet.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/ft2build.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/ftheader.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/freetype.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/../ft2build.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/fttypes.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/ftconfig.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/../../ft2build.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/ftoption.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/ftstdlib.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/setjmp.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/integer-types.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/public-macros.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/mac-support.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityMacros.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/TargetConditionals.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/ftsystem.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/ftimage.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/fterrors.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/ftmoderr.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/fterrdef.h
+  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/arpa/inet.h

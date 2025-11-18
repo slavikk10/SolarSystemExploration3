@@ -196,8 +196,12 @@
 				"role" : "flags"
 			},
 			{
-				"fragment" : "",
+				"fragment" : "-Wl,-search_paths_first -Wl,-headerpad_max_install_names",
 				"role" : "flags"
+			},
+			{
+				"fragment" : "-F/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk/System/Library/Frameworks",
+				"role" : "frameworkPath"
 			},
 			{
 				"backtrace" : 2,
