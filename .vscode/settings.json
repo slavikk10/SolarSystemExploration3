@@ -60,7 +60,8 @@
         "metal_texture_common": "cpp",
         "__config": "cpp",
         "ostream": "cpp",
-        "cstddef": "cpp"
+        "cstddef": "cpp",
+        "metal_command_buffer": "cpp"
     },
     "C_Cpp.default.compilerPath": "/usr/bin/clang++",
 }
