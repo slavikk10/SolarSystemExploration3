@@ -4,7 +4,7 @@ project(sse3)
 
 execute_process(COMMAND xcrun --show-sdk-path OUTPUT_VARIABLE MACOSX_SDK_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
 set(CMAKE_OSX_SYSROOT "${MACOSX_SDK_PATH}")
-set(CMAKE_XCODE_VERSION 26.1)
+set(CMAKE_XCODE_VERSION 26.2)
 add_compile_options(-Wno-nullability-completeness)
 
 set(CMAKE_CXX_STANDARD 20)
