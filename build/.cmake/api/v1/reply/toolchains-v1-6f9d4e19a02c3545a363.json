@@ -26,7 +26,7 @@
 					"linkLibraries" : []
 				},
 				"path" : "/usr/bin/clang",
-				"version" : "17.0.0.17000404"
+				"version" : "17.0.0.17000603"
 			},
 			"language" : "C",
 			"sourceFileExtensions" : 
@@ -63,7 +63,7 @@
 					]
 				},
 				"path" : "/usr/bin/clang++",
-				"version" : "17.0.0.17000404"
+				"version" : "17.0.0.17000603"
 			},
 			"language" : "CXX",
 			"sourceFileExtensions" : 
