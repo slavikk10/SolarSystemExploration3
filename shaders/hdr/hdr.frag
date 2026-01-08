@@ -1,21 +1,3 @@
-#version 410 core
-out vec4 FragColor;
-
-in GEOMETRY_OUT {
-    vec2 TexCoords;
-} frag_in;
-
-uniform sampler2D hdrTex;
-
-void main() {
-    const float gamma = 2.2;
-    vec3 hdrColor = texture(hdrTex, frag_in.TexCoords).rgb;
-
-    vec3 mapped = hdrColor / (hdrColor + vec3(1.0));
-
-    mapped = pow(mapped, vec3(1.0 / gamma));
-
-    FragColor = vec4(mapped, 1.0);
-    vec4 tex = texture(hdrTex, frag_in.TexCoords);
-    FragColor = vec4(tex.rgb, 1.0);
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:1b981b38af8998d4082fcaf2228e48b9afc03a95f05e59519aa032266f638bd8
+size 4641
