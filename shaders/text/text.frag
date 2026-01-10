@@ -1,13 +1,3 @@
-#version 410 core
-in vec2 TexCoords;
-out vec4 color;
-
-uniform sampler2D text;
-uniform vec3 textColor;
-
-void main()
-{
-    vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, TexCoords).r);
-    color = sampled * vec4(textColor, 1.0);
-    gl_FragDepth = 0.0;
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:a523d939f2e9bb891b58941a1f6d14677bbac8ed5ea5d436759bd26606864d29
+size 254

@@ -1,13 +1,3 @@
-#version 410 core
-in vec2 TexCoords;
-out vec4 color;
-
-uniform sampler2D image;
-uniform float transparency;
-
-void main()
-{
-    vec3 rgb = texture(image, TexCoords).rgb;
-    color = vec4(rgb, texture(image, TexCoords).a * transparency);
-    gl_FragDepth = 0.0; // to make the image be always in front of everything else
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:4385d0f4da0dd3264402fd1d8cff6896012dc393cc00629b440c22599ed07e42
+size 319

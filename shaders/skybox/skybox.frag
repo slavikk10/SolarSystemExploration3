@@ -1,14 +1,3 @@
-#version 330 core
-out vec4 FragColor;
-
-in vec3 localPos;
-
-uniform samplerCube environmentMap;
-
-void main() {
-    vec3 envColor = texture(environmentMap, localPos).rgb;
-    envColor = textureLod(environmentMap, localPos, 1.2).rgb;
-    envColor = envColor / (envColor + vec3(1.0));
-    envColor = pow(envColor, vec3(1.0/2.2));
-    FragColor = vec4(envColor, 1.0);
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:e459f14c3d0367fece4412c58a2c8337f5427950341027979895adf79b1d4b83
+size 363
