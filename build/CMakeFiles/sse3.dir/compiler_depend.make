@@ -1438,6 +1438,7 @@ CMakeFiles/sse3.dir/main.cpp.o: /Users/vyacheslav/SSE3_OpenGL/main.cpp \
   /Users/vyacheslav/SSE3_OpenGL/include/shader.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/socket.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/stb_image.h \
+  /Users/vyacheslav/SSE3_OpenGL/include/stb_image_write.h \
   /Users/vyacheslav/SSE3_OpenGL/include/ui.hpp
 
 CMakeFiles/sse3.dir/src/glad.c.o: /Users/vyacheslav/SSE3_OpenGL/src/glad.c \
@@ -1791,7 +1792,8 @@ CMakeFiles/sse3.dir/stb_image.cpp.o: /Users/vyacheslav/SSE3_OpenGL/stb_image.cpp
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include/stdarg.h \
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include/stddef.h \
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include/stdint.h \
-  /Users/vyacheslav/SSE3_OpenGL/include/stb_image.h
+  /Users/vyacheslav/SSE3_OpenGL/include/stb_image.h \
+  /Users/vyacheslav/SSE3_OpenGL/include/stb_image_write.h
 
 
 /Users/vyacheslav/SSE3_OpenGL/stb_image.cpp:
@@ -3877,6 +3879,8 @@ CMakeFiles/sse3.dir/stb_image.cpp.o: /Users/vyacheslav/SSE3_OpenGL/stb_image.cpp
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__tuple/tuple_types.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/unwrap_ref.h:
+
+/Users/vyacheslav/SSE3_OpenGL/include/stb_image_write.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__concepts/invocable.h:
 
