@@ -175,7 +175,7 @@
 				}
 			],
 			"type" : "STRING",
-			"value" : ""
+			"value" : "-g -O0"
 		},
 		{
 			"name" : "CMAKE_CXX_FLAGS_DEBUG",
@@ -271,7 +271,7 @@
 				}
 			],
 			"type" : "STRING",
-			"value" : ""
+			"value" : "-g -O0"
 		},
 		{
 			"name" : "CMAKE_C_FLAGS_DEBUG",
@@ -391,7 +391,7 @@
 				}
 			],
 			"type" : "STRING",
-			"value" : ""
+			"value" : "-fsanitize=address"
 		},
 		{
 			"name" : "CMAKE_EXE_LINKER_FLAGS_DEBUG",

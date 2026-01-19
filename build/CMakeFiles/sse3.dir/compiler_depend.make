@@ -1436,7 +1436,6 @@ CMakeFiles/sse3.dir/main.cpp.o: /Users/vyacheslav/SSE3_OpenGL/main.cpp \
   /Users/vyacheslav/SSE3_OpenGL/include/mesh.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/model.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/shader.hpp \
-  /Users/vyacheslav/SSE3_OpenGL/include/socket.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/stb_image.h \
   /Users/vyacheslav/SSE3_OpenGL/include/stb_image_write.h \
   /Users/vyacheslav/SSE3_OpenGL/include/ui.hpp
@@ -3295,8 +3294,6 @@ CMakeFiles/sse3.dir/stb_image.cpp.o: /Users/vyacheslav/SSE3_OpenGL/stb_image.cpp
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/sample.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/bind.h:
-
-/Users/vyacheslav/SSE3_OpenGL/include/socket.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/_printf.h:
 
