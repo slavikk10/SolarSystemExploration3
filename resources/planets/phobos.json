@@ -1,0 +1,37 @@
+{
+    "name": "Phobos",
+    "averageRadius": 11.08,
+    "equatorialRadius": 11.08,
+    "polarRadius": 11.08,
+    "gravitationalAcceleration": 0.0057,
+
+    "x": -1.954828792932118E+08,
+    "y": 1.957055843438603E+06,
+    "z": -1.364900477469241E+08,
+
+    "velocityX": 1.299942898733208E+01,
+    "velocityY": 2.312948473565051E-01,
+    "velocityZ": -1.713550929627585E+01,
+
+    "axialTilt": 0.00,
+    "rotationSpeed": 0.00,
+
+    "textures": {
+      "albedo": "",
+      "roughness": "",
+      "metallic": "",
+      "height": "",
+      "normal": ""
+    },
+
+    "textureSettings": {
+      "flipHorizontally": true,
+      "skipRM": true
+    },
+
+    "hasAtmosphere": true,
+    "atmosphereSettings": {
+      "breathable": false,
+      "height": 0.000
+    }
+}
