@@ -10,6 +10,7 @@ add_compile_options(-Wno-nullability-completeness)
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(OpenGL REQUIRED)
+find_package(Freetype REQUIRED)
 
 add_executable(sse3  main.cpp src/glad.c stb_image.cpp include/)
 
@@ -21,5 +22,4 @@ include_directories(/Users/vyacheslav/SSE3_OpenGL/include)
 target_link_libraries(sse3 /Users/vyacheslav/.brew/opt/glfw/lib/libglfw.3.dylib)
 target_link_libraries(sse3 /Users/vyacheslav/.brew/opt/assimp/lib/libassimp.5.4.3.dylib)
 target_link_libraries(sse3 /Users/vyacheslav/.brew/opt/freetype/lib/libfreetype.6.dylib)
-
 target_link_libraries(sse3 OpenGL::GL)
