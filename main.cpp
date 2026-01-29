@@ -136,6 +136,8 @@ struct MenuState
     bool inMenu = true;
     float transparency = 1.0f;
     bool options = false;
+
+    bool escMenu = false;
 };
 
 struct KeyInput
@@ -144,6 +146,8 @@ struct KeyInput
     bool keyE_lastFrame = false;
     bool keyQ_lastFrame = false;
     bool keyM_lastFrame = false;
+
+    bool keyESC_lastFrame = false;
 };
 
 struct TextureState
@@ -176,6 +180,17 @@ std::function<void(GLFWwindow* window)> quitCallback = [](GLFWwindow* window)
     glfwSetWindowShouldClose(window, true);
 };
 
+std::function<void()> rtgCallback = []()
+{
+    menuState.escMenu = false;
+};
+
+std::function<void()> rtmmCallback = []()
+{
+    menuState.inMenu  = true;
+    menuState.escMenu = false;
+};
+
 struct PlanetKey 
 {
     unsigned int xSegs, ySegs;
@@ -201,6 +216,7 @@ struct SphereCollision
 };
 
 static std::map<PlanetKey, PlanetData> planetCache;
+static std::map<PlanetKey, PlanetData> cPlanetCache;
 
 glm::vec3 rotationalVelocity = glm::vec3(0.0f);
 glm::vec3 capsuleRot         = glm::vec3(0.0f);
@@ -394,7 +410,7 @@ int main(int argc, char* argv[]) {
     Shader imageShader(getFilePath("shaders/image/image.vert").c_str(), getFilePath("shaders/image/image.frag").c_str());
     Shader lineShader(getFilePath("shaders/line/line.vert").c_str(), getFilePath("shaders/line/line.frag").c_str());
 
-    Model cylinder(getFilePath("resources/models/capsule.obj"));
+    Model cylinder(getFilePath("resources/models/simple_rocket.obj"));
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -894,7 +910,7 @@ int main(int argc, char* argv[]) {
 
     // Load UI textures
     // ----------------
-    Image objectNavImg   = loadImage(getFilePath("resources/textures/UI/ objectnav.png").c_str(),               false);
+    Image objectNavImg   = loadImage(getFilePath("resources/textures/UI/objectnav.png").c_str(),               false);
     Image mmtl           = loadImage(getFilePath("resources/textures/UI/main_menu/mmtl_sse3.png").c_str(),      false);
     Image start_button   = loadImage(getFilePath("resources/textures/UI/main_menu/start_button.png").c_str(),   false);
     Image options_button = loadImage(getFilePath("resources/textures/UI/main_menu/options_button.png").c_str(), false);
@@ -904,6 +920,9 @@ int main(int argc, char* argv[]) {
     Image quit_hover     = loadImage(getFilePath("resources/textures/UI/main_menu/quit_hover.png").c_str(),     false);
     Image options_panel  = loadImage(getFilePath("resources/textures/UI/main_menu/options_panel.png").c_str(),  false);
     Image options_close  = loadImage(getFilePath("resources/textures/UI/main_menu/options_close.png").c_str(),  false);
+    Image black_overlap  = loadImage(getFilePath("resources/textures/UI/black_overlap.png").c_str(),  false);
+    Image rtg_button     = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_game.png").c_str(),  false);
+    Image rtmm_button    = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_main_menu.png").c_str(),  false);
 
     // load HDR texture
     // ----------------
@@ -1386,7 +1405,10 @@ int main(int argc, char* argv[]) {
     HoverButton startButton(startCallback,                       glm::vec2(300.0f, 500.0f), 0.2f, imageShader, start_button,   start_hover);
     HoverButton optionsButton(optionsCallback,                   glm::vec2(300.0f, 420.0f), 0.2f, imageShader, options_button, options_hover);
     HoverButton quitButton([window]() { quitCallback(window); }, glm::vec2(300.0f, 340.0f), 0.2f, imageShader, quit_button,    quit_hover);
-    Button optionsClose(optionsCloseCallback,               glm::vec2(SCR_WIDTH - SCR_WIDTH / 20.0f, SCR_HEIGHT - SCR_HEIGHT / 10.0f), 0.2f, imageShader, options_close);
+    Button optionsClose(optionsCloseCallback,                    glm::vec2(SCR_WIDTH - SCR_WIDTH / 20.0f, SCR_HEIGHT - SCR_HEIGHT / 10.0f), 0.2f, imageShader, options_close);
+
+    Button rtgESCButton(rtgCallback,                             glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + 50.0f), 0.3f, imageShader, rtg_button);
+    Button rtmmESCButton(rtmmCallback,                           glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f), 0.3f, imageShader, rtmm_button);
 
     // render loop
     // -----------
@@ -1421,7 +1443,8 @@ int main(int argc, char* argv[]) {
         float fps = 1.0f / deltaTime;
 
         for (auto &body : bodies)
-            body.updateVelocity(bodies, deltaTime * timeMultiplier);
+            if (!menuState.inMenu && !menuState.escMenu)
+                body.updateVelocity(bodies, deltaTime * timeMultiplier);
 
         //bodies[6].velocity = bodies[3].velocity + glm::cross(glm::dvec3(0.01744), glm::dvec3(bodies[6].position - bodies[3].position));
 
@@ -1442,7 +1465,8 @@ int main(int argc, char* argv[]) {
         //bodies[6].velocity += (double)(throttle/100) * (totalAccel * ((double)deltaTime));
 
         for (auto &body : bodies)
-            body.updatePosition(deltaTime * timeMultiplier);
+            if (!menuState.inMenu && !menuState.escMenu)
+                body.updatePosition(deltaTime * timeMultiplier);
 
         glm::dvec3 orbitalCameraPosition = glm::dvec3(static_cast<double>(camera.Zoom)) * glm::dvec3(cos(pitch) * sin(-yaw), sin(pitch), cos(pitch) * cos(-yaw));
 
@@ -1520,15 +1544,15 @@ int main(int argc, char* argv[]) {
 
             // looped planet initialization
             // ----------------------------
-            for (unsigned int i = 0; i < 13; i++)
+            for (unsigned int i = 0; i < 6; i++)
             {
                 if (i == 6)
                     continue;
 
                 float distanceToPlanet = glm::length(static_cast<glm::vec3>(camera.Position - bodies[i].position));
                 float apparentSize = bodies[i].averageRadius / distanceToPlanet;
-                
-                if (apparentSize > 0.001)
+
+                if (apparentSize > 0.01)
                 {
                     planetShaders[i].use();
 
@@ -1553,7 +1577,7 @@ int main(int argc, char* argv[]) {
                     planetShaders[i].setMat3("rotationMatrix", rotationMatrix);
 
                     unsigned int minSeg = 8;
-                    unsigned int maxSeg = 512;
+                    unsigned int maxSeg = 256;
 
                     unsigned int k = 256;
                     unsigned int segments = (unsigned int)(k * apparentSize);
@@ -1561,7 +1585,7 @@ int main(int argc, char* argv[]) {
                     segments = std::clamp(segments, minSeg, maxSeg);
 
                     SphereCollision collision;
-                    if (distanceToPlanet)
+                    if (apparentSize > 0.1)
                     {
                         glm::dvec3 planetScale = glm::dvec3(bodies[i].equatorialRadius, bodies[i].polarRadius, bodies[i].equatorialRadius);
                         collision = renderSphereCollision(patchesOptions[i], segments, segments, (bodies[6].position - bodies[i].position) / planetScale, planetScale);
@@ -1803,7 +1827,21 @@ int main(int argc, char* argv[]) {
             quitButton.Render(   glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, SCR_WIDTH, SCR_HEIGHT);
         }
 
+        glDepthMask(GL_FALSE);
+
+        std::cout << "in menu: " << menuState.inMenu << std::endl;
+
+        // escape menu
+        // -----------
+        if (menuState.escMenu)
+        {
+            RenderCenteredImage(imageShader, black_overlap, SCR_WIDTH / 2, SCR_HEIGHT / 2, 1.0f);
+            rtgESCButton.Render( glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, SCR_WIDTH, SCR_HEIGHT);
+            rtmmESCButton.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, SCR_WIDTH, SCR_HEIGHT);
+        }
+
         glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -1824,9 +1862,24 @@ int main(int argc, char* argv[]) {
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
-    // close window if escape key is pressed
+    // close window if escape key is pressed, or open escape menu if in-game
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
+    {
+        if (menuState.inMenu)
+        {
+            glfwSetWindowShouldClose(window, true);
+        }
+        else
+        {
+            if (!keyInput.keyESC_lastFrame)
+                menuState.escMenu = !menuState.escMenu;
+            keyInput.keyESC_lastFrame = true;
+        }
+    }
+    else
+    {
+        keyInput.keyESC_lastFrame = false;
+    }
 
     // movement controls
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -1906,7 +1959,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 // -------------------------------------------------------
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
-    if (!menuState.inMenu)
+    if (!menuState.inMenu && !menuState.escMenu)
     {
         float xpos = static_cast<float>(xposIn);
         float ypos = static_cast<float>(yposIn);
@@ -1924,9 +1977,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
         lastY = ypos;
 
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_TRUE)
-        {
             camera.ProcessMouseMovement(xoffset, yoffset);
-        }
     }
 }
 
@@ -2292,7 +2343,7 @@ SphereCollision renderSphereCollision(bool patches, unsigned int X_SEGMENTS, uns
     bool collisionState = false;
     unsigned int insideCounter = 0;
 
-    if (planetCache.find(key) == planetCache.end())
+    if (cPlanetCache.find(key) == cPlanetCache.end())
     {
         PlanetData sphere;
         glGenVertexArrays(1, &sphere.vao);
@@ -2368,11 +2419,11 @@ SphereCollision renderSphereCollision(bool patches, unsigned int X_SEGMENTS, uns
         glEnableVertexAttribArray(2);
 		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
 
-        planetCache[key] = sphere;
+        cPlanetCache[key] = sphere;
         data.clear();
     }
 
-    PlanetData& sphere = planetCache[key];
+    PlanetData& sphere = cPlanetCache[key];
     glBindVertexArray(sphere.vao);
     if (!patches)
         glDrawElements(GL_TRIANGLES, sphere.indexCount, GL_UNSIGNED_INT, 0);
@@ -2391,6 +2442,7 @@ SphereCollision renderSphereCollision(bool patches, unsigned int X_SEGMENTS, uns
             
             glm::dvec3 pos    = testPoint - static_cast<glm::dvec3>((sphere.positions[i0] + sphere.positions[i1] + sphere.positions[i2] + sphere.positions[i3]) / glm::vec3(4.0f));
             glm::dvec3 avgNor = static_cast<glm::dvec3>(glm::normalize((sphere.normals[i0] + sphere.normals[i1] + sphere.normals[i2] + sphere.normals[i3]) / glm::vec3(4.0f)));
+            pos += glm::normalize(pos) * glm::dvec3(2.0);
 
             double distanceToSegment = glm::length(testPoint - pos);
 
