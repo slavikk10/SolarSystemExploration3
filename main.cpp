@@ -86,10 +86,12 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = glfwGetTime();
 int timeMultiplier = 1;
+int timeMultiplierIndex = 0;
 
 // constants
 constexpr float sscale = 1.0f; // scale of the Solar System (1:1)
 const std::vector<std::string> faces = {"right", "left", "top", "bottom", "front", "back"}; // cubemap faces
+const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000};
 
 bool isServer;
 int timestamp;
@@ -1144,7 +1146,7 @@ int main(int argc, char* argv[]) {
             parsePlanetJSON("resources/planets/moon.json"),
             parsePlanetJSON("resources/planets/mars.json"),
             //CelestialBody(glm::vec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07+6378.137+1000.0), glm::vec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Moon
-            CelestialBody(glm::vec3(1.325642404204230E+08 - 1020.0f, 2.593482662561163E+04 - 10000.0f, -7.248338623823936E+07), glm::vec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Earth
+            CelestialBody(glm::vec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07 - 100000.0f), glm::vec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Earth
             //CelestialBody(glm::vec3(-3.010549851451788E+07, -2.405822593778040E+06, -6.359103389001439E+07 + 10000.0f), glm::vec3(3.430790710871147E+01, -4.642893227687938E+00, -1.832212359355950E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mercury
             //CelestialBody(glm::vec3(-1.954858919301744E+08, 1.958070047790088E+06 - 10000.0f, -1.364989283716056E+08), glm::vec3(1.476574022529569E+01, -7.352840574207127E-01, -1.781400659243546E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mars
             //CelestialBody(glm::vec3(-1.954828792932118E+08, 1.957055843438603E+06 - 10.0f, -1.364900477469241E+08), glm::vec3(1.299942898733208E+01,  2.312948473565051E-01, -1.713550929627585E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mars/Phobos
@@ -1444,6 +1446,8 @@ int main(int argc, char* argv[]) {
 
         float fps = 1.0f / deltaTime;
 
+        timeMultiplier = timewarpValues[timeMultiplierIndex];
+
         for (auto &body : bodies)
             if (!menuState.inMenu && !menuState.escMenu)
                 body.updateVelocity(bodies, deltaTime * timeMultiplier);
@@ -1478,19 +1482,29 @@ int main(int argc, char* argv[]) {
             camera.Position = glm::dvec3(bodies[6].position.x/sscale, bodies[6].position.y/sscale, bodies[6].position.z/sscale) + orbitalCameraPosition;
 
         rocketPositions.clear();
-        trajectoryBodies = { bodies[3], bodies[6] };
+        moonPositions.clear();
+        std::vector<CelestialBody> playerRelativeEarth = { bodies[3], bodies[6] };
+        std::vector<CelestialBody> moonRelativeEarth   = { bodies[3], bodies[4] };
 
-        trajectoryBodies[1].velocity -= trajectoryBodies[0].velocity;
-        trajectoryBodies[0].velocity = glm::dvec3(0.0);
+        playerRelativeEarth[1].velocity -= playerRelativeEarth[0].velocity;
+        playerRelativeEarth[0].velocity = glm::dvec3(0.0);
 
-        rocketPositions = { trajectoryBodies[1].position };
+        moonRelativeEarth[1].velocity -= moonRelativeEarth[0].velocity;
+        moonRelativeEarth[0].velocity = glm::dvec3(0.0);
 
-        for (unsigned int i = 0; i < 200; i++)
+        rocketPositions = { playerRelativeEarth[1].position };
+        moonPositions   = { moonRelativeEarth[1].position };
+
+        for (unsigned int i = 0; i < 20000; i++)
         {
-            trajectoryBodies[1].updateVelocity(trajectoryBodies, 70.0f);
-            trajectoryBodies[1].updatePosition(70.0f);
+            playerRelativeEarth[1].updateVelocity(playerRelativeEarth, 70.0f);
+            playerRelativeEarth[1].updatePosition(70.0f);
 
-            rocketPositions.push_back(trajectoryBodies[1].position);
+            moonRelativeEarth[1].updateVelocity(moonRelativeEarth, 7000.0f);
+            moonRelativeEarth[1].updatePosition(7000.0f);
+
+            rocketPositions.push_back(playerRelativeEarth[1].position);
+            moonPositions.push_back(moonRelativeEarth[1].position);
         }
         
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1737,6 +1751,8 @@ int main(int argc, char* argv[]) {
 
             for (unsigned int i = 0; i < rocketPositions.size() - 1; i++)
                 RenderLine(camera.Position - rocketPositions[i], camera.Position - rocketPositions[i + 1], view, projection);
+            for (unsigned int i = 0; i < moonPositions.size() - 1; i++)
+                RenderLine(camera.Position - moonPositions[i], camera.Position - moonPositions[i + 1], view, projection);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         hdrShader.use();
@@ -1786,7 +1802,7 @@ int main(int argc, char* argv[]) {
             RenderText(textShader, throttle_s, SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
             RenderText(textShader, enginesOn ? "Engines: on" : "Engines: off", SCR_WIDTH/2, 10.0f, 0.5f, enginesOn ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f), true);
             RenderText(textShader, fuel_s, 3*SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
-            RenderText(textShader, tm_s, SCR_WIDTH / 2, SCR_HEIGHT - 15.0f, 0.5f, glm::vec3(1.0f), true);
+            RenderText(textShader, tm_s, SCR_WIDTH / 2, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
             //RenderText(textShader, std::to_string(bodies[6].velocity.x - bodies[3].velocity.x) + ", " + std::to_string(bodies[6].velocity.y - bodies[3].velocity.y) + ", " + std::to_string(bodies[6].velocity.z - bodies[3].velocity.z), SCR_WIDTH/2, 950, 0.3f, glm::vec3(1.0f), false);
             //RenderText(textShader, std::to_string(bodies[6].position.x - bodies[3].position.x) + ", " + std::to_string(bodies[6].position.y - bodies[3].position.y) + ", " + std::to_string(bodies[6].position.z - bodies[3].position.z), SCR_WIDTH/2, 900, 0.3f, glm::vec3(1.0f), false);
             //float distanceToCelestialBody = std::sqrt(std::pow(bodies[6].position.x - bodies[3].position.x, 2) + std::pow(bodies[6].position.y - bodies[3].position.y, 2) + std::pow(bodies[6].position.z - bodies[3].position.z, 2));
@@ -1902,8 +1918,8 @@ void processInput(GLFWwindow *window)
     // time control (speed up and slow down)
     if (glfwGetKey(window, GLFW_KEY_PERIOD) == GLFW_PRESS)
     {
-        if (!keyInput.keyGT_lastFrame && timeMultiplier < 1000)
-            timeMultiplier += 1;
+        if (!keyInput.keyGT_lastFrame && timeMultiplier != timewarpValues[timewarpValues.size() - 1])
+            timeMultiplierIndex += 1;
         keyInput.keyGT_lastFrame = true;
     }
     else
@@ -1913,8 +1929,8 @@ void processInput(GLFWwindow *window)
 
     if (glfwGetKey(window, GLFW_KEY_COMMA) == GLFW_PRESS)
     {
-        if (!keyInput.keyLT_lastFrame && timeMultiplier != 1)
-            timeMultiplier -= 1;
+        if (!keyInput.keyLT_lastFrame && timeMultiplierIndex != 0)
+            timeMultiplierIndex -= 1;
         keyInput.keyLT_lastFrame = true;
     }
     else
