@@ -143,9 +143,9 @@ struct MenuState
 struct KeyInput
 {
     bool keyT_lastFrame = false;
-    bool keyE_lastFrame = false;
-    bool keyQ_lastFrame = false;
-    bool keyM_lastFrame = false;
+
+    bool keyGT_lastFrame = false;
+    bool keyLT_lastFrame = false;
 
     bool keyESC_lastFrame = false;
 };
@@ -696,7 +696,7 @@ int main(int argc, char* argv[]) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);*/
 
     // line VAO and VBO
-    /*glGenBuffers(1, &lineVBO);
+    glGenBuffers(1, &lineVBO);
     glGenVertexArrays(1, &lineVAO);
     glBindVertexArray(lineVAO);
     glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
@@ -704,7 +704,7 @@ int main(int argc, char* argv[]) {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
     glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);*/
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // generate depth map framebuffer
     /*unsigned int depthCubemapFBO;
@@ -910,19 +910,19 @@ int main(int argc, char* argv[]) {
 
     // Load UI textures
     // ----------------
-    Image objectNavImg   = loadImage(getFilePath("resources/textures/UI/objectnav.png").c_str(),               false);
-    Image mmtl           = loadImage(getFilePath("resources/textures/UI/main_menu/mmtl_sse3.png").c_str(),      false);
-    Image start_button   = loadImage(getFilePath("resources/textures/UI/main_menu/start_button.png").c_str(),   false);
-    Image options_button = loadImage(getFilePath("resources/textures/UI/main_menu/options_button.png").c_str(), false);
-    Image quit_button    = loadImage(getFilePath("resources/textures/UI/main_menu/quit_button.png").c_str(),    false);
-    Image start_hover    = loadImage(getFilePath("resources/textures/UI/main_menu/start_hover.png").c_str(),    false);
-    Image options_hover  = loadImage(getFilePath("resources/textures/UI/main_menu/options_hover.png").c_str(),  false);
-    Image quit_hover     = loadImage(getFilePath("resources/textures/UI/main_menu/quit_hover.png").c_str(),     false);
-    Image options_panel  = loadImage(getFilePath("resources/textures/UI/main_menu/options_panel.png").c_str(),  false);
-    Image options_close  = loadImage(getFilePath("resources/textures/UI/main_menu/options_close.png").c_str(),  false);
-    Image black_overlap  = loadImage(getFilePath("resources/textures/UI/black_overlap.png").c_str(),  false);
-    Image rtg_button     = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_game.png").c_str(),  false);
-    Image rtmm_button    = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_main_menu.png").c_str(),  false);
+    Image objectNavImg   = loadImage(getFilePath("resources/textures/UI/objectnav.png").c_str(),                    false);
+    Image mmtl           = loadImage(getFilePath("resources/textures/UI/main_menu/mmtl_sse3.png").c_str(),          false);
+    Image start_button   = loadImage(getFilePath("resources/textures/UI/main_menu/start_button.png").c_str(),       false);
+    Image options_button = loadImage(getFilePath("resources/textures/UI/main_menu/options_button.png").c_str(),     false);
+    Image quit_button    = loadImage(getFilePath("resources/textures/UI/main_menu/quit_button.png").c_str(),        false);
+    Image start_hover    = loadImage(getFilePath("resources/textures/UI/main_menu/start_hover.png").c_str(),        false);
+    Image options_hover  = loadImage(getFilePath("resources/textures/UI/main_menu/options_hover.png").c_str(),      false);
+    Image quit_hover     = loadImage(getFilePath("resources/textures/UI/main_menu/quit_hover.png").c_str(),         false);
+    Image options_panel  = loadImage(getFilePath("resources/textures/UI/main_menu/options_panel.png").c_str(),      false);
+    Image options_close  = loadImage(getFilePath("resources/textures/UI/main_menu/options_close.png").c_str(),      false);
+    Image black_overlap  = loadImage(getFilePath("resources/textures/UI/black_overlap.png").c_str(),                false);
+    Image rtg_button     = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_game.png").c_str(),      false);
+    Image rtmm_button    = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_main_menu.png").c_str(), false);
 
     // load HDR texture
     // ----------------
@@ -1165,19 +1165,21 @@ int main(int argc, char* argv[]) {
     std::vector<glm::dvec3> earthPositions   = { trajectoryBodies[3].position };
     std::vector<glm::dvec3> moonPositions    = { trajectoryBodies[4].position };
     std::vector<glm::dvec3> marsPositions    = { trajectoryBodies[5].position };
-    for (unsigned int i = 0; i < 1000; i++)
+    std::vector<glm::dvec3> rocketPositions  = { trajectoryBodies[6].position };
+    for (unsigned int i = 0; i < 200; i++)
     {
         for (auto &body : trajectoryBodies)
-            body.updateVelocity(trajectoryBodies, 7000.0f);
+            body.updateVelocity(trajectoryBodies, 70000.0f);
 
         for (auto &body : trajectoryBodies)
-            body.updatePosition(7000.0f);
+            body.updatePosition(70000.0f);
 
         mercuryPositions.push_back(trajectoryBodies[1].position);
         venusPositions.push_back(trajectoryBodies[2].position);
         earthPositions.push_back(trajectoryBodies[3].position);
         moonPositions.push_back(trajectoryBodies[4].position);
         marsPositions.push_back(trajectoryBodies[5].position);
+        rocketPositions.push_back(trajectoryBodies[6].position);
     }
 
     std::vector<glm::dvec4> bodyData = {
@@ -1459,10 +1461,10 @@ int main(int argc, char* argv[]) {
         float pitch = camera.Pitch / 57.296f;
 
         // calculate thrust acceleration of the rocket and calculate total acceleration
-        glm::dvec3 thrustAccel = glm::dvec3(-7000.0, 0.0, 0.0);
+        glm::dvec3 thrustAccel = glm::dvec3(-70.0, 0.0, 0.0);
         glm::dvec3 totalAccel = bodies[6].totalAcceleration + thrustAccel;
 
-        //bodies[6].velocity += (double)(throttle/100) * (totalAccel * ((double)deltaTime));
+        bodies[6].velocity += (double)(throttle/100) * (totalAccel * ((double)deltaTime * timeMultiplier));
 
         for (auto &body : bodies)
             if (!menuState.inMenu && !menuState.escMenu)
@@ -1475,7 +1477,22 @@ int main(int argc, char* argv[]) {
         else
             camera.Position = glm::dvec3(bodies[6].position.x/sscale, bodies[6].position.y/sscale, bodies[6].position.z/sscale) + orbitalCameraPosition;
 
-        //moonPositions.push_back(bodies[4].position);
+        rocketPositions.clear();
+        trajectoryBodies = { bodies[3], bodies[6] };
+
+        trajectoryBodies[1].velocity -= trajectoryBodies[0].velocity;
+        trajectoryBodies[0].velocity = glm::dvec3(0.0);
+
+        rocketPositions = { trajectoryBodies[1].position };
+
+        for (unsigned int i = 0; i < 200; i++)
+        {
+            trajectoryBodies[1].updateVelocity(trajectoryBodies, 70.0f);
+            trajectoryBodies[1].updatePosition(70.0f);
+
+            rocketPositions.push_back(trajectoryBodies[1].position);
+        }
+        
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -1552,7 +1569,7 @@ int main(int argc, char* argv[]) {
                 float distanceToPlanet = glm::length(static_cast<glm::vec3>(camera.Position - bodies[i].position));
                 float apparentSize = bodies[i].averageRadius / distanceToPlanet;
 
-                if (apparentSize > 0.01)
+                if (apparentSize > 0.001)
                 {
                     planetShaders[i].use();
 
@@ -1608,7 +1625,6 @@ int main(int argc, char* argv[]) {
             glDepthFunc(GL_LEQUAL);
             // setup matrices and other values
             skyboxShader.use();
-            //skyboxShader.setFloat("exposure", 1.0);
             skyboxShader.setInt("environmentMap", 0);
             skyboxShader.setMat4("view", view);
             skyboxShader.setMat4("projection", projection);
@@ -1621,7 +1637,6 @@ int main(int argc, char* argv[]) {
 
             // set depth func to GL_LESS back
             glDepthFunc(GL_LESS);
-
 
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1660,7 +1675,6 @@ int main(int argc, char* argv[]) {
 
             glDisable(GL_BLEND);
 
-
             /*atmosphereShader.use();
             
             glActiveTexture(GL_TEXTURE0);
@@ -1671,22 +1685,6 @@ int main(int argc, char* argv[]) {
             
             // disable writing to depth buffer
             glDepthMask(GL_FALSE);
-
-            atmosphereShader.setVec3("planetWorldPos", camera.Position - bodies[3].position);
-            atmosphereShader.setFloat("planetRadius", bodies[3].polarRadius/sscale);
-            atmosphereShader.setVec3("wavelengths", glm::vec3(650.0f, 570.0f, 475.0f));
-            atmosphereShader.setFloat("atmosphereHeight", 100000.0f);
-
-            // -----------------------------------------------------------------------------------------------------------------------------
-            // Earth's atmosphere
-            model = glm::dmat4(1.0);
-            model = glm::translate(model, camera.Position - bodies[3].position);
-            
-            model = glm::scale(model, glm::dvec3(bodies[3].equatorialRadius + 100000.0f, bodies[3].polarRadius + 100000.0f, bodies[3].equatorialRadius + 100000.0f));
-
-            atmosphereShader.setMat4("model", static_cast<glm::mat4>(model));
-            //renderSphere(false);
-            // -----------------------------------------------------------------------------------------------------------------------------
 
             atmosphereShader.setVec3("planetWorldPos", (camera.Position - bodies[5].position) + orbitalCameraPosition);
             atmosphereShader.setFloat("planetRadius", bodies[5].averageRadius/sscale);
@@ -1703,24 +1701,6 @@ int main(int argc, char* argv[]) {
             atmosphereShader.setMat4("model", static_cast<glm::mat4>(model));
             //renderSphere(false, X_SEGMENTS, Y_SEGMENTS);
             // -----------------------------------------------------------------------------------------------------------------------------*/
-
-            glDepthMask(GL_TRUE); // enable writing back
-
-            // render players
-            // --------------
-            //std::cout << "Total players: " << playerPositions.size() << std::endl;
-            /*lightShader.use();
-            for (const auto& [clientUID, pos] : playerPositions) {
-                if (clientUID == uid) continue;
-                std::cout << "Player " << clientUID << " position: " << pos.x << ", " << pos.y << ", " << pos.z << " at my timestamp " << timestamp << std::endl;
-                glm::dvec3 posDiff = pos - glm::dvec3(camera.Position);
-                std::cout << "Position difference: " << posDiff.x << ", " << posDiff.y << ", " << posDiff.z << std::endl;
-                model = glm::dmat4(1.0);
-                model = glm::translate(model, glm::dvec3(pos - glm::dvec3(camera.Position)));
-                model = glm::scale(model, glm::dvec3(1.81));
-                lightShader.setMat4("model", model);
-                //renderSphere(false, X_SEGMENTS, Y_SEGMENTS);
-            }*/
 
             glDepthMask(GL_TRUE);
             glEnable(GL_DEPTH);
@@ -1741,19 +1721,22 @@ int main(int argc, char* argv[]) {
             shader.setVec3("albedo", glm::vec3(1.0));
             cylinder.DrawPatched(shader);
 
-            // BETA: render rocket trajectory
-            //lineShader.use();
-            //lineShader.setMat4("projection", orthoProjection);
-            //for (unsigned int i = 0; i < mercuryPositions.size() - 1; i++)
-                //RenderLine(mercuryPositions[i], mercuryPositions[i+1], view, projection);
-            //for (unsigned int i = 0; i < venusPositions.size() - 1; i++)
-                //RenderLine(venusPositions[i], venusPositions[i+1], view, projection);
-            //for (unsigned int i = 0; i < earthPositions.size() - 1; i++)
-                //RenderLine(earthPositions[i], earthPositions[i+1], view, projection);
-            //for (unsigned int i = 0; i < moonPositions.size() - 1; i++)
-                //RenderLine(moonPositions[i], moonPositions[i+1], view, projection);
-            //for (unsigned int i = 0; i < marsPositions.size() - 1; i++)
-                //RenderLine(marsPositions[i], marsPositions[i+1], view, projection);
+            // BETA: render planet trajectories
+            lineShader.use();
+            lineShader.setMat4("projection", orthoProjection);
+            /*for (unsigned int i = 0; i < mercuryPositions.size() - 1; i++)
+                RenderLine(mercuryPositions[i], mercuryPositions[i+1], view, projection);
+            for (unsigned int i = 0; i < venusPositions.size() - 1; i++)
+                RenderLine(venusPositions[i], venusPositions[i+1], view, projection);
+            for (unsigned int i = 0; i < earthPositions.size() - 1; i++)
+                RenderLine(earthPositions[i], earthPositions[i+1], view, projection);
+            for (unsigned int i = 0; i < moonPositions.size() - 1; i++)
+                RenderLine(moonPositions[i], moonPositions[i+1], view, projection);
+            for (unsigned int i = 0; i < marsPositions.size() - 1; i++)
+                RenderLine(marsPositions[i], marsPositions[i+1], view, projection);*/
+
+            for (unsigned int i = 0; i < rocketPositions.size() - 1; i++)
+                RenderLine(camera.Position - rocketPositions[i], camera.Position - rocketPositions[i + 1], view, projection);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         hdrShader.use();
@@ -1780,17 +1763,18 @@ int main(int argc, char* argv[]) {
             {
                 if (glm::dot(glm::normalize(bodies[i].position - (glm::dvec3)camera.Position), -(glm::dvec3)camera.Right) > 0.0) // check if the target is in front of the camera
                 {
-                    //RenderCenteredImage(imageShader, objectNavImg, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection).y, 0.15f);
-                    //RenderText(textShader, bodyNames[i], convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection).y + 35, 0.4f, glm::vec3(1.0f), true);
+                    RenderCenteredImage(imageShader, objectNavImg, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection).y, 0.15f);
+                    RenderText(textShader, bodyNames[i], convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection).y + 35, 0.4f, glm::vec3(1.0f), true);
                 }
             }
         }
 
         // render text
         // -----------
-        std::string fps_s = "FPS: " + std::to_string(fps);
+        std::string fps_s      = "FPS: " + std::to_string(fps);
         std::string throttle_s = "Throttle: " + std::to_string(throttle) + "%";
-        std::string fuel_s = "Fuel: " + std::to_string(fuel / 3000000.0f * 100.0f) + "%"; // divide the left fuel by original fuel and multiply by 100 to get in percents
+        std::string fuel_s     = "Fuel: " + std::to_string(fuel / 3000000.0f * 100.0f) + "%"; // divide the left fuel by original fuel and multiply by 100 to get in percents
+        std::string tm_s       = "Time multiplier: " + std::to_string(timeMultiplier);
         textShader.use();
         textShader.setMat4("projection", orthoProjection); // switch to orthographic projection for rending text
         imageShader.use();
@@ -1802,6 +1786,7 @@ int main(int argc, char* argv[]) {
             RenderText(textShader, throttle_s, SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
             RenderText(textShader, enginesOn ? "Engines: on" : "Engines: off", SCR_WIDTH/2, 10.0f, 0.5f, enginesOn ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f), true);
             RenderText(textShader, fuel_s, 3*SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
+            RenderText(textShader, tm_s, SCR_WIDTH / 2, SCR_HEIGHT - 15.0f, 0.5f, glm::vec3(1.0f), true);
             //RenderText(textShader, std::to_string(bodies[6].velocity.x - bodies[3].velocity.x) + ", " + std::to_string(bodies[6].velocity.y - bodies[3].velocity.y) + ", " + std::to_string(bodies[6].velocity.z - bodies[3].velocity.z), SCR_WIDTH/2, 950, 0.3f, glm::vec3(1.0f), false);
             //RenderText(textShader, std::to_string(bodies[6].position.x - bodies[3].position.x) + ", " + std::to_string(bodies[6].position.y - bodies[3].position.y) + ", " + std::to_string(bodies[6].position.z - bodies[3].position.z), SCR_WIDTH/2, 900, 0.3f, glm::vec3(1.0f), false);
             //float distanceToCelestialBody = std::sqrt(std::pow(bodies[6].position.x - bodies[3].position.x, 2) + std::pow(bodies[6].position.y - bodies[3].position.y, 2) + std::pow(bodies[6].position.z - bodies[3].position.z, 2));
@@ -1828,8 +1813,6 @@ int main(int argc, char* argv[]) {
         }
 
         glDepthMask(GL_FALSE);
-
-        std::cout << "in menu: " << menuState.inMenu << std::endl;
 
         // escape menu
         // -----------
@@ -1919,26 +1902,24 @@ void processInput(GLFWwindow *window)
     // time control (speed up and slow down)
     if (glfwGetKey(window, GLFW_KEY_PERIOD) == GLFW_PRESS)
     {
-        if (!keyInput.keyE_lastFrame && timeMultiplier < 1000)
-            timeMultiplier += 5;
-        keyInput.keyE_lastFrame = true;
+        if (!keyInput.keyGT_lastFrame && timeMultiplier < 1000)
+            timeMultiplier += 1;
+        keyInput.keyGT_lastFrame = true;
     }
     else
     {
-        keyInput.keyE_lastFrame = false;
+        keyInput.keyGT_lastFrame = false;
     }
 
     if (glfwGetKey(window, GLFW_KEY_COMMA) == GLFW_PRESS)
     {
-        if (!keyInput.keyQ_lastFrame && timeMultiplier != 1)
-            timeMultiplier -= 5;
-        else
-            timeMultiplier -= 0.1;
-        keyInput.keyQ_lastFrame = true;
+        if (!keyInput.keyLT_lastFrame && timeMultiplier != 1)
+            timeMultiplier -= 1;
+        keyInput.keyLT_lastFrame = true;
     }
     else
     {
-        keyInput.keyQ_lastFrame = false;
+        keyInput.keyLT_lastFrame = false;
     }
 
     // menu controls
@@ -2473,44 +2454,22 @@ SphereCollision renderSphereCollision(bool patches, unsigned int X_SEGMENTS, uns
 
 void RenderLine(glm::dvec3 pos1, glm::dvec3 pos2, const glm::mat4 &view, const glm::mat4 &projection)
 {
-    glm::dvec4 pos1p = projection * view * glm::dvec4(pos1, 1.0);
-    glm::dvec4 pos2p = projection * view * glm::dvec4(pos2, 1.0);
-    
-    bool clipped1 = false;
-    bool clipped2 = false;
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
-    if (-pos1p.w < pos1p.x < pos1p.w && -pos1p.w < pos1p.y < pos1p.w && -pos1p.w < pos1p.z < pos1p.w)
-        clipped1 = false;
-    else
-        clipped1 = true;
+    glm::dvec3 pos1c = pos1;
+    glm::dvec3 pos2c = pos2;
 
-    if (-pos2p.w < pos2p.x < pos2p.w && -pos2p.w < pos2p.y < pos2p.w && -pos2p.w < pos2p.z < pos2p.w)
-        clipped2 = false;
-    else
-        clipped2 = true;
+    std::vector<glm::vec2> data;
+    data.push_back(convert3Dto2D(pos1c, view, projection));
+    data.push_back(convert3Dto2D(pos2c, view, projection));
 
-    pos1p.x /= pos1p.w;
-    pos1p.y /= pos1p.w;
-    pos1p.z /= pos1p.w;
-    pos2p.x /= pos2p.w;
-    pos2p.y /= pos2p.w;
-    pos2p.z /= pos2p.w;
+    glBindVertexArray(lineVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
+    glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(float), &data[0], GL_STATIC_DRAW);
 
-    if (!clipped1 && !clipped2)
-    {
-        std::vector<float> data;
-        data.push_back(convert3Dto2D(camera.Position - pos1, view, projection).x);
-        data.push_back(convert3Dto2D(camera.Position - pos1, view, projection).y);
-        data.push_back(convert3Dto2D(camera.Position - pos2, view, projection).x);
-        data.push_back(convert3Dto2D(camera.Position - pos2, view, projection).y);
-
-        glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-        glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(float), &data[0], GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        glBindVertexArray(lineVAO);
-        glDrawArrays(GL_LINES, 0, 2);
-    }
+    glBindVertexArray(lineVAO);
+    glDrawArrays(GL_LINES, 0, 2);
 }
 
 void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color, bool centered)
@@ -2566,109 +2525,15 @@ void RenderText(Shader &s, std::string text, float x, float y, float scale, glm:
 glm::vec2 convert3Dto2D(glm::vec3 position, const glm::mat4 &view, const glm::mat4 &projection)
 {
     glm::vec4 projected = projection * view * glm::vec4(position, 1.0f);
-    glm::vec3 newPosition = glm::vec3(projected.x/projected.w, projected.y/projected.w, projected.z/projected.w);
+
+    projected.w = std::max(projected.w, 0.001f);
+
+    glm::vec3 newPosition = glm::vec3(projected.x / projected.w, projected.y / projected.w, projected.z / projected.w);
+
     newPosition.x = newPosition.x / 2.0f + 0.5f;
     newPosition.y = newPosition.y / 2.0f + 0.5f;
-    return glm::vec2(newPosition.x*SCR_WIDTH, newPosition.y*SCR_HEIGHT);
-}
 
-/*void RenderCenteredImage(Shader &s, Image image, float x, float y, float scale)
-{
-    s.use();
-    glBindVertexArray(imageVAO);
-
-    float width  = image.Size.x * scale;
-    float height = image.Size.y * scale;
-
-    float vertices[6][4] = {
-        {x - width / 2, y + height / 2, 0.0f, 0.0f},
-        {x - width / 2, y - height / 2, 0.0f, 1.0f},
-        {x + width / 2, y - height / 2, 1.0f, 1.0f},
-
-        {x - width / 2, y + height / 2, 0.0f, 0.0f},
-        {x + width / 2, y - height / 2, 1.0f, 1.0f},
-        {x + width / 2, y + height / 2, 1.0f, 0.0f}
-    };
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, image.ImageID);
-    glBindBuffer(GL_ARRAY_BUFFER, imageVBO);
-    glBufferData(GL_ARRAY_BUFFER, 6 * 4 * sizeof(float), vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-}
-
-void Button(Shader &s, Image image, float x, float y, float scale, void (*action)())
-{
-    RenderCenteredImage(s, image, x, y, scale);
-    if (mouseX > x - (image.Size.x * scale / 2) && mouseX < x + (image.Size.x * scale / 2)) // check if cursor is inside the button hitbox
-    {
-        if (mouseY > y + (image.Size.y * scale / 2) && mouseY < y - (image.Size.y * scale / 2))
-        {
-            if (lmbPressed)
-                action();
-        }
-    }
-}
-
-void HoverButton(Shader &s, Image image, Image hoverImage, float x, float y, float scale, void (*action)())
-{
-    if (mouseX > x - (image.Size.x * scale / 2) && mouseX < x + (image.Size.x * scale / 2)) // check if cursor is inside the button hitbox
-    {
-        if ((mouseY + 80.0f) > (1040.0f - y) - (image.Size.y * scale / 2) && (mouseY + 80.0f) < (1040.0f - y) + (image.Size.y * scale / 2))
-        {
-            RenderCenteredImage(s, hoverImage, x, y, scale);
-            if (lmbPressed)
-                action();
-        }
-        else
-        {
-            RenderCenteredImage(s, image, x, y, scale);
-        }
-    }
-    else
-    {
-        RenderCenteredImage(s, image, x, y, scale);
-    }
-}*/
-
-void QuitButton(Shader &s, Image image, Image hoverImage, float x, float y, float scale, GLFWwindow* window)
-{
-    if (mouseInput.mouseX > x - (image.Size.x * scale / 2) && mouseInput.mouseX < x + (image.Size.x * scale / 2)) // check if cursor is inside the button hitbox
-    {
-        if ((960 - mouseInput.mouseY) > y - (image.Size.y * scale / 2) && (960 - mouseInput.mouseY) < y + (image.Size.y * scale / 2))
-        {
-            RenderCenteredImage(s, hoverImage, x, y, scale);
-            if (mouseInput.lmbPressed)
-                glfwSetWindowShouldClose(window, true);
-        }
-        else
-        {
-            RenderCenteredImage(s, image, x, y, scale);
-        }
-    }
-    else
-    {
-        RenderCenteredImage(s, image, x, y, scale);
-    }
-}
-
-void saveCubemap(unsigned int cubemap, const std::string& folder, const std::string& filename_start_text, unsigned int size)
-{
-    std::vector<float> data(size * size * 3);
-
-    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap);
-
-    for (unsigned int i = 0; i < 6; i++)
-    {
-        glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, GL_FLOAT, data.data());
-        
-        std::string file_path = folder + "/" + filename_start_text + faces[i] + ".hdr";
-        stbi_write_hdr(file_path.c_str(), size, size, 3, data.data());
-    }
-
-    data.clear();
+    return glm::vec2(newPosition.x * SCR_WIDTH, newPosition.y * SCR_HEIGHT);
 }
 
 void saveTexture(unsigned int texture, const std::string& folder, const std::string& filename, unsigned int size)
