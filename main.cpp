@@ -16,6 +16,7 @@
 //#include <socket.hpp>
 #include <functionsupport.hpp>
 #include <ui.hpp>
+#include <threads.hpp>
 
 #include <atomic>
 #include <cstdlib>
@@ -1414,6 +1415,9 @@ int main(int argc, char* argv[]) {
     Button rtgESCButton(rtgCallback,                             glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + 50.0f), 0.3f, imageShader, rtg_button);
     Button rtmmESCButton(rtmmCallback,                           glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f), 0.3f, imageShader, rtmm_button);
 
+    ThreadPool threadPool(6);
+    std::atomic<int> threadsLeft = 0;
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -1495,7 +1499,7 @@ int main(int argc, char* argv[]) {
         rocketPositions = { playerRelativeEarth[1].position };
         moonPositions   = { moonRelativeEarth[1].position };
 
-        for (unsigned int i = 0; i < 20000; i++)
+        for (unsigned int i = 0; i < 200; i++)
         {
             playerRelativeEarth[1].updateVelocity(playerRelativeEarth, 70.0f);
             playerRelativeEarth[1].updatePosition(70.0f);
@@ -1573,6 +1577,19 @@ int main(int argc, char* argv[]) {
 
             glm::dmat4 model = glm::dmat4(1.0);
 
+            std::vector<bool> renderState(6);
+            std::mutex renderStateMutex;
+            std::vector<glm::mat4> modelMatrices(6);
+            std::mutex modelMatricesMutex;
+            std::vector<glm::mat4> rotationMatrices(6);
+            std::mutex rotationMatricesMutex;
+            std::vector<unsigned int> numOfSegments(6);
+            std::mutex numOfSegmentsMutex;
+            std::vector<glm::dvec3> planetScales(6);
+            std::mutex planetScalesMutex;
+            std::vector<bool> collisionTestState(6);
+            std::mutex collisionTestStateMutex;
+
             // looped planet initialization
             // ----------------------------
             for (unsigned int i = 0; i < 6; i++)
@@ -1580,57 +1597,116 @@ int main(int argc, char* argv[]) {
                 if (i == 6)
                     continue;
 
-                float distanceToPlanet = glm::length(static_cast<glm::vec3>(camera.Position - bodies[i].position));
-                float apparentSize = bodies[i].averageRadius / distanceToPlanet;
+                threadsLeft++;
+                threadPool.enqueue([&, i] {
+                    float distanceToPlanet = glm::length(static_cast<glm::vec3>(camera.Position - bodies[i].position));
+                    float apparentSize = bodies[i].averageRadius / distanceToPlanet;
 
-                if (apparentSize > 0.001)
-                {
-                    planetShaders[i].use();
-
-                    if (planetDiffuseTextures[i] != 0) bindDiffuseTexture(planetDiffuseTextures[i]);
-                    if (planetMetallicTextures[i] != 0) bindMetallicTexture(planetMetallicTextures[i]);
-                    if (planetRoughnessTextures[i] != 0) bindRoughnessTexture(planetRoughnessTextures[i]);
-                    if (planetHeightTextures[i] != 0) bindHeightTexture(planetHeightTextures[i]);
-                    if (planetNormalTextures[i] != 0) bindNormalTexture(planetNormalTextures[i]);
-
-                    glm::dvec3 planetScale = glm::dvec3(bodies[i].equatorialRadius, bodies[i].polarRadius, bodies[i].equatorialRadius);
-                    float rotationAroundAxis = glm::radians(bodies[i].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
-                    setupPlanetModel(model, bodies[i].position, planetScale, camera.Position, orbitalCameraPosition, bodies[i].axialTilt, rotationAroundAxis);
-
-                    planetShaders[i].setBool("flipHor", flipHorOptions[i]);
-                    planetShaders[i].setBool("skipRM", skipRMOptions[i]);
-                    planetShaders[i].setMat4("model", static_cast<glm::mat4>(model));
-
-                    glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationAroundAxis), 0.0f, glm::sin(rotationAroundAxis)), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationAroundAxis), 0.0f, glm::cos(rotationAroundAxis)));                                                                                                                          // rotation matrix for Y axis
-                    glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(-bodies[i].axialTilt)), -glm::sin(glm::radians(-bodies[i].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(-bodies[i].axialTilt)), glm::cos(glm::radians(-bodies[i].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis
-                    glm::mat3 rotationMatrix = rotationMatrixY * rotationMatrixZ;
-
-                    planetShaders[i].setMat3("rotationMatrix", rotationMatrix);
-
-                    unsigned int minSeg = 8;
-                    unsigned int maxSeg = 256;
-
-                    unsigned int k = 256;
-                    unsigned int segments = (unsigned int)(k * apparentSize);
-
-                    segments = std::clamp(segments, minSeg, maxSeg);
-
-                    SphereCollision collision;
-                    if (apparentSize > 0.1)
+                    if (apparentSize > 0.001)
                     {
+                        {
+                            std::lock_guard<std::mutex> lock_rsm(renderStateMutex);
+                            renderState[i] = true;
+                        }
+
+                        glm::dmat4 planet_model(1.0);
+
                         glm::dvec3 planetScale = glm::dvec3(bodies[i].equatorialRadius, bodies[i].polarRadius, bodies[i].equatorialRadius);
-                        collision = renderSphereCollision(patchesOptions[i], segments, segments, (bodies[6].position - bodies[i].position) / planetScale, planetScale);
+                        float rotationAroundAxis = glm::radians(bodies[i].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
+                        setupPlanetModel(planet_model, bodies[i].position, planetScale, camera.Position, orbitalCameraPosition, bodies[i].axialTilt, rotationAroundAxis);
+
+                        {
+                            std::lock_guard<std::mutex> lock_mmm(modelMatricesMutex);
+                            modelMatrices[i] = planet_model;
+                        }
+
+                        glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationAroundAxis), 0.0f, glm::sin(rotationAroundAxis)), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationAroundAxis), 0.0f, glm::cos(rotationAroundAxis)));                                                                                                                          // rotation matrix for Y axis
+                        glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(-bodies[i].axialTilt)), -glm::sin(glm::radians(-bodies[i].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(-bodies[i].axialTilt)), glm::cos(glm::radians(-bodies[i].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis
+                        glm::mat3 rotationMatrix = rotationMatrixY * rotationMatrixZ;
+
+                        {
+                            std::lock_guard<std::mutex> lock_rmm(rotationMatricesMutex);
+                            rotationMatrices[i] = rotationMatrix;
+                        }
+
+                        unsigned int minSeg = 8;
+                        unsigned int maxSeg = 256;
+
+                        unsigned int k = 256;
+                        unsigned int segments = (unsigned int)(k * apparentSize);
+
+                        segments = std::clamp(segments, minSeg, maxSeg);
+
+                        {
+                            std::lock_guard<std::mutex> lock_nsm(numOfSegmentsMutex);
+                            numOfSegments[i] = segments;
+                        }
+
+                        if (apparentSize > 0.1)
+                        {
+                            {
+                                std::lock_guard<std::mutex> lock_ctm(collisionTestStateMutex);
+                                collisionTestState[i] = true;
+                            }
+
+                            glm::dvec3 planetScale = glm::dvec3(bodies[i].equatorialRadius, bodies[i].polarRadius, bodies[i].equatorialRadius);
+
+                            {
+                                std::lock_guard<std::mutex> lock_psm(planetScalesMutex);
+                                planetScales[i] = planetScale;
+                            }
+                        }
+                        else
+                        {
+                            std::lock_guard<std::mutex> lock_ctm(collisionTestStateMutex);
+                            collisionTestState[i] = false;
+                        }
                     }
                     else
                     {
-                        renderSphere(patchesOptions[i], segments, segments);
+                        std::lock_guard<std::mutex> lock_rsm(renderStateMutex);
+                        renderState[i] = false;
                     }
 
-                    if (collision.collisionState)
-                    {
-                        bodies[6].position += collision.closestSurface;
-                        bodies[6].velocity = bodies[i].velocity;
-                    }
+                    threadsLeft--;
+                });
+            }
+
+            // wait for all threads to finish
+            while (threadsLeft > 0)
+                std::this_thread::yield();
+
+            // looped planet rendering
+            // -----------------------
+            for (unsigned int i = 0; i < 6; i++)
+            {
+                if (!renderState[i])
+                    continue;
+
+                planetShaders[i].use();
+
+                if (planetDiffuseTextures[i] != 0) bindDiffuseTexture(planetDiffuseTextures[i]);
+                if (planetMetallicTextures[i] != 0) bindMetallicTexture(planetMetallicTextures[i]);
+                if (planetRoughnessTextures[i] != 0) bindRoughnessTexture(planetRoughnessTextures[i]);
+                if (planetHeightTextures[i] != 0) bindHeightTexture(planetHeightTextures[i]);
+                if (planetNormalTextures[i] != 0) bindNormalTexture(planetNormalTextures[i]);
+
+                planetShaders[i].setBool("flipHor", flipHorOptions[i]);
+                planetShaders[i].setBool("skipRM", skipRMOptions[i]);
+                planetShaders[i].setMat4("model", static_cast<glm::mat4>(modelMatrices[i]));
+
+                planetShaders[i].setMat3("rotationMatrix", rotationMatrices[i]);
+
+                SphereCollision collision;
+                if (collisionTestState[i])
+                    collision = renderSphereCollision(patchesOptions[i], numOfSegments[i], numOfSegments[i], (bodies[6].position - bodies[i].position) / planetScales[i], planetScales[i]);
+                else
+                    renderSphere(patchesOptions[i], numOfSegments[i], numOfSegments[i]);
+
+                if (collision.collisionState)
+                {
+                    bodies[6].position += collision.closestSurface;
+                    bodies[6].velocity = bodies[i].velocity;
                 }
             }
 
