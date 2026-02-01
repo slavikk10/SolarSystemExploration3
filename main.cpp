@@ -151,6 +151,8 @@ struct KeyInput
     bool keyLT_lastFrame = false;
 
     bool keyESC_lastFrame = false;
+
+    bool keyF1_lastFrame = false;
 };
 
 struct TextureState
@@ -232,6 +234,8 @@ glm::vec3 rotationalVelocity = glm::vec3(0.0f);
 glm::vec3 capsuleRot         = glm::vec3(0.0f);
 glm::vec3 torque             = glm::vec3(0.0f);
 glm::vec3 totalTorque        = glm::vec3(0.0f);
+
+bool orbitView = false;
 
 int main(int argc, char* argv[]) {
     float start = glfwGetTime();
@@ -1508,59 +1512,78 @@ int main(int argc, char* argv[]) {
         rocketPositions = { playerRelativeEarth[1].position };
         moonPositions   = { moonRelativeEarth[1].position };
 
-        for (unsigned int i = 0; i < 500; i++)
+        if (orbitView)
         {
-            moonRelativeEarth[1].updateObject(moonRelativeEarth, 7000.0f);
-
-            moonPositions.push_back(moonRelativeEarth[1].position);
-        }
-
-        glm::dvec3 startPos = playerRelativeEarth[1].position;
-        glm::dvec3 startVel = playerRelativeEarth[1].velocity;
-
-        glm::dvec3 normal = glm::normalize(glm::cross(startPos, startVel));
-        bool crossedOnce = false;
-        double previousDot = glm::dot(startPos, normal);
-
-        bool aborted = false;
-
-        for (unsigned int i = 0; i < 200; i++)
-        {
-            playerRelativeEarth[1].updateObject(playerRelativeEarth, 100.0f);
-
-            double distanceToPlanet = glm::length(playerRelativeEarth[1].position);
-
-            if (distanceToPlanet > majorRadius)
+            for (unsigned int i = 0; i < 500; i++)
             {
-                majorRadius = distanceToPlanet;
-                semiMajorAxis = playerRelativeEarth[1].position;
+                moonRelativeEarth[1].updateObject(moonRelativeEarth, 7000.0f);
+
+                moonPositions.push_back(moonRelativeEarth[1].position);
             }
+        
+            glm::dvec3 startPos = playerRelativeEarth[1].position;
+            glm::dvec3 startVel = playerRelativeEarth[1].velocity;
 
-            if (distanceToPlanet < minorRadius)
+            glm::dvec3 normal = glm::normalize(glm::cross(startPos, startVel));
+            bool crossedOnce = false;
+            double previousDot = glm::dot(startPos, normal);
+
+            bool aborted = false;
+
+            double r = glm::length(startPos - bodies[3].position);
+            double v = glm::length(startVel);
+            double E = (v * v) / 2.0 - 3.986e14 / r;
+            double a = -3.986e14 / (2.0 * E);
+
+            double T = 2.0 * M_PI * sqrt(a * a * a / 3.986e14);
+            double simulatedTime = 0.0;
+
+            if (E < 0)
             {
-                minorRadius = distanceToPlanet;
-                semiMinorAxis = playerRelativeEarth[1].position;
-            }
-
-            double dot = glm::dot(playerRelativeEarth[1].position, normal);
-
-            if (i > 1 && previousDot * dot < 0)
-            {
-                if (crossedOnce)
+                while(simulatedTime < T)
                 {
-                    std::cout << "aborting trajectory simulator\n";
-                    aborted = true;
-                    break;
-                }
-                else
-                {
-                    std::cout << "setting crossedOnce to true\n";
-                    crossedOnce = true;
+                    playerRelativeEarth[1].updateObject(playerRelativeEarth, 10.0f);
+                    double distanceToPlanet = glm::length(playerRelativeEarth[1].position);
+
+                    if (distanceToPlanet > majorRadius)
+                    {
+                        majorRadius = distanceToPlanet;
+                        semiMajorAxis = playerRelativeEarth[1].position;
+                    }
+
+                    if (distanceToPlanet < minorRadius)
+                    {
+                        minorRadius = distanceToPlanet;
+                        semiMinorAxis = playerRelativeEarth[1].position;
+                    }
+
+                    rocketPositions.push_back(playerRelativeEarth[1].position);
+                    simulatedTime += 10.0;
                 }
             }
+            else
+            {
+                while (glm::length(playerRelativeEarth[1].position - bodies[3].position) < 1500000000.0)
+                {
+                    playerRelativeEarth[1].updateObject(playerRelativeEarth, 10.0f);
+                    double distanceToPlanet = glm::length(playerRelativeEarth[1].position);
 
-            previousDot = dot;
-            rocketPositions.push_back(playerRelativeEarth[1].position);
+                    if (distanceToPlanet > majorRadius)
+                    {
+                        majorRadius = distanceToPlanet;
+                        semiMajorAxis = playerRelativeEarth[1].position;
+                    }
+
+                    if (distanceToPlanet < minorRadius)
+                    {
+                        minorRadius = distanceToPlanet;
+                        semiMinorAxis = playerRelativeEarth[1].position;
+                    }
+
+                    rocketPositions.push_back(playerRelativeEarth[1].position);
+                    simulatedTime += 10.0;
+                }
+            }
         }
         
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1931,11 +1954,11 @@ int main(int argc, char* argv[]) {
             RenderText(textShader, enginesOn ? "Engines: on" : "Engines: off", SCR_WIDTH/2, 10.0f, 0.5f, enginesOn ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f), true);
             RenderText(textShader, fuel_s, 3*SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
             RenderText(textShader, tm_s, SCR_WIDTH / 2, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, aborted ? "Currently in orbit" : "Not in orbit", SCR_WIDTH / 1.5f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
+            RenderText(textShader, "idk man how the hell am i supposed to know in orbit you are or not", SCR_WIDTH / 1.5f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
             RenderText(textShader, "Phase angle: " + std::to_string(glm::degrees(acos(glm::dot(bodies[6].position - bodies[3].position, bodies[4].position - bodies[3].position) / (glm::length(bodies[6].position - bodies[3].position) * glm::length(bodies[4].position - bodies[3].position))))) + "º", SCR_WIDTH - 100.0f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, "Orbit energy: " + std::to_string(0.5 * glm::dot(playerRelativeEarth[1].velocity, playerRelativeEarth[1].velocity) - 3.986e14 / glm::length(playerRelativeEarth[1].position)), SCR_WIDTH / 2, SCR_HEIGHT - 30.0f, 0.3f, glm::vec3(1.0f), true);
+            RenderText(textShader, "Orbit energy: " + std::to_string(0.5 * glm::dot(bodies[6].velocity - bodies[3].velocity, bodies[6].velocity - bodies[3].velocity) - 3.986e14 / glm::length(bodies[6].position - bodies[3].position)), SCR_WIDTH / 2, SCR_HEIGHT - 30.0f, 0.3f, glm::vec3(1.0f), true);
             RenderText(textShader, "Escape velocity: " + std::to_string(sqrt((2 * 3.986e14) / glm::length(playerRelativeEarth[1].position))), SCR_WIDTH / 2, SCR_HEIGHT - 45.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, "Velocity: " + std::to_string(glm::length(playerRelativeEarth[1].velocity)), SCR_WIDTH / 1.5, SCR_HEIGHT - 45.0f, 0.3f, glm::vec3(1.0f), true);
+            RenderText(textShader, "Velocity: " + std::to_string(glm::length(bodies[6].velocity - bodies[3].velocity)), SCR_WIDTH / 1.5, SCR_HEIGHT - 45.0f, 0.3f, glm::vec3(1.0f), true);
             //RenderText(textShader, std::to_string(bodies[6].velocity.x - bodies[3].velocity.x) + ", " + std::to_string(bodies[6].velocity.y - bodies[3].velocity.y) + ", " + std::to_string(bodies[6].velocity.z - bodies[3].velocity.z), SCR_WIDTH/2, 950, 0.3f, glm::vec3(1.0f), false);
             //RenderText(textShader, std::to_string(bodies[6].position.x - bodies[3].position.x) + ", " + std::to_string(bodies[6].position.y - bodies[3].position.y) + ", " + std::to_string(bodies[6].position.z - bodies[3].position.z), SCR_WIDTH/2, 900, 0.3f, glm::vec3(1.0f), false);
             //float distanceToCelestialBody = std::sqrt(std::pow(bodies[6].position.x - bodies[3].position.x, 2) + std::pow(bodies[6].position.y - bodies[3].position.y, 2) + std::pow(bodies[6].position.z - bodies[3].position.z, 2));
@@ -2077,6 +2100,17 @@ void processInput(GLFWwindow *window)
     else
     {
         keyInput.keyLT_lastFrame = false;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
+    {
+        if (!keyInput.keyF1_lastFrame)
+            orbitView = !orbitView;
+        keyInput.keyF1_lastFrame = true;
+    }
+    else
+    {
+        keyInput.keyF1_lastFrame = false;
     }
 
     // menu controls
