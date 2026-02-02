@@ -21,6 +21,7 @@ public:
     std::string heightTexPath;
     std::string normalTexPath;
     double mass;
+    double mu;
 
     glm::dvec3 velocity = glm::dvec3(0.0);
     glm::dvec3 sqrDstVec = glm::dvec3(0.0);
@@ -37,10 +38,7 @@ public:
         : position(position*1000.0), velocity(velocity*1000.0), averageRadius(averageRadius), equatorialRadius(equatorialRadius), polarRadius(polarRadius), gravityAcceleration(gravityAcceleration), axialTilt(axialTilt), rotationSpeed(rotationSpeed)
     {
         this->mass = calculateMass();
-    }
-
-    double calculateMass() {
-        return this->gravityAcceleration * this->averageRadius * this->averageRadius / G;
+        this->mu   = G * this->mass;
     }
 
     glm::dvec3 calculateAcceleration(std::vector<CelestialBody> &bodies, float deltaTime) {
@@ -74,5 +72,10 @@ public:
         glm::dvec3 newAcceleration = calculateAcceleration(bodies, deltaTime);
         this->velocity += (this->totalAcceleration + newAcceleration) * ((double)deltaTime * 0.5);
         this->totalAcceleration = newAcceleration;
+    }
+
+private:
+    double calculateMass() {
+        return this->gravityAcceleration * this->averageRadius * this->averageRadius / G;
     }
 };

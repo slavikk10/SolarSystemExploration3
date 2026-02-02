@@ -1439,6 +1439,7 @@ CMakeFiles/sse3.dir/main.cpp.o: /Users/vyacheslav/SSE3_OpenGL/main.cpp \
   /Users/vyacheslav/SSE3_OpenGL/include/stb_image.h \
   /Users/vyacheslav/SSE3_OpenGL/include/stb_image_write.h \
   /Users/vyacheslav/SSE3_OpenGL/include/threads.hpp \
+  /Users/vyacheslav/SSE3_OpenGL/include/trajectorysimulator.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/ui.hpp
 
 
@@ -2461,6 +2462,8 @@ CMakeFiles/sse3.dir/main.cpp.o: /Users/vyacheslav/SSE3_OpenGL/main.cpp \
 /Users/vyacheslav/SSE3_OpenGL/include/glm/ext/matrix_projection.inl:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/default_random_engine.h:
+
+/Users/vyacheslav/SSE3_OpenGL/include/trajectorysimulator.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/uniform_int_distribution.h:
 

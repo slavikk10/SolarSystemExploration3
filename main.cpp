@@ -13,10 +13,10 @@
 #include <json_parser.hpp>
 #include <celestialbody.hpp>
 #include <filesystem.hpp>
-//#include <socket.hpp>
 #include <functionsupport.hpp>
 #include <ui.hpp>
 #include <threads.hpp>
+#include <trajectorysimulator.hpp>
 
 #include <atomic>
 #include <cstdlib>
@@ -37,14 +37,6 @@
 
 #include <freetype2/ft2build.h>
 #include <freetype2/freetype/freetype.h>
-
-//std::vector<int> clientUIDs(1000000);
-
-//std::unordered_map<int, glm::dvec3> playerPositions;
-//std::mutex playerPositionsMutex;
-
-//std::vector<glm::dvec3> planetPositions(10);
-//std::vector<glm::dvec3> planetVelocities(10);
 
 struct SphereCollision;
 
@@ -67,9 +59,7 @@ void addToArr(const char* arr[], char* v);
 void renderQuad(float scale, float z_offset);
 void renderSphere(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32);
 SphereCollision renderSphereCollision(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32, glm::dvec3 testPoint=glm::dvec3(0.0), glm::dvec3 scale=glm::dvec3(0.0));
-void RenderLine(glm::dvec3 pos1, glm::dvec3 pos2, const glm::mat4 &view, const glm::mat4 &projection);
 void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color, bool centered);
-glm::vec2 convert3Dto2D(glm::vec3 position, const glm::mat4 &viewMatrix, const glm::mat4 &projectionMatrix);
 void saveCubemap(unsigned int cubemap, const std::string& folder, const std::string& filename_start_text, unsigned int size);
 void saveTexture(unsigned int texture, const std::string& folder, const std::string& filename, unsigned int size);
 
@@ -92,7 +82,7 @@ int timeMultiplierIndex = 0;
 // constants
 constexpr float sscale = 1.0f; // scale of the Solar System (1:1)
 const std::vector<std::string> faces = {"right", "left", "top", "bottom", "front", "back"}; // cubemap faces
-const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000};
+const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000}; // timewarp values
 
 bool isServer;
 int timestamp;
@@ -1512,9 +1502,11 @@ int main(int argc, char* argv[]) {
         rocketPositions = { playerRelativeEarth[1].position };
         moonPositions   = { moonRelativeEarth[1].position };
 
+        TrajectorySimulator rocketTrajectory(bodies[6], bodies[3]);
+
         if (orbitView)
         {
-            for (unsigned int i = 0; i < 500; i++)
+            /*for (unsigned int i = 0; i < 500; i++)
             {
                 moonRelativeEarth[1].updateObject(moonRelativeEarth, 7000.0f);
 
@@ -1583,7 +1575,9 @@ int main(int argc, char* argv[]) {
                     rocketPositions.push_back(playerRelativeEarth[1].position);
                     simulatedTime += 10.0;
                 }
-            }
+            }*/
+
+            rocketTrajectory.simulateTrajectory();
         }
         
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1900,10 +1894,13 @@ int main(int argc, char* argv[]) {
             for (unsigned int i = 0; i < marsPositions.size() - 1; i++)
                 RenderLine(marsPositions[i], marsPositions[i+1], view, projection);*/
 
-            for (unsigned int i = 0; i < rocketPositions.size() - 1; i++)
+            /*for (unsigned int i = 0; i < rocketPositions.size() - 1; i++)
                 RenderLine(camera.Position - rocketPositions[i], camera.Position - rocketPositions[i + 1], view, projection);
             for (unsigned int i = 0; i < moonPositions.size() - 1; i++)
-                RenderLine(camera.Position - moonPositions[i], camera.Position - moonPositions[i + 1], view, projection);
+                RenderLine(camera.Position - moonPositions[i], camera.Position - moonPositions[i + 1], view, projection);*/
+
+            if (orbitView)
+                rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         hdrShader.use();
@@ -1930,8 +1927,8 @@ int main(int argc, char* argv[]) {
             {
                 if (glm::dot(glm::normalize(bodies[i].position - (glm::dvec3)camera.Position), -(glm::dvec3)camera.Right) > 0.0) // check if the target is in front of the camera
                 {
-                    RenderCenteredImage(imageShader, objectNavImg, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection).y, 0.15f);
-                    RenderText(textShader, bodyNames[i], convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection).y + 35, 0.4f, glm::vec3(1.0f), true);
+                    RenderCenteredImage(imageShader, objectNavImg, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.15f);
+                    RenderText(textShader, bodyNames[i], convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).y + 35, 0.4f, glm::vec3(1.0f), true);
                 }
             }
         }
@@ -1978,8 +1975,8 @@ int main(int argc, char* argv[]) {
         // -----------------------------
         if (!menuState.inMenu)
         {
-            RenderText(textShader, std::to_string(majorRadius / 1000.0) + " km", convert3Dto2D(camera.Position - (bodies[3].position + semiMajorAxis), view, projection).x, convert3Dto2D(camera.Position - (bodies[3].position + semiMajorAxis), view, projection).y, 0.4f, glm::vec3(1.0f), true);
-            RenderText(textShader, std::to_string(minorRadius / 1000.0) + " km", convert3Dto2D(camera.Position - (bodies[3].position + semiMinorAxis), view, projection).x, convert3Dto2D(camera.Position - (bodies[3].position + semiMinorAxis), view, projection).y, 0.4f, glm::vec3(1.0f), true);
+            RenderText(textShader, std::to_string(majorRadius / 1000.0) + " km", convert3Dto2D(camera.Position - (bodies[3].position + semiMajorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - (bodies[3].position + semiMajorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.4f, glm::vec3(1.0f), true);
+            RenderText(textShader, std::to_string(minorRadius / 1000.0) + " km", convert3Dto2D(camera.Position - (bodies[3].position + semiMinorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - (bodies[3].position + semiMinorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.4f, glm::vec3(1.0f), true);
         }
             
         // main menu
@@ -2643,26 +2640,6 @@ SphereCollision renderSphereCollision(bool patches, unsigned int X_SEGMENTS, uns
     return result;
 }
 
-void RenderLine(glm::dvec3 pos1, glm::dvec3 pos2, const glm::mat4 &view, const glm::mat4 &projection)
-{
-    glEnable(GL_SCISSOR_TEST);
-    glScissor(0, 0, SCR_WIDTH, SCR_HEIGHT);
-
-    glm::dvec3 pos1c = pos1;
-    glm::dvec3 pos2c = pos2;
-
-    std::vector<glm::vec2> data;
-    data.push_back(convert3Dto2D(pos1c, view, projection));
-    data.push_back(convert3Dto2D(pos2c, view, projection));
-
-    glBindVertexArray(lineVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-    glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(float), &data[0], GL_STATIC_DRAW);
-
-    glBindVertexArray(lineVAO);
-    glDrawArrays(GL_LINES, 0, 2);
-}
-
 void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color, bool centered)
 {
     s.use();
@@ -2711,20 +2688,6 @@ void RenderText(Shader &s, std::string text, float x, float y, float scale, glm:
 
         x += (ch.Advance >> 6) * scale;
     }
-}
-
-glm::vec2 convert3Dto2D(glm::vec3 position, const glm::mat4 &view, const glm::mat4 &projection)
-{
-    glm::vec4 projected = projection * view * glm::vec4(position, 1.0f);
-
-    projected.w = std::max(projected.w, 0.001f);
-
-    glm::vec3 newPosition = glm::vec3(projected.x / projected.w, projected.y / projected.w, projected.z / projected.w);
-
-    newPosition.x = newPosition.x / 2.0f + 0.5f;
-    newPosition.y = newPosition.y / 2.0f + 0.5f;
-
-    return glm::vec2(newPosition.x * SCR_WIDTH, newPosition.y * SCR_HEIGHT);
 }
 
 void saveTexture(unsigned int texture, const std::string& folder, const std::string& filename, unsigned int size)
