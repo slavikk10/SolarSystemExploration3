@@ -17,6 +17,7 @@
 #include <ui.hpp>
 #include <threads.hpp>
 #include <trajectorysimulator.hpp>
+#include <texturesave.hpp>
 
 #include <atomic>
 #include <cstdlib>
@@ -61,7 +62,7 @@ void renderSphere(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGME
 SphereCollision renderSphereCollision(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32, glm::dvec3 testPoint=glm::dvec3(0.0), glm::dvec3 scale=glm::dvec3(0.0));
 void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color, bool centered);
 void saveCubemap(unsigned int cubemap, const std::string& folder, const std::string& filename_start_text, unsigned int size);
-void saveTexture(unsigned int texture, const std::string& folder, const std::string& filename, unsigned int size);
+//void saveTexture(unsigned int texture, const std::string& folder, const std::string& filename, unsigned int size_x, unsigned int size_y, GLenum format, GLenum type);
 
 // settings
 unsigned int SCR_WIDTH = 1920;
@@ -96,10 +97,12 @@ float fuelConsumption; // liters/s
 float fuel = 3000000.0f; // in liters
 
 struct Character {
-    unsigned int TextureID;  // ID handle of the glyph texture
-    glm::ivec2   Size;       // Size of glyph
-    glm::ivec2   Bearing;    // Offset from baseline to left/top of glyph
-    unsigned int Advance;    // Offset to advance to next glyph
+    unsigned char*     Texture;   // The actual glyph texture
+    unsigned int       TextureID; // ID handle of the glyph texture
+    glm::ivec2         Size;      // Size of glyph
+    glm::ivec2         Bearing;   // Offset from baseline to left/top of glyph
+    unsigned int       Advance;   // Offset to advance to next glyph
+    std::vector<float> TexCoords; // X texure coordinates of the glyph
 };
 
 std::map<char, Character> Characters;
@@ -227,70 +230,11 @@ glm::vec3 totalTorque        = glm::vec3(0.0f);
 
 bool orbitView = false;
 
+unsigned int textAtlas;
+int maxBearing = 0, maxHMB = 0;
+
 int main(int argc, char* argv[]) {
     float start = glfwGetTime();
-
-    // check if server or client
-    if (argc > 1) {
-        std::string arg1 = argv[1];
-        if (arg1 == "server") {
-            isServer = true;
-            std::cout << "Initialized server context successfully.\n";
-        } else if (arg1 == "client") {
-            isServer = false;
-            std::cout << "Initialized client context successfully.\n";
-        } else {
-            std::cout << "Unknown argument.\n";
-        }
-    }
-
-    isServer = true;
-
-    int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd == -1) {
-        std::cerr << "Error: server socket creation failed\n";
-        return 1;
-    }
-
-    int client_fd;
-    if (!isServer) {
-        client_fd = socket(AF_INET, SOCK_STREAM, 0);
-        if (client_fd == -1) {
-            std::cerr << "Error: client socket creation failed\n";
-            return 1;
-        }
-    }
-
-    if (isServer) {
-        sockaddr_in address;
-        address.sin_family = AF_INET;
-        address.sin_addr.s_addr = INADDR_ANY;
-        address.sin_port = htons(7070);
-
-        if (::bind(server_fd, (sockaddr*)&address, sizeof(address)) < 0) {
-            std::cerr << "Error: bind failed\n";
-            close(server_fd);
-            return 1;
-        }
-
-        if (listen(server_fd, 10) < 0) {
-            std::cerr << "Error: failed to listen\n";
-            close(server_fd);
-            return 1;
-        }
-    } else {
-        sockaddr_in address;
-        address.sin_family = AF_INET;
-        address.sin_addr.s_addr = inet_addr("127.0.0.1");
-        address.sin_port = htons(7070);
-
-        if (connect(client_fd, (sockaddr*)&address, sizeof(address)) < 0) {
-            std::cerr << "Error: failed to connect to server\n";
-            return 1;
-        }
-
-        std::cout << "Connected to server.\n";
-    }
 
     stbi_set_flip_vertically_on_load(true);
     // glfw: initialize and configure
@@ -306,7 +250,7 @@ int main(int argc, char* argv[]) {
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, isServer ? "Solar System Exploration 3 (server)" : "Solar System Exploration 3", glfwGetPrimaryMonitor(), NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Solar System Exploration 3", glfwGetPrimaryMonitor(), NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -346,6 +290,7 @@ int main(int argc, char* argv[]) {
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
   
+    unsigned int atlasWidth = 0, atlasHeight = 0;
     for (unsigned char c = 0; c < 128; c++)
     {
         // load character glyph 
@@ -354,6 +299,11 @@ int main(int argc, char* argv[]) {
             std::cout << "ERROR::FREETYPE: Failed to load Glyph" << std::endl;
             continue;
         }
+
+        unsigned int bufferSize = face->glyph->bitmap.width * face->glyph->bitmap.rows;
+        unsigned char* bufferCopy = new unsigned char[bufferSize];
+        memcpy(bufferCopy, face->glyph->bitmap.buffer, bufferSize);
+
         // generate texture
         unsigned int texture;
         glGenTextures(1, &texture);
@@ -367,8 +317,9 @@ int main(int argc, char* argv[]) {
             0,
             GL_RED,
             GL_UNSIGNED_BYTE,
-            face->glyph->bitmap.buffer
+            bufferCopy
         );
+
         // set texture options
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -376,31 +327,67 @@ int main(int argc, char* argv[]) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         // now store character for later use
         Character character = {
+            bufferCopy,
             texture, 
             glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
             glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
             static_cast<unsigned int>(face->glyph->advance.x)
         };
         Characters.insert(std::pair<char, Character>(c, character));
+
+        atlasWidth += face->glyph->bitmap.width + (face->glyph->advance.x >> 6);
+        atlasHeight = max(atlasHeight, face->glyph->bitmap.rows);
     }
+
+    for (unsigned char c = 0; c < 128; c++)
+    {
+        if (Characters[c].Bearing.y < 1000)
+        {
+            maxBearing = max(maxBearing, Characters[c].Bearing.y);
+            maxHMB     = max(maxHMB, Characters[c].Size.y - Characters[c].Bearing.y);
+        }
+    }
+
+    atlasHeight = maxBearing + maxHMB;
+
+    glGenTextures(1, &textAtlas);
+    glBindTexture(GL_TEXTURE_2D, textAtlas);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, atlasWidth, atlasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    unsigned int x_offset = 0;
+    for (unsigned char c = 0; c < 128; c++)
+    {
+        Character ch = Characters[c];
+
+        glTexSubImage2D(GL_TEXTURE_2D, 0, x_offset, atlasHeight - ch.Size.y, ch.Size.x, ch.Size.y, GL_RED, GL_UNSIGNED_BYTE, ch.Texture);
+
+        ch.TexCoords.push_back(x_offset / (float)atlasWidth);
+        ch.TexCoords.push_back((x_offset + ch.Size.x) / (float)atlasWidth);
+
+        Characters[c] = ch;
+
+        x_offset += ch.Size.x + (ch.Advance >> 6);
+    }
+
+    saveTexture(textAtlas, getFilePath("resources/textures/HDR"), "text_atlas", atlasWidth, atlasHeight, GL_RED, GL_UNSIGNED_BYTE, EXT_PNG);
 
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
     glPatchParameteri(GL_PATCH_VERTICES, 3);
 
     // build and compile shaders
     // -------------------------
     Shader shader(getFilePath("shaders/pbr/pbr.vert").c_str(), getFilePath("shaders/pbr/pbr.frag").c_str(), getFilePath("shaders/pbr/pbr.tesc").c_str(), getFilePath("shaders/pbr/pbr.tese").c_str());
     Shader shaderTex(getFilePath("shaders/pbr/pbr.vert").c_str(), getFilePath("shaders/pbr/pbr_textured.frag").c_str(), getFilePath("shaders/pbr/pbr.tesc").c_str(), getFilePath("shaders/pbr/pbr.tese").c_str());
-    //Shader shaderTex(getFilePath("shaders/pbr/pbr.vert").c_str(), getFilePath("shaders/pbr/pbr_textured.frag").c_str(), getFilePath("shaders/pbr/pbr.geom").c_str());
     Shader lightShader(getFilePath("shaders/light/light.vert").c_str(), getFilePath("shaders/light/light.frag").c_str(), getFilePath("shaders/light/light.geom").c_str());
     Shader atmosphereShader(getFilePath("shaders/atmosphere/atmosphere.vert").c_str(), getFilePath("shaders/atmosphere/atmosphere.frag").c_str(), getFilePath("shaders/atmosphere/atmosphere.geom").c_str());
     Shader equirectangularShader(getFilePath("shaders/equirectangular/skybox.vert").c_str(), getFilePath("shaders/equirectangular/skybox.frag").c_str(), getFilePath("shaders/equirectangular/skybox.geom").c_str());
@@ -414,178 +401,12 @@ int main(int argc, char* argv[]) {
     Shader imageShader(getFilePath("shaders/image/image.vert").c_str(), getFilePath("shaders/image/image.frag").c_str());
     Shader lineShader(getFilePath("shaders/line/line.vert").c_str(), getFilePath("shaders/line/line.frag").c_str());
 
+    // load models
+    // -----------
     Model cylinder(getFilePath("resources/models/simple_rocket.obj"));
 
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    /*float cubeVertices[] = {
-        // positions          // normals
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
-    };
-
-    float cubeVertices2[] = {
-        // positions          // normals           // texture coords
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
-    };*/
-
-    /*float lightVertices[] = {
-        // Front face
-        -1.0f, -1.0f,  1.0f,
-        1.0f, -1.0f,  1.0f,
-        1.0f,  1.0f,  1.0f,
-
-        1.0f,  1.0f,  1.0f,
-        -1.0f,  1.0f,  1.0f,
-        -1.0f, -1.0f,  1.0f,
-
-        // Back face
-        -1.0f, -1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-        1.0f,  1.0f, -1.0f,
-
-        1.0f,  1.0f, -1.0f,
-        1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
-
-        // Left face
-        -1.0f,  1.0f,  1.0f,
-        -1.0f,  1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
-
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f,  1.0f,
-        -1.0f,  1.0f,  1.0f,
-
-        // Right face
-        1.0f,  1.0f,  1.0f,
-        1.0f, -1.0f,  1.0f,
-        1.0f, -1.0f, -1.0f,
-
-        1.0f, -1.0f, -1.0f,
-        1.0f,  1.0f, -1.0f,
-        1.0f,  1.0f,  1.0f,
-
-        // Top face
-        -1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f,  1.0f,
-        1.0f,  1.0f,  1.0f,
-
-        1.0f,  1.0f,  1.0f,
-        1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-
-        // Bottom face
-        -1.0f, -1.0f, -1.0f,
-        1.0f, -1.0f, -1.0f,
-        1.0f, -1.0f,  1.0f,
-
-        1.0f, -1.0f,  1.0f,
-        -1.0f, -1.0f,  1.0f,
-        -1.0f, -1.0f, -1.0f
-    };*/
-
-    /*float floorVertices[] = {
-      // position             normal             tex coords
-        -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,  0.0f, 0.0f,
-         1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
-
-        -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 1.0f,  0.0f, 0.0f,
-         1.0f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
-        -1.0f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,  0.0f, 1.0f
-    };*/
-
-    /*float floorVertices[] = {
-      // position            normal              tex coords
-        -1.0f, 0.0f,  1.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f,
-        -1.0f, 0.0f, -1.0f,  0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
-         1.0f, 0.0f, -1.0f,  0.0f, 0.0f, 1.0f,   1.0f, 0.0f,
-
-        -1.0f, 0.0f,  1.0f,  0.0f, 0.0f, 1.0f,   0.0f, 1.0f,
-         1.0f, 0.0f, -1.0f,  0.0f, 0.0f, 1.0f,   1.0f, 0.0f,
-         1.0f, 0.0f,  1.0f,  0.0f, 0.0f, 1.0f,   1.0f, 1.0f
-    };*/
-
+    // setup cube vertices (for skybox)
+    // --------------------------------
     float skyboxVertices[] = {
         // positions          
         -1.0f,  1.0f, -1.0f,
@@ -631,32 +452,6 @@ int main(int argc, char* argv[]) {
          1.0f, -1.0f,  1.0f
     };
 
-    // cube VAO
-    /*unsigned int cubeVAO, cubeVBO;
-    glGenVertexArrays(1, &cubeVAO);
-    glGenBuffers(1, &cubeVBO);
-    glBindVertexArray(cubeVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices2), &cubeVertices2, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    // floor VAO
-    unsigned int floorVAO, floorVBO;
-    glGenVertexArrays(1, &floorVAO);
-    glGenBuffers(1, &floorVBO);
-    glBindVertexArray(floorVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertices), &floorVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3  * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6  * sizeof(float)));*/
     // skybox VAO and VBO
     unsigned int skyboxVAO, skyboxVBO;
     glGenVertexArrays(1, &skyboxVAO);
@@ -666,16 +461,6 @@ int main(int argc, char* argv[]) {
     glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    // light VAO
-    /*unsigned int lightVAO, lightVBO;
-    glGenVertexArrays(1, &lightVAO);
-    glGenBuffers(1, &lightVBO);
-    glBindVertexArray(lightVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, lightVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(lightVertices), &lightVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);*/
-
 
     // text VAO and VBO
     glGenBuffers(1, &textVBO);
@@ -687,17 +472,6 @@ int main(int argc, char* argv[]) {
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // image VAO and VBO
-    /*glGenBuffers(1, &imageVBO);
-    glGenVertexArrays(1, &imageVAO);
-    glBindVertexArray(imageVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, imageVBO);
-    glBufferData(GL_ARRAY_BUFFER, 6 * 4 * sizeof(float), NULL, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);*/
 
     // line VAO and VBO
     glGenBuffers(1, &lineVBO);
@@ -856,59 +630,6 @@ int main(int argc, char* argv[]) {
 
     for (unsigned int i = 0; i < textureLoad.size(); i++)
         loadedTextures[i] = genTexture(textureLoad[i].image, textureLoad[i].width, textureLoad[i].height, textureLoad[i].nrComponents);
-
-    // load planet textures
-    // -----------------
-    // Mercury
-    /*unsigned int mercurySurfaceTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mercury/mercury_surface.jpg", false);
-
-    // Venus
-    unsigned int venusAtmoTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/venus/venus_atmo.jpg", false);
-
-    // Earth
-    unsigned int earthSurfaceTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_surface.png", false);
-    unsigned int earthMetallicTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_metallic.jpg", false);
-    unsigned int earthRoughnessTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_metallic.jpg", false);
-    unsigned int earthHeightTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_height.jpg", false);
-    unsigned int earthNormalTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png", false);
-    unsigned int earthCloudsTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_clouds.png", false);
-
-    // Earth/Moon
-    unsigned int moonSurfaceTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/moon/moon_surface.png", false);
-    unsigned int moonHeightTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/moon/moon_surface.png", false);
-    unsigned int moonNormalTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/moon/moon_normal.png", false);
-
-    // Mars
-    //unsigned int marsSurfaceTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mars/mars_surface.jpg", false);
-    Image marsSurfaceTex = loadImage("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mars/mars_surface.jpg", false);*/
-
-    // Jupiter
-    /*unsigned int jupiterAtmoTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/jupiter_atmo.png", false);
-
-    // Saturn
-    unsigned int saturnAtmoTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/saturn/saturn_atmo.jpg", false);
-
-    // Uranus
-    unsigned int uranusAtmoTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/uranus/uranus_atmo.jpg", false);
-
-    // Neptune
-    unsigned int neptuneAtmoTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/neptune/neptune_atmo.jpg", false);*/
-
-    // Moon textures
-    // -----------------------------------------------------------------------------------------------------------------------------------
-
-    // Jupiter/Io
-    /*unsigned int ioSurfaceTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/moons/io/io_surface.png", false);
-
-    // Jupiter/Europa
-    unsigned int europaSurfaceTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/moons/io/io_surface.png", false);
-    unsigned int europaHeightTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/moons/europa/europa_height.png", false);
-
-    // Jupiter/Ganymede
-    unsigned int ganymedeSurfaceTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/moons/ganymede/ganymede_surface.jpg", false);
-
-    // Jupiter/Callisto
-    unsigned int callistoSurfaceTex = loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/moons/io/io_surface.png", false);*/
 
     stbi_set_flip_vertically_on_load(false);
 
@@ -1138,29 +859,26 @@ int main(int argc, char* argv[]) {
     saveCubemap(envCubemap, getFilePath("resources/textures/PBR"), "env_", 1024);
     saveTexture(brdfLUTTexture, getFilePath("resources/textures/PBR"), "brdf_lut", 512);*/
 
-    std::vector<CelestialBody> bodies(3);
-    if (isServer) {
-        bodies = {
-            CelestialBody(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), 695700000, 695508000, 695800000, 274.049, 0.0, 0.0), // Sun
-            parsePlanetJSON("resources/planets/mercury.json"),
-            parsePlanetJSON("resources/planets/venus.json"),
-            parsePlanetJSON("resources/planets/earth.json"),
-            parsePlanetJSON("resources/planets/moon.json"),
-            parsePlanetJSON("resources/planets/mars.json"),
-            //CelestialBody(glm::vec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07+6378.137+1000.0), glm::vec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Moon
-            CelestialBody(glm::vec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07 - 10000.0f), glm::vec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Earth
-            //CelestialBody(glm::vec3(-3.010549851451788E+07, -2.405822593778040E+06, -6.359103389001439E+07 + 10000.0f), glm::vec3(3.430790710871147E+01, -4.642893227687938E+00, -1.832212359355950E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mercury
-            //CelestialBody(glm::vec3(-1.954858919301744E+08, 1.958070047790088E+06 - 10000.0f, -1.364989283716056E+08), glm::vec3(1.476574022529569E+01, -7.352840574207127E-01, -1.781400659243546E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mars
-            //CelestialBody(glm::vec3(-1.954828792932118E+08, 1.957055843438603E+06 - 10.0f, -1.364900477469241E+08), glm::vec3(1.299942898733208E+01,  2.312948473565051E-01, -1.713550929627585E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mars/Phobos
-            CelestialBody(glm::vec3(-4.155962876379675e+10, -2.252909919162691e+09,  7.674747027447987e+11), glm::vec3(-1.319807488636713e+4, -5.516948900142156e-4, -8.347507826614081e-5), 69911000.0, 71492000.0, 66854000.0, 24.79, 0.0, 0.0), // Jupiter
-            CelestialBody(glm::vec3( 1.426000189864588e+12, -5.468390271451207e+10, -1.203550185774606e+11), glm::vec3( 2.775345470427069e-4, -1.774901403126501e-4,  9.603681056096420e+3), 58232000.0, 60268000.0, 54364000.0, 10.44, 0.0, 0.0), // Saturn
-            CelestialBody(glm::vec3( 1.543100133303414E+09, -1.079295296547151E+07,  2.476645699940574E+09), glm::vec3(-5.829935196501141E+00, 8.764722226773869E-02, 3.283761162053807E+0), 25362000.0, 25559000.0, 24973000.0, 8.690, 0.0, 0.0), // Uranus
-            CelestialBody(glm::vec3( 4.469373923682106E+09, -1.033281370518243E+08,  1.586954226509337E+07), glm::vec3(-5.559040099903875E-2, -1.115959486943088E-01, 5.466737189466951E+0), 24624000.0, 24766000.0, 24342000.0, 11.15, 0.0, 0.0), // Neptune
-            // Moons (excluding Luna)
-            parsePlanetJSON("resources/planets/phobos.json"),
-            CelestialBody(glm::vec3(-1.954645686512529E+08, 1.948474304707609E+06, -1.365008465245946E+08), glm::vec3(1.490155449375842E+01, -7.012061170424948E-01, -1.647023847564131E+01), 6.2,   6.2,   6.2,   0.003,  0.0, 0.0), // Mars/Deim
-        };
-    }
+    std::vector<CelestialBody> bodies = {
+        CelestialBody(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), 695700000, 695508000, 695800000, 274.049, 0.0, 0.0), // Sun
+        parsePlanetJSON("resources/planets/mercury.json"),
+        parsePlanetJSON("resources/planets/venus.json"),
+        parsePlanetJSON("resources/planets/earth.json"),
+        parsePlanetJSON("resources/planets/moon.json"),
+        parsePlanetJSON("resources/planets/mars.json"),
+        //CelestialBody(glm::vec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07+6378.137+1000.0), glm::vec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Moon
+        CelestialBody(glm::vec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07 - 10000.0f), glm::vec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Earth
+        //CelestialBody(glm::vec3(-3.010549851451788E+07, -2.405822593778040E+06, -6.359103389001439E+07 + 10000.0f), glm::vec3(3.430790710871147E+01, -4.642893227687938E+00, -1.832212359355950E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mercury
+        //CelestialBody(glm::vec3(-1.954858919301744E+08, 1.958070047790088E+06 - 10000.0f, -1.364989283716056E+08), glm::vec3(1.476574022529569E+01, -7.352840574207127E-01, -1.781400659243546E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mars
+        //CelestialBody(glm::vec3(-1.954828792932118E+08, 1.957055843438603E+06 - 10.0f, -1.364900477469241E+08), glm::vec3(1.299942898733208E+01,  2.312948473565051E-01, -1.713550929627585E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mars/Phobos
+        CelestialBody(glm::vec3(-4.155962876379675e+10, -2.252909919162691e+09,  7.674747027447987e+11), glm::vec3(-1.319807488636713e+4, -5.516948900142156e-4, -8.347507826614081e-5), 69911000.0, 71492000.0, 66854000.0, 24.79, 0.0, 0.0), // Jupiter
+        CelestialBody(glm::vec3( 1.426000189864588e+12, -5.468390271451207e+10, -1.203550185774606e+11), glm::vec3( 2.775345470427069e-4, -1.774901403126501e-4,  9.603681056096420e+3), 58232000.0, 60268000.0, 54364000.0, 10.44, 0.0, 0.0), // Saturn
+        CelestialBody(glm::vec3( 1.543100133303414E+09, -1.079295296547151E+07,  2.476645699940574E+09), glm::vec3(-5.829935196501141E+00, 8.764722226773869E-02, 3.283761162053807E+0), 25362000.0, 25559000.0, 24973000.0, 8.690, 0.0, 0.0), // Uranus
+        CelestialBody(glm::vec3( 4.469373923682106E+09, -1.033281370518243E+08,  1.586954226509337E+07), glm::vec3(-5.559040099903875E-2, -1.115959486943088E-01, 5.466737189466951E+0), 24624000.0, 24766000.0, 24342000.0, 11.15, 0.0, 0.0), // Neptune
+        // Moons (excluding Luna)
+        parsePlanetJSON("resources/planets/phobos.json"),
+        CelestialBody(glm::vec3(-1.954645686512529E+08, 1.948474304707609E+06, -1.365008465245946E+08), glm::vec3(1.490155449375842E+01, -7.012061170424948E-01, -1.647023847564131E+01), 6.2,   6.2,   6.2,   0.003,  0.0, 0.0), // Mars/Deim
+    };
 
     std::vector<CelestialBody> trajectoryBodies = bodies;
 
@@ -1455,9 +1173,10 @@ int main(int argc, char* argv[]) {
 
         timeMultiplier = timewarpValues[timeMultiplierIndex];
 
-        for (auto &body : bodies)
-            if (!menuState.inMenu && !menuState.escMenu)
-                body.updateObject(bodies, deltaTime * timeMultiplier);
+        for (unsigned int i = 0; i < 2; i++)
+            for (auto &body : bodies)
+                if (!menuState.inMenu && !menuState.escMenu)
+                    body.updateObject(bodies, deltaTime * timeMultiplier / 2);
 
         //bodies[6].velocity = bodies[3].velocity + glm::cross(glm::dvec3(0.01744), glm::dvec3(bodies[6].position - bodies[3].position));
 
@@ -1880,24 +1599,10 @@ int main(int argc, char* argv[]) {
             shader.setVec3("albedo", glm::vec3(1.0));
             cylinder.DrawPatched(shader);
 
-            // BETA: render planet trajectories
+            // render player trajectory
+            // ------------------------
             lineShader.use();
             lineShader.setMat4("projection", orthoProjection);
-            /*for (unsigned int i = 0; i < mercuryPositions.size() - 1; i++)
-                RenderLine(mercuryPositions[i], mercuryPositions[i+1], view, projection);
-            for (unsigned int i = 0; i < venusPositions.size() - 1; i++)
-                RenderLine(venusPositions[i], venusPositions[i+1], view, projection);
-            for (unsigned int i = 0; i < earthPositions.size() - 1; i++)
-                RenderLine(earthPositions[i], earthPositions[i+1], view, projection);
-            for (unsigned int i = 0; i < moonPositions.size() - 1; i++)
-                RenderLine(moonPositions[i], moonPositions[i+1], view, projection);
-            for (unsigned int i = 0; i < marsPositions.size() - 1; i++)
-                RenderLine(marsPositions[i], marsPositions[i+1], view, projection);*/
-
-            /*for (unsigned int i = 0; i < rocketPositions.size() - 1; i++)
-                RenderLine(camera.Position - rocketPositions[i], camera.Position - rocketPositions[i + 1], view, projection);
-            for (unsigned int i = 0; i < moonPositions.size() - 1; i++)
-                RenderLine(camera.Position - moonPositions[i], camera.Position - moonPositions[i + 1], view, projection);*/
 
             if (orbitView)
                 rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
@@ -1921,7 +1626,7 @@ int main(int argc, char* argv[]) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        if (!menuState.inMenu)
+        /*if (!menuState.inMenu)
         {
             for (unsigned int i = 0; i < 13; i++)
             {
@@ -1931,7 +1636,7 @@ int main(int argc, char* argv[]) {
                     RenderText(textShader, bodyNames[i], convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).y + 35, 0.4f, glm::vec3(1.0f), true);
                 }
             }
-        }
+        }*/
 
         // render text
         // -----------
@@ -1946,38 +1651,28 @@ int main(int argc, char* argv[]) {
         imageShader.setFloat("transparency", 1.0f);
         if (!menuState.inMenu)
         {
-            RenderText(textShader, fps_s, 5.0f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), false); // render at top-left corner at 0.3 size with white color
+            RenderText(textShader, fps_s, 5.0f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), false); // render at top-left corner with 0.3 size with white color
             RenderText(textShader, throttle_s, SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
             RenderText(textShader, enginesOn ? "Engines: on" : "Engines: off", SCR_WIDTH/2, 10.0f, 0.5f, enginesOn ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f), true);
             RenderText(textShader, fuel_s, 3*SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
             RenderText(textShader, tm_s, SCR_WIDTH / 2, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
             RenderText(textShader, "idk man how the hell am i supposed to know in orbit you are or not", SCR_WIDTH / 1.5f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, "Phase angle: " + std::to_string(glm::degrees(acos(glm::dot(bodies[6].position - bodies[3].position, bodies[4].position - bodies[3].position) / (glm::length(bodies[6].position - bodies[3].position) * glm::length(bodies[4].position - bodies[3].position))))) + "º", SCR_WIDTH - 100.0f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
+            /*RenderText(textShader, "Phase angle: " + std::to_string(glm::degrees(acos(glm::dot(bodies[6].position - bodies[3].position, bodies[4].position - bodies[3].position) / (glm::length(bodies[6].position - bodies[3].position) * glm::length(bodies[4].position - bodies[3].position))))) + "º", SCR_WIDTH - 100.0f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
             RenderText(textShader, "Orbit energy: " + std::to_string(0.5 * glm::dot(bodies[6].velocity - bodies[3].velocity, bodies[6].velocity - bodies[3].velocity) - 3.986e14 / glm::length(bodies[6].position - bodies[3].position)), SCR_WIDTH / 2, SCR_HEIGHT - 30.0f, 0.3f, glm::vec3(1.0f), true);
             RenderText(textShader, "Escape velocity: " + std::to_string(sqrt((2 * 3.986e14) / glm::length(playerRelativeEarth[1].position))), SCR_WIDTH / 2, SCR_HEIGHT - 45.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, "Velocity: " + std::to_string(glm::length(bodies[6].velocity - bodies[3].velocity)), SCR_WIDTH / 1.5, SCR_HEIGHT - 45.0f, 0.3f, glm::vec3(1.0f), true);
-            //RenderText(textShader, std::to_string(bodies[6].velocity.x - bodies[3].velocity.x) + ", " + std::to_string(bodies[6].velocity.y - bodies[3].velocity.y) + ", " + std::to_string(bodies[6].velocity.z - bodies[3].velocity.z), SCR_WIDTH/2, 950, 0.3f, glm::vec3(1.0f), false);
-            //RenderText(textShader, std::to_string(bodies[6].position.x - bodies[3].position.x) + ", " + std::to_string(bodies[6].position.y - bodies[3].position.y) + ", " + std::to_string(bodies[6].position.z - bodies[3].position.z), SCR_WIDTH/2, 900, 0.3f, glm::vec3(1.0f), false);
-            //float distanceToCelestialBody = std::sqrt(std::pow(bodies[6].position.x - bodies[3].position.x, 2) + std::pow(bodies[6].position.y - bodies[3].position.y, 2) + std::pow(bodies[6].position.z - bodies[3].position.z, 2));
-            //float orbitalVelocity = std::sqrt(3.986e+14 / distanceToCelestialBody) + (bodies[6].velocity.x - bodies[3].velocity.x);
-            //RenderText(textShader, std::to_string(orbitalVelocity), SCR_WIDTH/2, 850, 0.3f, glm::vec3(1.0f), false);
-
-            if (menuState.transparency != 0.0f && menuState.transparency > 0.0f)
-                menuState.transparency -= deltaTime / 5.0f;
-            else
-                menuState.transparency = 0.0f;
+            RenderText(textShader, "Velocity: " + std::to_string(glm::length(bodies[6].velocity - bodies[3].velocity)), SCR_WIDTH / 1.5, SCR_HEIGHT - 45.0f, 0.3f, glm::vec3(1.0f), true);*/
         }
 
-        if (menuState.options)
-            RenderCenteredImage(imageShader, options_panel, SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f, 0.85f);
+        //if (menuState.options)
+            //RenderCenteredImage(imageShader, options_panel, SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f, 0.85f);
 
         // render major and minor radius
         // -----------------------------
-        if (!menuState.inMenu)
+        /*if (!menuState.inMenu)
         {
             RenderText(textShader, std::to_string(majorRadius / 1000.0) + " km", convert3Dto2D(camera.Position - (bodies[3].position + semiMajorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - (bodies[3].position + semiMajorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.4f, glm::vec3(1.0f), true);
             RenderText(textShader, std::to_string(minorRadius / 1000.0) + " km", convert3Dto2D(camera.Position - (bodies[3].position + semiMinorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - (bodies[3].position + semiMinorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.4f, glm::vec3(1.0f), true);
-        }
+        }*/
             
         // main menu
         // ---------
@@ -2647,18 +2342,21 @@ void RenderText(Shader &s, std::string text, float x, float y, float scale, glm:
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(textVAO);
 
+    glBindTexture(GL_TEXTURE_2D, textAtlas);
+
+    float totalWidth = 0;
+
+    std::string::const_iterator c2;
+    for (c2 = text.begin(); c2 != text.end(); c2++)
+        totalWidth += Characters[*c2].Size.x * scale;
+
     if (centered)
-    {
-        float totalWidth = 0;
+        x -= totalWidth / 2;
 
-        std::string::const_iterator c2;
-        for (c2 = text.begin(); c2 != text.end(); c2++)
-            totalWidth += Characters[*c2].Size.x * scale;
-
-        x = x - totalWidth / 2;
-    }
+    std::vector<float> totalVertices;
 
     std::string::const_iterator c;
+    unsigned int i = 0;
     for (c = text.begin(); c != text.end(); c++)
     {
         Character ch = Characters[*c];
@@ -2667,39 +2365,32 @@ void RenderText(Shader &s, std::string text, float x, float y, float scale, glm:
         float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
 
         float w = ch.Size.x * scale;
-        float h = ch.Size.y * scale;
+        float h = ch.Size.y * scale + (maxHMB - (ch.Size.y - ch.Bearing.y)) * scale;
+
+        float s1 = ch.TexCoords[0];
+        float s2 = ch.TexCoords[1];
 
         float vertices[6][4] = {
-            { xpos,     ypos + h,   0.0f, 0.0f },            
-            { xpos,     ypos,       0.0f, 1.0f },
-            { xpos + w, ypos,       1.0f, 1.0f },
+            { xpos,     ypos + h,   s1, 0.0f },
+            { xpos,     ypos,       s1, 1.0f },
+            { xpos + w, ypos,       s2, 1.0f },
 
-            { xpos,     ypos + h,   0.0f, 0.0f },
-            { xpos + w, ypos,       1.0f, 1.0f },
-            { xpos + w, ypos + h,   1.0f, 0.0f }           
+            { xpos,     ypos + h,   s1, 0.0f },
+            { xpos + w, ypos,       s2, 1.0f },
+            { xpos + w, ypos + h,   s2, 0.0f }
         };
 
-        glBindTexture(GL_TEXTURE_2D, ch.TextureID);
-        glBindBuffer(GL_ARRAY_BUFFER, textVBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        for (unsigned int j = 0; j < 6; j++)
+            for (unsigned int k = 0; k < 4; k++)
+                totalVertices.push_back(vertices[j][k]);
 
         x += (ch.Advance >> 6) * scale;
+        i++;
     }
-}
 
-void saveTexture(unsigned int texture, const std::string& folder, const std::string& filename, unsigned int size)
-{
-    std::vector<float> data(size * size * 3);
+    glBindBuffer(GL_ARRAY_BUFFER, textVBO);
+    glBufferData(GL_ARRAY_BUFFER, totalVertices.size() * sizeof(float), totalVertices.data(), GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, data.data());
-        
-    std::string file_path = folder + "/" + filename + ".hdr";
-    stbi_write_hdr(file_path.c_str(), size, size, 3, data.data());
-
-    data.clear();
+    glDrawArrays(GL_TRIANGLES, 0, 6 * text.size());
 }
