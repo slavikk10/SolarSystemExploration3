@@ -1438,12 +1438,15 @@ CMakeFiles/sse3.dir/main.cpp.o: /Users/vyacheslav/SSE3_OpenGL/main.cpp \
   /Users/vyacheslav/SSE3_OpenGL/include/shader.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/stb_image.h \
   /Users/vyacheslav/SSE3_OpenGL/include/stb_image_write.h \
+  /Users/vyacheslav/SSE3_OpenGL/include/texturesave.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/threads.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/trajectorysimulator.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/ui.hpp
 
 
 /Users/vyacheslav/SSE3_OpenGL/include/ui.hpp:
+
+/Users/vyacheslav/SSE3_OpenGL/include/texturesave.hpp:
 
 /Users/vyacheslav/SSE3_OpenGL/include/model.hpp:
 

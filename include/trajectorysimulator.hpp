@@ -19,7 +19,7 @@ public:
         r = glm::length(system[0].position - system[1].position);
         v = glm::length(system[0].velocity);
 
-        E = (v * v) / 2.0 - relativeBody.mu / r;
+        E = (v * v) / 2.0 - system[1].mu / r;
     }
 
     void simulateTrajectory()
@@ -30,9 +30,9 @@ public:
         double r = glm::length(startPos - system[1].position);
         double v = glm::length(startVel);
         
-        double a = -relativeBody.mu / (2.0 * E);
+        double a = -system[1].mu / (2.0 * E);
 
-        double T = 2.0 * M_PI * sqrt(a * a * a / relativeBody.mu);
+        double T = 2.0 * M_PI * sqrt(a * a * a / system[1].mu);
         double simulatedTime = 0.0;
 
         if (E < 0)
