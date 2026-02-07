@@ -21,7 +21,7 @@
 		{
 			"isCMake" : true,
 			"isExternal" : true,
-			"path" : "/Users/vyacheslav/.brew/share/cmake/Modules/CMakeUnixFindMake.cmake"
+			"path" : "/Users/vyacheslav/.brew/share/cmake/Modules/CMakeNinjaFindMake.cmake"
 		},
 		{
 			"isCMake" : true,
