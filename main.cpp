@@ -18,6 +18,7 @@
 #include <threads.hpp>
 #include <trajectorysimulator.hpp>
 #include <texturesave.hpp>
+#include <callbacks.hpp>
 
 #include <atomic>
 #include <cstdlib>
@@ -62,7 +63,6 @@ void renderSphere(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGME
 SphereCollision renderSphereCollision(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32, glm::dvec3 testPoint=glm::dvec3(0.0), glm::dvec3 scale=glm::dvec3(0.0));
 void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color, bool centered);
 void saveCubemap(unsigned int cubemap, const std::string& folder, const std::string& filename_start_text, unsigned int size);
-//void saveTexture(unsigned int texture, const std::string& folder, const std::string& filename, unsigned int size_x, unsigned int size_y, GLenum format, GLenum type);
 
 // settings
 unsigned int SCR_WIDTH = 1920;
@@ -127,15 +127,6 @@ struct MouseInput
     bool rmbPressed = false;
 };
 
-struct MenuState
-{
-    bool inMenu = true;
-    float transparency = 1.0f;
-    bool options = false;
-
-    bool escMenu = false;
-};
-
 struct KeyInput
 {
     bool keyT_lastFrame = false;
@@ -155,39 +146,7 @@ struct TextureState
 };
 
 MouseInput mouseInput;
-MenuState menuState;
 KeyInput keyInput;
-
-std::function<void()> startCallback = []()
-{
-    menuState.inMenu = false;
-};
-
-std::function<void()> optionsCallback = []()
-{
-    menuState.options = true;
-};
-
-std::function<void()> optionsCloseCallback = []()
-{
-    menuState.options = false;
-};
-
-std::function<void(GLFWwindow* window)> quitCallback = [](GLFWwindow* window)
-{
-    glfwSetWindowShouldClose(window, true);
-};
-
-std::function<void()> rtgCallback = []()
-{
-    menuState.escMenu = false;
-};
-
-std::function<void()> rtmmCallback = []()
-{
-    menuState.inMenu  = true;
-    menuState.escMenu = false;
-};
 
 struct PlanetKey 
 {
@@ -213,13 +172,6 @@ struct SphereCollision
     glm::dvec3 closestSurface;
 };
 
-struct OrbitInfo
-{
-    double radius_minor;
-    double energy;
-    glm::dvec3 angular_momentum;
-};
-
 static std::map<PlanetKey, PlanetData> planetCache;
 static std::map<PlanetKey, PlanetData> cPlanetCache;
 
@@ -236,7 +188,6 @@ int maxBearing = 0, maxHMB = 0;
 int main(int argc, char* argv[]) {
     float start = glfwGetTime();
 
-    stbi_set_flip_vertically_on_load(true);
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
@@ -290,6 +241,8 @@ int main(int argc, char* argv[]) {
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
   
+    // load characters
+    // ---------------
     unsigned int atlasWidth = 0, atlasHeight = 0;
     for (unsigned char c = 0; c < 128; c++)
     {
@@ -339,17 +292,19 @@ int main(int argc, char* argv[]) {
         atlasHeight = max(atlasHeight, face->glyph->bitmap.rows);
     }
 
+    // find max character values
+    // -------------------------
     for (unsigned char c = 0; c < 128; c++)
     {
-        if (Characters[c].Bearing.y < 1000)
-        {
-            maxBearing = max(maxBearing, Characters[c].Bearing.y);
-            maxHMB     = max(maxHMB, Characters[c].Size.y - Characters[c].Bearing.y);
-        }
+        maxBearing = max(maxBearing, Characters[c].Bearing.y);
+        maxHMB     = max(maxHMB, Characters[c].Size.y - Characters[c].Bearing.y);
     }
 
+    // configure text atlas height
     atlasHeight = maxBearing + maxHMB;
 
+    // generate text atlas
+    // -------------------
     glGenTextures(1, &textAtlas);
     glBindTexture(GL_TEXTURE_2D, textAtlas);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, atlasWidth, atlasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
@@ -358,6 +313,8 @@ int main(int argc, char* argv[]) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+    // fill the text atlas texture
+    // ---------------------------
     unsigned int x_offset = 0;
     for (unsigned char c = 0; c < 128; c++)
     {
@@ -373,8 +330,12 @@ int main(int argc, char* argv[]) {
         x_offset += ch.Size.x + (ch.Advance >> 6);
     }
 
+    // save text atlas to game resources
+    // ---------------------------------
     saveTexture(textAtlas, getFilePath("resources/textures/HDR"), "text_atlas", atlasWidth, atlasHeight, GL_RED, GL_UNSIGNED_BYTE, EXT_PNG);
 
+    // free up resources
+    // -----------------
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
 
@@ -397,6 +358,8 @@ int main(int argc, char* argv[]) {
     Shader skyboxShader(getFilePath("shaders/skybox/skybox.vert").c_str(), getFilePath("shaders/skybox/skybox.frag").c_str(), getFilePath("shaders/skybox/skybox.geom").c_str());
     Shader hdrShader(getFilePath("shaders/hdr/hdr.vert").c_str(), getFilePath("shaders/hdr/hdr.frag").c_str(), getFilePath("shaders/hdr/hdr.geom").c_str());
 
+    // build and compile 2D shaders
+    // ----------------------------
     Shader textShader(getFilePath("shaders/text/text.vert").c_str(), getFilePath("shaders/text/text.frag").c_str());
     Shader imageShader(getFilePath("shaders/image/image.vert").c_str(), getFilePath("shaders/image/image.frag").c_str());
     Shader lineShader(getFilePath("shaders/line/line.vert").c_str(), getFilePath("shaders/line/line.frag").c_str());
@@ -508,6 +471,8 @@ int main(int argc, char* argv[]) {
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
 
+    // initialize buffers
+    // ------------------
     unsigned int fbo;
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -529,33 +494,20 @@ int main(int argc, char* argv[]) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     // attach buffers
+    // --------------
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer, 0);
 
-    stbi_set_flip_vertically_on_load(false);
-
-    /*unsigned int captureFBO, captureRBO;
-    glGenFramebuffers(1, &captureFBO);
-    glGenRenderbuffers(1, &captureRBO);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, 1024, 1024);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-    GL_RENDERBUFFER, captureRBO);*/
-
-    unsigned int envCubemap = loadCubemap(getFilePath("resources/textures/PBR"), "env_", faces, false, false);
-    unsigned int irradianceMap = loadCubemap("resources/textures/PBR", "irradiance_", faces, false, true);
-    unsigned int prefilterMap = loadCubemap("resources/textures/PBR", "prefilter_", faces, false, true);
+    // load PBR required textures
+    // --------------------------
+    unsigned int envCubemap     = loadCubemap(getFilePath("resources/textures/PBR"), "env_", faces, false, false);
+    unsigned int irradianceMap  = loadCubemap("resources/textures/PBR", "irradiance_", faces, false, true);
+    unsigned int prefilterMap   = loadCubemap("resources/textures/PBR", "prefilter_", faces, false, true);
     unsigned int brdfLUTTexture = loadTexture(getFilePath("resources/textures/PBR/brdf_lut.hdr").c_str(), false, true);
 
-    /*unsigned int envCubemap;
-    glGenTextures(1, &envCubemap);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
-    for (unsigned int i = 0; i < 6; ++i) {
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 1024, 1024, 0, GL_RGB, GL_FLOAT, nullptr);
-    }*/
+    // configure environment cubemap
+    // -----------------------------
     glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -563,12 +515,8 @@ int main(int argc, char* argv[]) {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    stbi_set_flip_vertically_on_load(false);
-
-    start = glfwGetTime();
-
-    // load planet textures (takes threads how many texture paths there are)
-    // --------------------------------------------
+    // configure planet texture paths
+    // ------------------------------
     std::vector<std::string> planetTexturesPaths = {
         // diffuse
         "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mercury/mercury_surface.jpg",
@@ -631,8 +579,6 @@ int main(int argc, char* argv[]) {
     for (unsigned int i = 0; i < textureLoad.size(); i++)
         loadedTextures[i] = genTexture(textureLoad[i].image, textureLoad[i].width, textureLoad[i].height, textureLoad[i].nrComponents);
 
-    stbi_set_flip_vertically_on_load(false);
-
     // Load UI textures
     // ----------------
     Image objectNavImg   = loadImage(getFilePath("resources/textures/UI/objectnav.png").c_str(),                    false);
@@ -649,41 +595,8 @@ int main(int argc, char* argv[]) {
     Image rtg_button     = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_game.png").c_str(),      false);
     Image rtmm_button    = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_main_menu.png").c_str(), false);
 
-    // load HDR texture
-    // ----------------
-    stbi_set_flip_vertically_on_load(true);
-    int width, height, nrComponents;
-    std::string hdrPath = getFilePath("resources/textures/HDR/space.jpg");
-    float *data = stbi_loadf(hdrPath.c_str(), &width, &height, &nrComponents, 0);
-    unsigned int hdrTexture;
-    if (data) {
-        glGenTextures(1, &hdrTexture);
-        glBindTexture(GL_TEXTURE_2D, hdrTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, data);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        stbi_image_free(data);
-    }
-    stbi_set_flip_vertically_on_load(false);
-
-    // load irradiance map
-    // -------------------
-    //unsigned int irradianceMap;
-    /*glGenTextures(1, &irradianceMap);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
-    for (unsigned int i = 0; i < 6; i++)
-    {
-        int width, height, nrComponents;
-        const char* irMapPath = getFilePath("resources/textures/PBR/irradiance_" + faces[i] + ".hdr").c_str();
-        float *data = stbi_loadf(irMapPath, &width, &height, &nrComponents, 0);
-
-        if (data)
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, data);
-
-        stbi_image_free(data);
-    }*/
+    // configure irradiance map
+    // ------------------------
     glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -717,147 +630,29 @@ int main(int argc, char* argv[]) {
     atmosphereShader.setInt("depthTex", 0);
     atmosphereShader.setInt("colorTex", 1);
 
-    float lightPos[] = { 0.0f, 0.0f, 0.0f };
-    float lightColor[] = { 400000000000000000000000.0f, 400000000000000000000000.0f, 400000000000000000000000.0f };
-
-    /*glm::mat4 captureProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-    glm::mat4 captureViews[] = {
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f, 0.0f, 0.0f),  glm::vec3(0.0f, -1.0f, 0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f),  glm::vec3(0.0f, -1.0f, 0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, 1.0f, 0.0f),  glm::vec3(0.0f, 0.0f, 1.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, 0.0f, 1.0f),  glm::vec3(0.0f, -1.0f, 0.0f)),
-        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f))
-    };*/
-
-    /*equirectangularShader.use();
-    equirectangularShader.setInt("equirectangularMap", 0);
-    equirectangularShader.setMat4("projection", captureProj);
-    equirectangularShader.setFloat("exposure", 1.0f);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, hdrTexture);
-
-    glViewport(0, 0, 1024, 1024);
-    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-    for (unsigned int i = 0; i < 6; ++i) {
-        equirectangularShader.setMat4("view", captureViews[i]);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glBindVertexArray(cubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
+    glm::vec3 lightPos   = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 lightColor = glm::vec3(400000000000000000000000.0f, 400000000000000000000000.0f, 400000000000000000000000.0f);
 
     glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-
-
-    /*unsigned int irradianceMap;
-    glGenTextures(1, &irradianceMap);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
-
-    for (unsigned int i = 0; i < 6; ++i)
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 32, 32, 0, GL_RGB, GL_FLOAT, nullptr);
-
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, 32, 32);*/
-
-    /*convShader.use();
-    convShader.setInt("environmentMap", 0);
-    convShader.setMat4("projection", captureProj);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
-
-    glViewport(0, 0, 32, 32);
-    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-    for (unsigned int i = 0; i < 6; ++i) {
-        convShader.setMat4("view", captureViews[i]);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glBindVertexArray(cubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
-
-    //saveCubemap(irradianceMap, getFilePath("resources/textures/PBR"), "irradiance_", 32);
-
     
-    /*unsigned int prefilterMap;
-    glGenTextures(1, &prefilterMap);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
-    for (unsigned int i = 0; i < 6; ++i)
-    {
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 128, 128, 0, GL_RGB, GL_FLOAT, nullptr);
-    }*/
+    // configure prefilter map
+    // -----------------------
     glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
-    /*prefilterShader.use();
-    prefilterShader.setInt("environmentMap", 0);
-    prefilterShader.setMat4("projection", captureProj);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-    unsigned int maxMipLevels = 5;
-    for (unsigned int mip = 0; mip < maxMipLevels; ++mip) {
-        unsigned int mipWidth = 128 * std::pow(0.5, mip);
-        unsigned int mipHeight = 128 * std::pow(0.5, mip);
-        glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, mipWidth, mipHeight);
-        glViewport(0, 0, mipWidth, mipHeight);
-
-        float roughness = (float)mip / (float)(maxMipLevels - 1);
-        prefilterShader.setFloat("roughness", roughness);
-        for (unsigned int i = 0; i < 6; ++i) {
-            prefilterShader.setMat4("view", captureViews[i]);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
-
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            glBindVertexArray(skyboxVAO);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
-
-
-    //unsigned int brdfLUTTexture;
-    /*glGenTextures(1, &brdfLUTTexture);
-
-    // pre-allocate enough memory for the LUT texture.*/
+    // configure brdf-lut texture
+    // --------------------------
     glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 512, 512, 0, GL_RG, GL_FLOAT, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    /*glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, 512, 512);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture, 0);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);*/
-
-    /*saveCubemap(prefilterMap, getFilePath("resources/textures/PBR"), "prefilter_", 128);
-    saveCubemap(envCubemap, getFilePath("resources/textures/PBR"), "env_", 1024);
-    saveTexture(brdfLUTTexture, getFilePath("resources/textures/PBR"), "brdf_lut", 512);*/
 
     std::vector<CelestialBody> bodies = {
         CelestialBody(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), 695700000, 695508000, 695800000, 274.049, 0.0, 0.0), // Sun
@@ -934,67 +729,6 @@ int main(int argc, char* argv[]) {
         "Callisto",
     };
 
-    /*std::thread([&]() {
-        if (isServer) {
-            while (!glfwWindowShouldClose(window)) {
-                sockaddr_in client_addr;
-                socklen_t addr_len = sizeof(client_addr);
-                int accept_client_fd = accept(server_fd, (sockaddr*)&client_addr, &addr_len);
-                if (accept_client_fd < 0) {
-                    std::cerr << "Error: client accept failed\n";
-                    continue;
-                }
-
-                // generate unique ID for the player
-                int uid = rand() % 1000000;
-                // send the UID to each connected client once
-                std::string packet = "UID;" + std::to_string(uid) + ";";
-                send(accept_client_fd, packet.c_str(), packet.length(), 0);
-
-                std::cout << "Player " << uid << " joined.\n";
-
-                // send current server timestamp
-                packet = "TIMESTAMP;" + std::to_string(timestamp) + ";";
-                send(accept_client_fd, packet.c_str(), packet.length(), 0);
-
-                // send planet positions and velocities
-                packet = "SUN;" + std::to_string(bodies[0].position.x) + ";" + std::to_string(bodies[0].position.y) + ";" + std::to_string(bodies[0].position.z) + ";" + std::to_string(bodies[0].velocity.x) + ";" + std::to_string(bodies[0].velocity.y) + ";" + std::to_string(bodies[0].velocity.z) + ";";
-                send(accept_client_fd, packet.c_str(), packet.length(), 0);
-
-                packet = "EARTH;" + std::to_string(bodies[1].position.x) + ";" + std::to_string(bodies[1].position.y) + ";" + std::to_string(bodies[1].position.z) + ";" + std::to_string(bodies[1].velocity.x) + ";" + std::to_string(bodies[1].velocity.y) + ";" + std::to_string(bodies[1].velocity.z) + ";";
-                send(accept_client_fd, packet.c_str(), packet.length(), 0);
-
-                packet = "MOON;" + std::to_string(bodies[2].position.x) + ";" + std::to_string(bodies[2].position.y) + ";" + std::to_string(bodies[2].position.z) + ";" + std::to_string(bodies[2].velocity.x) + ";" + std::to_string(bodies[2].velocity.y) + ";" + std::to_string(bodies[2].velocity.z) + ";";
-                send(accept_client_fd, packet.c_str(), packet.length(), 0);
-
-                if (accept_client_fd >= 0)
-                    std::thread(handleClient, accept_client_fd, uid).detach();
-            }
-        }
-    }).detach();
-
-    int uid;
-    std::thread([&]() {
-        if (!isServer) {
-            handleClient(client_fd, uid);
-        }
-    }).detach();
-
-    if (!isServer) {
-        while (planetPositions[3] == glm::dvec3(0.0f)) {
-            std::cout << "Waiting...\n";
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-
-        for (unsigned int i = 0; i < 3; i++) {
-            bodies[i].position            = planetPositions[i];
-            bodies[i].averageRadius       = bodyData[i].x;
-            bodies[i].equatorialRadius    = bodyData[i].y;
-            bodies[i].polarRadius         = bodyData[i].z;
-            bodies[i].gravityAcceleration = bodyData[i].w;
-        }
-    }*/
-
     std::vector<Shader> planetShaders = {
         lightShader,
         shaderTex,
@@ -1030,51 +764,6 @@ int main(int argc, char* argv[]) {
         true,
         true
     };
-
-    /*std::vector<unsigned int> planetDiffuseTextures = {
-        0,
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mercury/mercury_surface.jpg", false),
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/venus/venus_atmo.jpg", false),
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_surface.png", false),
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/moon/moon_surface.png", false),
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mars/mars_surface.jpg", false)
-    };
-
-    std::vector<unsigned int> planetMetallicTextures = {
-        0,
-        0,
-        0,
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_metallic.jpg", false),
-        0,
-        0
-    };
-
-    std::vector<unsigned int> planetRoughnessTextures = {
-        0,
-        0,
-        0,
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_metallic.jpg", false),
-        0,
-        0
-    };
-
-    std::vector<unsigned int> planetHeightTextures = {
-        0,
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mercury/mercury_height.png", false),
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_height.jpg", false),
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_height.jpg", false),
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/moon/moon_height.png", false),
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_height.jpg", false)
-    };
-
-    std::vector<unsigned int> planetNormalTextures = {
-        0,
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mercury/mercury_normal.png", false),
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png", false),
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png", false),
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/moon/moon_normal.png", false),
-        loadTexture("/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png", false),
-    };*/
 
     std::vector<unsigned int> planetDiffuseTextures = {
         0,
@@ -1173,12 +862,10 @@ int main(int argc, char* argv[]) {
 
         timeMultiplier = timewarpValues[timeMultiplierIndex];
 
-        for (unsigned int i = 0; i < 2; i++)
+        for (unsigned int i = 0; i < 10; i++)
             for (auto &body : bodies)
                 if (!menuState.inMenu && !menuState.escMenu)
-                    body.updateObject(bodies, deltaTime * timeMultiplier / 2);
-
-        //bodies[6].velocity = bodies[3].velocity + glm::cross(glm::dvec3(0.01744), glm::dvec3(bodies[6].position - bodies[3].position));
+                    body.updateObject(bodies, deltaTime * timeMultiplier / 10);
 
         // calculate NDV
         ndv.x = -camera.GetViewMatrix(bodies[6].position)[0][2];
@@ -1196,10 +883,6 @@ int main(int argc, char* argv[]) {
 
         bodies[6].velocity += (double)(throttle/100) * (totalAccel * ((double)deltaTime * timeMultiplier));
 
-        /*for (auto &body : bodies)
-            if (!menuState.inMenu && !menuState.escMenu)
-                body.updatePosition(deltaTime * timeMultiplier);*/
-
         glm::dvec3 orbitalCameraPosition = glm::dvec3(static_cast<double>(camera.Zoom)) * glm::dvec3(cos(pitch) * sin(-yaw), sin(pitch), cos(pitch) * cos(-yaw));
 
         if (menuState.inMenu)
@@ -1207,97 +890,10 @@ int main(int argc, char* argv[]) {
         else
             camera.Position = glm::dvec3(bodies[6].position.x/sscale, bodies[6].position.y/sscale, bodies[6].position.z/sscale) + orbitalCameraPosition;
 
-        rocketPositions.clear();
-        moonPositions.clear();
-        std::vector<CelestialBody> playerRelativeEarth = { bodies[3], bodies[6] };
-        std::vector<CelestialBody> moonRelativeEarth   = { bodies[3], bodies[4] };
-
-        playerRelativeEarth[1].velocity -= playerRelativeEarth[0].velocity;
-        playerRelativeEarth[0].velocity = glm::dvec3(0.0);
-
-        moonRelativeEarth[1].velocity -= moonRelativeEarth[0].velocity;
-        moonRelativeEarth[0].velocity = glm::dvec3(0.0);
-
-        rocketPositions = { playerRelativeEarth[1].position };
-        moonPositions   = { moonRelativeEarth[1].position };
-
         TrajectorySimulator rocketTrajectory(bodies[6], bodies[3]);
 
         if (orbitView)
-        {
-            /*for (unsigned int i = 0; i < 500; i++)
-            {
-                moonRelativeEarth[1].updateObject(moonRelativeEarth, 7000.0f);
-
-                moonPositions.push_back(moonRelativeEarth[1].position);
-            }
-        
-            glm::dvec3 startPos = playerRelativeEarth[1].position;
-            glm::dvec3 startVel = playerRelativeEarth[1].velocity;
-
-            glm::dvec3 normal = glm::normalize(glm::cross(startPos, startVel));
-            bool crossedOnce = false;
-            double previousDot = glm::dot(startPos, normal);
-
-            bool aborted = false;
-
-            double r = glm::length(startPos - bodies[3].position);
-            double v = glm::length(startVel);
-            double E = (v * v) / 2.0 - 3.986e14 / r;
-            double a = -3.986e14 / (2.0 * E);
-
-            double T = 2.0 * M_PI * sqrt(a * a * a / 3.986e14);
-            double simulatedTime = 0.0;
-
-            if (E < 0)
-            {
-                while(simulatedTime < T)
-                {
-                    playerRelativeEarth[1].updateObject(playerRelativeEarth, 10.0f);
-                    double distanceToPlanet = glm::length(playerRelativeEarth[1].position);
-
-                    if (distanceToPlanet > majorRadius)
-                    {
-                        majorRadius = distanceToPlanet;
-                        semiMajorAxis = playerRelativeEarth[1].position;
-                    }
-
-                    if (distanceToPlanet < minorRadius)
-                    {
-                        minorRadius = distanceToPlanet;
-                        semiMinorAxis = playerRelativeEarth[1].position;
-                    }
-
-                    rocketPositions.push_back(playerRelativeEarth[1].position);
-                    simulatedTime += 10.0;
-                }
-            }
-            else
-            {
-                while (glm::length(playerRelativeEarth[1].position - bodies[3].position) < 1500000000.0)
-                {
-                    playerRelativeEarth[1].updateObject(playerRelativeEarth, 10.0f);
-                    double distanceToPlanet = glm::length(playerRelativeEarth[1].position);
-
-                    if (distanceToPlanet > majorRadius)
-                    {
-                        majorRadius = distanceToPlanet;
-                        semiMajorAxis = playerRelativeEarth[1].position;
-                    }
-
-                    if (distanceToPlanet < minorRadius)
-                    {
-                        minorRadius = distanceToPlanet;
-                        semiMinorAxis = playerRelativeEarth[1].position;
-                    }
-
-                    rocketPositions.push_back(playerRelativeEarth[1].position);
-                    simulatedTime += 10.0;
-                }
-            }*/
-
             rocketTrajectory.simulateTrajectory();
-        }
         
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1553,32 +1149,10 @@ int main(int argc, char* argv[]) {
 
             glDisable(GL_BLEND);
 
-            /*atmosphereShader.use();
-            
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, depthBuffer);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, colorBuffer);
-
-            
-            // disable writing to depth buffer
-            glDepthMask(GL_FALSE);
-
             atmosphereShader.setVec3("planetWorldPos", (camera.Position - bodies[5].position) + orbitalCameraPosition);
             atmosphereShader.setFloat("planetRadius", bodies[5].averageRadius/sscale);
             atmosphereShader.setVec3("wavelengths", glm::vec3(600.0f, 780.0f, 800.0f));
             atmosphereShader.setFloat("atmosphereHeight", 44000.0f);
-
-            // -----------------------------------------------------------------------------------------------------------------------------
-            // Mars' atmosphere
-            model = glm::dmat4(1.0);
-            model = glm::translate(model, (camera.Position - bodies[5].position) + orbitalCameraPosition);
-            
-            model = glm::scale(model, glm::dvec3(bodies[5].averageRadius/sscale+44000.0));
-
-            atmosphereShader.setMat4("model", static_cast<glm::mat4>(model));
-            //renderSphere(false, X_SEGMENTS, Y_SEGMENTS);
-            // -----------------------------------------------------------------------------------------------------------------------------*/
 
             glDepthMask(GL_TRUE);
             glEnable(GL_DEPTH);
@@ -1626,7 +1200,7 @@ int main(int argc, char* argv[]) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        /*if (!menuState.inMenu)
+        if (!menuState.inMenu && orbitView)
         {
             for (unsigned int i = 0; i < 13; i++)
             {
@@ -1636,7 +1210,7 @@ int main(int argc, char* argv[]) {
                     RenderText(textShader, bodyNames[i], convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).y + 35, 0.4f, glm::vec3(1.0f), true);
                 }
             }
-        }*/
+        }
 
         // render text
         // -----------
@@ -1657,14 +1231,10 @@ int main(int argc, char* argv[]) {
             RenderText(textShader, fuel_s, 3*SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
             RenderText(textShader, tm_s, SCR_WIDTH / 2, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
             RenderText(textShader, "idk man how the hell am i supposed to know in orbit you are or not", SCR_WIDTH / 1.5f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
-            /*RenderText(textShader, "Phase angle: " + std::to_string(glm::degrees(acos(glm::dot(bodies[6].position - bodies[3].position, bodies[4].position - bodies[3].position) / (glm::length(bodies[6].position - bodies[3].position) * glm::length(bodies[4].position - bodies[3].position))))) + "º", SCR_WIDTH - 100.0f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, "Orbit energy: " + std::to_string(0.5 * glm::dot(bodies[6].velocity - bodies[3].velocity, bodies[6].velocity - bodies[3].velocity) - 3.986e14 / glm::length(bodies[6].position - bodies[3].position)), SCR_WIDTH / 2, SCR_HEIGHT - 30.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, "Escape velocity: " + std::to_string(sqrt((2 * 3.986e14) / glm::length(playerRelativeEarth[1].position))), SCR_WIDTH / 2, SCR_HEIGHT - 45.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, "Velocity: " + std::to_string(glm::length(bodies[6].velocity - bodies[3].velocity)), SCR_WIDTH / 1.5, SCR_HEIGHT - 45.0f, 0.3f, glm::vec3(1.0f), true);*/
         }
 
-        //if (menuState.options)
-            //RenderCenteredImage(imageShader, options_panel, SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f, 0.85f);
+        if (menuState.options)
+            RenderCenteredImage(imageShader, options_panel, SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f, 0.85f);
 
         // render major and minor radius
         // -----------------------------

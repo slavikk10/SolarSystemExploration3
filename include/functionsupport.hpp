@@ -78,37 +78,6 @@ void setupPlanetModel(glm::dmat4 &model, glm::dvec3 pos, glm::dvec3 scale, glm::
         model = glm::rotate(model, static_cast<double>(planetRotation), glm::dvec3(0.0, 1.0, 0.0));
 }
 
-/*Collision checkForCollision(glm::dvec3 point, glm::dvec3 planetCenter, glm::mat3 rotationMatrix, float equatorialRadius, float polarRadius)
-{
-    glm::dvec3 relativePos = glm::inverse(static_cast<glm::dmat3>(rotationMatrix)) * (point - planetCenter); // we multiply the relative to planet position by the inverse of the rotation matrix of the planet to get local position relative to the planet's axial tilt
-    
-    double r = length(relativePos);
-    double theta = std::atan2(relativePos.z, relativePos.x);
-    double phi = std::asin(relativePos.y / r);
-
-    glm::dvec3 surface = glm::dvec3(equatorialRadius * std::cos(phi) * std::cos(theta), polarRadius * std::sin(phi), equatorialRadius * std::cos(phi) * std::sin(theta));
-    double surfaceRadius = length(surface);
-
-    bool collision = false;
-    double penetrationDepth = 0.0f;
-    if (r < surfaceRadius)
-    {
-        collision = true;
-        penetrationDepth = surfaceRadius - r;
-    }
-
-    glm::vec3 normal;
-    if (collision == true)
-        normal = normalize(relativePos);
-
-    Collision result;
-    result.penetationDepth = penetrationDepth;
-    result.collided = collision;
-    result.normal = normal;
-    
-    return result;
-}*/
-
 Collision checkForCollision(glm::dvec3 point, glm::dvec3 planetCenter, glm::mat3 rotationMatrix, float equatorialRadius, float polarRadius)
 {
     glm::dvec3 relativePos = glm::inverse(static_cast<glm::dmat3>(rotationMatrix)) * (point - planetCenter); // we multiply the relative to planet position by the inverse of the rotation matrix of the planet to get local position relative to the planet's axial tilt
