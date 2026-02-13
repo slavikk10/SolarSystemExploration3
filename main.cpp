@@ -898,13 +898,6 @@ int main(int argc, char* argv[]) {
                 if (!menuState.inMenu && !menuState.escMenu)
                     body.updateObject(bodies, deltaTime * timeMultiplier / 10);
 
-        // calculate NDV
-        ndv.x = -camera.GetViewMatrix(bodies[6].position)[0][2];
-        ndv.y = -camera.GetViewMatrix(bodies[6].position)[1][2];
-        ndv.z = -camera.GetViewMatrix(bodies[6].position)[2][2];
-
-        ndv = glm::normalize(ndv);
-
         float yaw   = camera.Yaw   / 57.296f;
         float pitch = camera.Pitch / 57.296f;
 
@@ -917,7 +910,7 @@ int main(int argc, char* argv[]) {
         glm::dvec3 orbitalCameraPosition = glm::dvec3(static_cast<double>(camera.Zoom)) * glm::dvec3(cos(pitch) * sin(-yaw), sin(pitch), cos(pitch) * cos(-yaw));
 
         if (menuState.inMenu)
-            camera.Position = glm::dvec3(bodies[3].position.x/sscale + 10000000.0f, bodies[3].position.y/sscale + 7000000.0f, bodies[3].position.z/sscale + 20000000.0f);
+            camera.Position = glm::dvec3(bodies[3].position.x/sscale + 1000000.0f, bodies[3].position.y/sscale + 1000000.0f, bodies[3].position.z/sscale + 50000000.0f);
         else
             camera.Position = glm::dvec3(bodies[6].position.x/sscale, bodies[6].position.y/sscale, bodies[6].position.z/sscale) + orbitalCameraPosition;
 
