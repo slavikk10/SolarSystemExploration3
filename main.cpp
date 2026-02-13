@@ -363,6 +363,7 @@ int main(int argc, char* argv[]) {
     Shader textShader(getFilePath("shaders/text/text.vert").c_str(), getFilePath("shaders/text/text.frag").c_str());
     Shader imageShader(getFilePath("shaders/image/image.vert").c_str(), getFilePath("shaders/image/image.frag").c_str());
     Shader lineShader(getFilePath("shaders/line/line.vert").c_str(), getFilePath("shaders/line/line.frag").c_str());
+    Shader optDepthShader(getFilePath("shaders/optical-depth/optical-depth.vert").c_str(), getFilePath("shaders/optical-depth/optical-depth.frag").c_str());
 
     // load models
     // -----------
@@ -515,6 +516,24 @@ int main(int argc, char* argv[]) {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+    // optical depth texture
+    // ---------------------
+    unsigned int optDepthTex;
+    glGenFramebuffers(1, &optDepthTex);
+    glBindFramebuffer(GL_FRAMEBUFFER, optDepthTex);
+
+    unsigned int optDepthColor;
+    glGenTextures(1, &optDepthColor);
+    glBindTexture(GL_TEXTURE_2D, optDepthColor);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, 4096, 4096, 0, GL_RED, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, optDepthTex);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, optDepthColor, 0);
+
     // configure planet texture paths
     // ------------------------------
     std::vector<std::string> planetTexturesPaths = {
@@ -609,6 +628,7 @@ int main(int argc, char* argv[]) {
     hdrShader.use();
     hdrShader.setInt("colorTex", 0);
     hdrShader.setInt("depthTex", 1);
+    hdrShader.setInt("opticalDepthTex", 2);
 
     shader.use();
     shader.setInt("heightMap", 2);
@@ -626,9 +646,9 @@ int main(int argc, char* argv[]) {
     shaderTex.setInt("heightMap", 6);
     shaderTex.setInt("normalMap", 7);
 
-    atmosphereShader.use();
+    /*atmosphereShader.use();
     atmosphereShader.setInt("depthTex", 0);
-    atmosphereShader.setInt("colorTex", 1);
+    atmosphereShader.setInt("colorTex", 1);*/
 
     glm::vec3 lightPos   = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 lightColor = glm::vec3(400000000000000000000000.0f, 400000000000000000000000.0f, 400000000000000000000000.0f);
@@ -827,6 +847,17 @@ int main(int argc, char* argv[]) {
     double minorRadius = 99999999999999999999999999999.0;
 
     glm::dvec3 semiMajorAxis, semiMinorAxis;
+
+    // render to optical depth texture
+    // -------------------------------
+    glBindFramebuffer(GL_FRAMEBUFFER, optDepthTex);
+    glViewport(0, 0, 4096, 4096);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        optDepthShader.use();
+        renderQuad(1.0f, -1.0f);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    saveTexture(optDepthColor, getFilePath("resources/textures/HDR"), "optical_depth", 4096, 4096, GL_RED, GL_FLOAT, EXT_HDR);
 
     // render loop
     // -----------
@@ -1193,6 +1224,8 @@ int main(int argc, char* argv[]) {
         glBindTexture(GL_TEXTURE_2D, colorBuffer);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthBuffer);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, optDepthColor);
         renderQuad(1.0f, -1.0f);
 
         // enable blending
@@ -1648,9 +1681,6 @@ void renderQuad(float scale, float z_offset) {
          1.0f*scale,  1.0f*scale, 0.0f+z_offset,  1.0f, 1.0f
     };
 
-    //glDisable(GL_DEPTH_TEST);
-    //glDepthMask(GL_FALSE);
-
     unsigned int quadVAO, quadVBO;
     glGenVertexArrays(1, &quadVAO);
     glGenBuffers(1, &quadVBO);
@@ -1666,8 +1696,8 @@ void renderQuad(float scale, float z_offset) {
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
 
-    //glEnable(GL_DEPTH_TEST);
-    //glDepthMask(GL_TRUE);
+    glDeleteBuffers(1, &quadVBO);
+    glDeleteVertexArrays(1, &quadVAO);
 }
 
 static unsigned int sphereVAO = 0;
