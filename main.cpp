@@ -19,6 +19,8 @@
 #include <trajectorysimulator.hpp>
 #include <texturesave.hpp>
 #include <callbacks.hpp>
+#include <rocket.hpp>
+#include <glmextension.hpp>
 
 #include <atomic>
 #include <cstdlib>
@@ -174,11 +176,6 @@ struct SphereCollision
 
 static std::map<PlanetKey, PlanetData> planetCache;
 static std::map<PlanetKey, PlanetData> cPlanetCache;
-
-glm::vec3 rotationalVelocity = glm::vec3(0.0f);
-glm::vec3 capsuleRot         = glm::vec3(0.0f);
-glm::vec3 torque             = glm::vec3(0.0f);
-glm::vec3 totalTorque        = glm::vec3(0.0f);
 
 bool orbitView = false;
 
@@ -682,10 +679,11 @@ int main(int argc, char* argv[]) {
         parsePlanetJSON("resources/planets/moon.json"),
         parsePlanetJSON("resources/planets/mars.json"),
         //CelestialBody(glm::vec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07+6378.137+1000.0), glm::vec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Moon
-        CelestialBody(glm::vec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07 - 10000.0f), glm::vec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Earth
+        //CelestialBody(glm::vec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07 - 10000.0f), glm::vec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Earth
         //CelestialBody(glm::vec3(-3.010549851451788E+07, -2.405822593778040E+06, -6.359103389001439E+07 + 10000.0f), glm::vec3(3.430790710871147E+01, -4.642893227687938E+00, -1.832212359355950E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mercury
         //CelestialBody(glm::vec3(-1.954858919301744E+08, 1.958070047790088E+06 - 10000.0f, -1.364989283716056E+08), glm::vec3(1.476574022529569E+01, -7.352840574207127E-01, -1.781400659243546E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mars
         //CelestialBody(glm::vec3(-1.954828792932118E+08, 1.957055843438603E+06 - 10.0f, -1.364900477469241E+08), glm::vec3(1.299942898733208E+01,  2.312948473565051E-01, -1.713550929627585E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mars/Phobos
+        CelestialBody(glm::dvec3(0.0), glm::dvec3(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
         CelestialBody(glm::vec3(-4.155962876379675e+10, -2.252909919162691e+09,  7.674747027447987e+11), glm::vec3(-1.319807488636713e+4, -5.516948900142156e-4, -8.347507826614081e-5), 69911000.0, 71492000.0, 66854000.0, 24.79, 0.0, 0.0), // Jupiter
         CelestialBody(glm::vec3( 1.426000189864588e+12, -5.468390271451207e+10, -1.203550185774606e+11), glm::vec3( 2.775345470427069e-4, -1.774901403126501e-4,  9.603681056096420e+3), 58232000.0, 60268000.0, 54364000.0, 10.44, 0.0, 0.0), // Saturn
         CelestialBody(glm::vec3( 1.543100133303414E+09, -1.079295296547151E+07,  2.476645699940574E+09), glm::vec3(-5.829935196501141E+00, 8.764722226773869E-02, 3.283761162053807E+0), 25362000.0, 25559000.0, 24973000.0, 8.690, 0.0, 0.0), // Uranus
@@ -695,39 +693,8 @@ int main(int argc, char* argv[]) {
         CelestialBody(glm::vec3(-1.954645686512529E+08, 1.948474304707609E+06, -1.365008465245946E+08), glm::vec3(1.490155449375842E+01, -7.012061170424948E-01, -1.647023847564131E+01), 6.2,   6.2,   6.2,   0.003,  0.0, 0.0), // Mars/Deim
     };
 
-    std::vector<CelestialBody> trajectoryBodies = bodies;
-
-    std::vector<glm::dvec3> mercuryPositions = { trajectoryBodies[1].position };
-    std::vector<glm::dvec3> venusPositions   = { trajectoryBodies[2].position };
-    std::vector<glm::dvec3> earthPositions   = { trajectoryBodies[3].position };
-    std::vector<glm::dvec3> moonPositions    = { trajectoryBodies[4].position };
-    std::vector<glm::dvec3> marsPositions    = { trajectoryBodies[5].position };
-    std::vector<glm::dvec3> rocketPositions  = { trajectoryBodies[6].position };
-    for (unsigned int i = 0; i < 200; i++)
-    {
-        for (auto &body : trajectoryBodies)
-            body.updateObject(trajectoryBodies, 70000.0f);
-
-        mercuryPositions.push_back(trajectoryBodies[1].position);
-        venusPositions.push_back(trajectoryBodies[2].position);
-        earthPositions.push_back(trajectoryBodies[3].position);
-        moonPositions.push_back(trajectoryBodies[4].position);
-        marsPositions.push_back(trajectoryBodies[5].position);
-        rocketPositions.push_back(trajectoryBodies[6].position);
-    }
-
-    std::vector<glm::dvec4> bodyData = {
-        glm::dvec4(695700000.0, 695508000, 695800000, 274.049),
-        glm::dvec4(6371000.0, 6378137.0, 6356752.0, 9.81),
-        glm::dvec4(1737400.00, 1738100.0, 1736000.0, 1.620),
-        glm::dvec4(0.0, 0.0, 0.0, 0.0),
-        glm::dvec4(0.0, 0.0, 0.0, 0.0),
-        glm::dvec4(0.0, 0.0, 0.0, 0.0),
-        glm::dvec4(0.0, 0.0, 0.0, 0.0),
-        glm::dvec4(0.0, 0.0, 0.0, 0.0),
-        glm::dvec4(0.0, 0.0, 0.0, 0.0),
-        glm::dvec4(0.0, 0.0, 0.0, 0.0)
-    };
+    Rocket rocket(camera, 1000.0f, glm::dvec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07 + 10000.0f), glm::dvec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 0.00000000266972, glm::vec3(5.0f));
+    bodies[6] = rocket;
 
     std::vector<std::string> bodyNames = {
         "Sun",
@@ -859,23 +826,18 @@ int main(int argc, char* argv[]) {
 
     saveTexture(optDepthColor, getFilePath("resources/textures/HDR"), "optical_depth", 4096, 4096, GL_RED, GL_FLOAT, EXT_HDR);
 
+    glm::dmat4 prevRocketModel = glm::dmat4(1.0);
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
     {
         timestamp += 1;
 
-        // calculate capsule rotational physics
-        //glm::vec3 gravityForce = 1000.0f * static_cast<glm::vec3>(bodies[6].totalAcceleration);
-        //torque = glm::cross(glm::vec3(0.0f, 0.0f, 0.0f), gravityForce);
-
         // input
         // -----
         processInput(window);
-
-        //glm::vec3 rotationalAcceleration = (totalTorque / 2000.0f * deltaTime) - 0.01f * rotationalVelocity;
-        //rotationalVelocity += rotationalAcceleration * deltaTime;
-        //capsuleRot += rotationalVelocity * deltaTime;
+        rocket.processControls(window, camera);
 
         // get cursor position
         // -------------------
@@ -893,10 +855,28 @@ int main(int argc, char* argv[]) {
 
         timeMultiplier = timewarpValues[timeMultiplierIndex];
 
+        rocket.update(deltaTime);
+
         for (unsigned int i = 0; i < 10; i++)
+        {
+            unsigned int j = 0;
             for (auto &body : bodies)
+            {
                 if (!menuState.inMenu && !menuState.escMenu)
+                {
                     body.updateObject(bodies, deltaTime * timeMultiplier / 10);
+                    
+                    if (j == 6)
+                    {
+                        rocket.position          = bodies[6].position;
+                        rocket.velocity          = bodies[6].velocity;
+                        rocket.totalAcceleration = bodies[6].totalAcceleration;
+                    }
+                }
+
+                j++;
+            }
+        }
 
         float yaw   = camera.Yaw   / 57.296f;
         float pitch = camera.Pitch / 57.296f;
@@ -908,6 +888,7 @@ int main(int argc, char* argv[]) {
         bodies[6].velocity += (double)(throttle/100) * (totalAccel * ((double)deltaTime * timeMultiplier));
 
         glm::dvec3 orbitalCameraPosition = glm::dvec3(static_cast<double>(camera.Zoom)) * glm::dvec3(cos(pitch) * sin(-yaw), sin(pitch), cos(pitch) * cos(-yaw));
+        camera.OrbitalCameraPosition = orbitalCameraPosition / glm::dvec3(static_cast<double>(camera.Zoom));
 
         if (menuState.inMenu)
             camera.Position = glm::dvec3(bodies[3].position.x/sscale + 1000000.0f, bodies[3].position.y/sscale + 1000000.0f, bodies[3].position.z/sscale + 50000000.0f);
@@ -1190,11 +1171,13 @@ int main(int argc, char* argv[]) {
             model = glm::dmat4(1.0);
             model = glm::translate(model, camera.Position - bodies[6].position);
             model = glm::scale(model, glm::dvec3(1.0));
-            model = glm::rotate(model, static_cast<double>(capsuleRot.x), glm::dvec3(1.0, 0.0, 0.0));
-            model = glm::rotate(model, static_cast<double>(capsuleRot.y), glm::dvec3(0.0, 1.0, 0.0));
-            model = glm::rotate(model, static_cast<double>(capsuleRot.z), glm::dvec3(0.0, 0.0, 1.0));
+            glm::dmat4 casted_quat = glm::mat4_cast(rocket.rotationQuaternion);
+
+            if (!glm::approximately_equal_to(casted_quat, glm::mat4(0.0f)))
+                model *= glm::mat4_cast(rocket.rotationQuaternion);
+
             shader.setMat4("model", model);
-            shader.setVec3("albedo", glm::vec3(1.0));
+            shader.setVec3("albedo", glm::vec3(1.0f));
             cylinder.DrawPatched(shader);
 
             // render player trajectory
@@ -1244,6 +1227,7 @@ int main(int argc, char* argv[]) {
         std::string throttle_s = "Throttle: " + std::to_string(throttle) + "%";
         std::string fuel_s     = "Fuel: " + std::to_string(fuel / 3000000.0f * 100.0f) + "%"; // divide the left fuel by original fuel and multiply by 100 to get in percents
         std::string tm_s       = "Time multiplier: " + std::to_string(timeMultiplier);
+        std::string rr_s       = vec3ToString(rocket.rotation);
         textShader.use();
         textShader.setMat4("projection", orthoProjection); // switch to orthographic projection for rending text
         imageShader.use();
@@ -1256,7 +1240,8 @@ int main(int argc, char* argv[]) {
             RenderText(textShader, enginesOn ? "Engines: on" : "Engines: off", SCR_WIDTH/2, 10.0f, 0.5f, enginesOn ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f), true);
             RenderText(textShader, fuel_s, 3*SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
             RenderText(textShader, tm_s, SCR_WIDTH / 2, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, "idk man how the hell am i supposed to know in orbit you are or not", SCR_WIDTH / 1.5f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
+            RenderText(textShader, "Rocket rotation: " + rr_s, SCR_WIDTH / 1.5f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
+            RenderText(textShader, "Camera * up: " + vec3ToString(glm::cross(camera.OrbitalCameraPosition, glm::vec3(0.0f, 1.0f, 0.0f))), SCR_WIDTH / 1.5f, SCR_HEIGHT - 30.0f, 0.3f, glm::vec3(1.0f), true);
         }
 
         if (menuState.options)
@@ -1332,17 +1317,8 @@ void processInput(GLFWwindow *window)
         keyInput.keyESC_lastFrame = false;
     }
 
-    // movement controls
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        totalTorque = 2000.0f * glm::vec3(1.0f, 0.0f, 0.0f) - torque;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        totalTorque = 2000.0f * glm::vec3(-1.0f, 0.0f, 0.0f) - torque;
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        totalTorque = 2000.0f * glm::vec3(0.0f, 0.0f, -1.0f) - torque;
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        totalTorque = 2000.0f * glm::vec3(0.0f, 0.0f, 1.0f) - torque;
-
     // rocket controls
+    // ---------------
     if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
     {
         if (!keyInput.keyT_lastFrame)
