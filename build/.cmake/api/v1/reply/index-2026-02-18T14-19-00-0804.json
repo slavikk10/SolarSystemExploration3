@@ -4,7 +4,7 @@
 		"generator" : 
 		{
 			"multiConfig" : false,
-			"name" : "Ninja"
+			"name" : "Unix Makefiles"
 		},
 		"paths" : 
 		{
@@ -35,7 +35,7 @@
 			}
 		},
 		{
-			"jsonFile" : "cache-v2-0b5737a351fd39cd2328.json",
+			"jsonFile" : "cache-v2-9ed94f0fd1e328c797a8.json",
 			"kind" : "cache",
 			"version" : 
 			{
@@ -90,7 +90,7 @@
 				"responses" : 
 				[
 					{
-						"jsonFile" : "cache-v2-0b5737a351fd39cd2328.json",
+						"jsonFile" : "cache-v2-9ed94f0fd1e328c797a8.json",
 						"kind" : "cache",
 						"version" : 
 						{

@@ -12,8 +12,6 @@ namespace glm
                 if ((m1[i][j] > (m2[i][j] - 0.0001)) && (m1[i][j] < (m2[i][j] + 0.0001)))
                     c++;
 
-        std::cout << c << std::endl;
-
         if (c == 16)
             return true;
         else

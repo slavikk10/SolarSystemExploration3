@@ -21,6 +21,8 @@
 #include <callbacks.hpp>
 #include <rocket.hpp>
 #include <glmextension.hpp>
+#include <load.hpp>
+#include <savetest.hpp>
 
 #include <atomic>
 #include <cstdlib>
@@ -49,7 +51,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_click_callback(GLFWwindow* window, int button, int action);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
-unsigned int loadTexture(char const * path, bool gamma_correction=false, bool sixteenFloat=false);
+//unsigned int loadTexture(char const * path, bool gamma_correction=false, bool sixteenFloat=false);
 unsigned int genTexture(unsigned char *data, int width, int height, int nrComponents, bool gamma_correction=false, bool sixteenFloat=false);
 Image loadImage(char const * path, bool gamma_correction);
 unsigned int loadCubemap(std::string path, std::string filename_start_text, vector<std::string> faces, bool gamma_correction, bool sixteenFloat=false);
@@ -342,6 +344,9 @@ int main(int argc, char* argv[]) {
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     glPatchParameteri(GL_PATCH_VERTICES, 3);
 
+    start = glfwGetTime();
+    auto sstart = glfwGetTime();
+
     // build and compile shaders
     // -------------------------
     Shader shader(getFilePath("shaders/pbr/pbr.vert").c_str(), getFilePath("shaders/pbr/pbr.frag").c_str(), getFilePath("shaders/pbr/pbr.tesc").c_str(), getFilePath("shaders/pbr/pbr.tese").c_str());
@@ -362,9 +367,15 @@ int main(int argc, char* argv[]) {
     Shader lineShader(getFilePath("shaders/line/line.vert").c_str(), getFilePath("shaders/line/line.frag").c_str());
     Shader optDepthShader(getFilePath("shaders/optical-depth/optical-depth.vert").c_str(), getFilePath("shaders/optical-depth/optical-depth.frag").c_str());
 
+    std::cout << "Time elapsed to load shaders: " << glfwGetTime() - start << std::endl;
+    start = glfwGetTime();
+
     // load models
     // -----------
     Model cylinder(getFilePath("resources/models/simple_rocket.obj"));
+
+    std::cout << "Time elapsed to load model: " << glfwGetTime() - start << std::endl;
+    start = glfwGetTime();
 
     // setup cube vertices (for skybox)
     // --------------------------------
@@ -445,6 +456,8 @@ int main(int argc, char* argv[]) {
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    std::cout << "Time elapsed to setup VBO/VAO: " << glfwGetTime() - start << std::endl;
+    start = glfwGetTime();
     // generate depth map framebuffer
     /*unsigned int depthCubemapFBO;
     glGenFramebuffers(1, &depthCubemapFBO);
@@ -497,12 +510,18 @@ int main(int argc, char* argv[]) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer, 0);
 
+    std::cout << "Time elapsed to setup framebuffer: " << glfwGetTime() - start << std::endl;
+    start = glfwGetTime();
+
     // load PBR required textures
     // --------------------------
     unsigned int envCubemap     = loadCubemap(getFilePath("resources/textures/PBR"), "env_", faces, false, false);
     unsigned int irradianceMap  = loadCubemap("resources/textures/PBR", "irradiance_", faces, false, true);
     unsigned int prefilterMap   = loadCubemap("resources/textures/PBR", "prefilter_", faces, false, true);
     unsigned int brdfLUTTexture = loadTexture(getFilePath("resources/textures/PBR/brdf_lut.hdr").c_str(), false, true);
+
+    std::cout << "Time elapsed to load PBR textures: " << glfwGetTime() - start << std::endl;
+    start = glfwGetTime();
 
     // configure environment cubemap
     // -----------------------------
@@ -530,6 +549,10 @@ int main(int argc, char* argv[]) {
 
     glBindFramebuffer(GL_FRAMEBUFFER, optDepthTex);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, optDepthColor, 0);
+
+    std::cout << "Time elapsed to configure textures: " << glfwGetTime() - start << std::endl;
+    start = glfwGetTime();
+    std::cout << "Total time elapsed: " << glfwGetTime() - sstart << std::endl;
 
     // configure planet texture paths
     // ------------------------------
@@ -565,27 +588,58 @@ int main(int argc, char* argv[]) {
         "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_clouds.png"
     };
 
+    std::vector<std::string> planetTextureNames = {
+        "mercury_surface",
+        "venus_atmo",
+        "earth_surface",
+        "moon_surface",
+        "mars_surface",
+        "earth_metallic",
+        "earth_metallic",
+        "mercury_height",
+        "earth_height",
+        "earth_height",
+        "moon_height",
+        "earth_height",
+        "mercury_normal",
+        "earth_normal",
+        "earth_normal",
+        "moon_normal",
+        "earth_normal",
+        "earth_clouds"
+    };
+
     std::vector<TextureState> textureLoad(planetTexturesPaths.size());
     std::vector<std::thread> texturesLoadingThreads;
     std::vector<unsigned int> loadedTextures(planetTexturesPaths.size());
+
+    std::cout << "Misc. time elapsed: " << glfwGetTime() - start << std::endl;
+    start = glfwGetTime();
 
     // start multiple threads to load textures faster
     // ----------------------------------------------
     for (unsigned int i = 0; i < planetTexturesPaths.size(); i++)
     {
-        texturesLoadingThreads.emplace_back([i, &planetTexturesPaths, &textureLoad]() {
+        texturesLoadingThreads.emplace_back([i, &planetTexturesPaths, &textureLoad, &planetTextureNames]() {
             // load texture data
             // -----------------
-            int width, height, nrComponents;
-            unsigned char *data = stbi_load(planetTexturesPaths[i].c_str(), &width, &height, &nrComponents, 0);
+            //int width, height, nrComponents;
+            //unsigned char *data = stbi_load(planetTexturesPaths[i].c_str(), &width, &height, &nrComponents, 0);
+
+            // save texture cache to use later
+            // -------------------------------
+            //saveTextureCache(planetTextureNames[i], planetTexturesPaths[i], true, data, width, height, nrComponents);
+
+            // load cached texture
+            // -------------------
+            TextureCache tc = loadTextureCache(getFilePath("cache/TextureCache/") + planetTextureNames[i] + ".tca");
             
             // update vector
             // -------------
-            textureLoad[i].image = data;
-
-            textureLoad[i].width = width;
-            textureLoad[i].height = height;
-            textureLoad[i].nrComponents = nrComponents;
+            textureLoad[i].image        = tc.data;
+            textureLoad[i].width        = tc.width;
+            textureLoad[i].height       = tc.height;
+            textureLoad[i].nrComponents = tc.nrComponents;
         });
     }
 
@@ -594,6 +648,9 @@ int main(int argc, char* argv[]) {
 
     for (unsigned int i = 0; i < textureLoad.size(); i++)
         loadedTextures[i] = genTexture(textureLoad[i].image, textureLoad[i].width, textureLoad[i].height, textureLoad[i].nrComponents);
+
+    float duration = glfwGetTime() - start;
+    std::cout << "Time elapsed: " << duration << std::endl;
 
     // Load UI textures
     // ----------------
@@ -1432,59 +1489,6 @@ void mouse_click_callback(GLFWwindow* window, int button, int action)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
-}
-
-// utility function for loading a 2D texture from file
-// ---------------------------------------------------
-unsigned int loadTexture(char const * path, bool gamma_correction, bool sixteenFloat)
-{
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-
-    int width, height, nrComponents;
-    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
-    if (data)
-    {
-        GLenum format;
-        if (gamma_correction) {
-            if (nrComponents == 3)
-                format = GL_SRGB;
-            else if (nrComponents == 4)
-                format = GL_SRGB_ALPHA;
-        } else {
-            if (nrComponents == 1)
-                format = GL_RED;
-            else if (nrComponents == 3)
-                format = GL_RGB;
-            else if (nrComponents == 4)
-                format = GL_RGBA;
-        }
-
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        if (gamma_correction) {
-            if (format == GL_SRGB_ALPHA)
-                glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-            else
-                glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, sixteenFloat ? GL_RGB16F : GL_RGB, sixteenFloat ? GL_FLOAT : GL_UNSIGNED_BYTE, data);
-        } else {
-            glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        }
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        stbi_image_free(data);
-    }
-    else
-    {
-        std::cout << "Texture failed to load at path: " << path << std::endl;
-        stbi_image_free(data);
-    }
-
-    return textureID;
 }
 
 unsigned int genTexture(unsigned char *data, int width, int height, int nrComponents, bool gamma_correction, bool sixteenFloat)
