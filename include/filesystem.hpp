@@ -1,3 +1,16 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:299cb200c0a48ec71e4657dae6bc18ad767dbabcb86cd91109cdf9e412649d4c
-size 376
+#include <string>
+#include <string_view>
+#include <filesystem>
+
+#pragma once
+
+inline std::string getFilePath(std::string_view path) {
+    std::filesystem::path executablePath = std::filesystem::current_path();
+    if (executablePath.filename() == "build") {
+        executablePath = executablePath.parent_path();
+    }
+
+    std::string fullPath = (executablePath / path).string();
+
+    return fullPath;
+}
