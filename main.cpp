@@ -22,7 +22,7 @@
 #include <rocket.hpp>
 #include <glmextension.hpp>
 #include <load.hpp>
-#include <savetest.hpp>
+#include <texturecachemanager.hpp>
 
 #include <atomic>
 #include <cstdlib>
@@ -621,14 +621,9 @@ int main(int argc, char* argv[]) {
     for (unsigned int i = 0; i < planetTexturesPaths.size(); i++)
     {
         texturesLoadingThreads.emplace_back([i, &planetTexturesPaths, &textureLoad, &planetTextureNames]() {
-            // load texture data
-            // -----------------
-            //int width, height, nrComponents;
-            //unsigned char *data = stbi_load(planetTexturesPaths[i].c_str(), &width, &height, &nrComponents, 0);
-
             // save texture cache to use later
             // -------------------------------
-            //saveTextureCache(planetTextureNames[i], planetTexturesPaths[i], true, data, width, height, nrComponents);
+            saveTextureCache(planetTextureNames[i], planetTexturesPaths[i], false);
 
             // load cached texture
             // -------------------
