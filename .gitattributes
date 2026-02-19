@@ -16,3 +16,4 @@
  filter=lfs diff=lfs merge=lfs -text
 *.rde filter=lfs diff=lfs merge=lfs -text
 *.rdde filter=lfs diff=lfs merge=lfs -text
+*.tca filter=lfs diff=lfs merge=lfs -text

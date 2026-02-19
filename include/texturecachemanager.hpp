@@ -17,6 +17,9 @@ void saveTextureCache(std::string cacheFileName, std::string texturePath, bool g
     if (!(std::filesystem::exists(p) && std::filesystem::is_directory(p)))
         std::filesystem::create_directories(p);
 
+    if (std::filesystem::exists(getFilePath("cache/TextureCache/") + cacheFileName + ".tca"))
+        return;
+
     int width, height, nrComponents;
     unsigned char* data;
 
