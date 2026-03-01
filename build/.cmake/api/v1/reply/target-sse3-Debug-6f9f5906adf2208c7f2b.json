@@ -92,7 +92,7 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "-g -std=gnu++20 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+					"fragment" : "-g -std=gnu++20 -arch arm64"
 				},
 				{
 					"backtrace" : 5,
@@ -145,7 +145,7 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "-g -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+					"fragment" : "-g -arch arm64"
 				},
 				{
 					"backtrace" : 5,

@@ -17,10 +17,10 @@ public:
     glm::vec3 totalTorque            = glm::vec3(0.0f);
     glm::vec3 rotationalAcceleration = glm::vec3(0.0f);
     glm::vec3 rotationalVelocity     = glm::vec3(0.0f);
-    glm::vec3 rotation               = glm::vec3(0.0f);
+    glm::vec3 rotation               = glm::vec3(0.0f, 0.00000001f, 0.0f);
     glm::dquat rotationQuaternion;
 
-    Rocket(Camera camera, float mass, glm::dvec3 position, glm::dvec3 velocity, float gravity, glm::vec3 size)
+    Rocket(const Camera& camera, float mass, glm::dvec3 position, glm::dvec3 velocity, float gravity, glm::vec3 size)
     {
         this->mass                = static_cast<double>(mass);
         this->position            = position * 1000.0;
@@ -47,13 +47,13 @@ public:
         // rocket rotation controls
         // ------------------------
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            this->totalTorque = 1000.0f * glm::vec3( cam.z,  0.0f, -cam.x);
+            this->totalTorque = 1000.0f * glm::vec3( cam.z, 0.0f, -cam.x);
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            this->totalTorque = 1000.0f * glm::vec3(-cam.z,  0.0f,  cam.x);
+            this->totalTorque = 1000.0f * glm::vec3(-cam.z, 0.0f,  cam.x);
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            this->totalTorque = 1000.0f * glm::vec3(-cam.x,  0.0f, -cam.z);
+            this->totalTorque = 1000.0f * glm::vec3(-cam.x, 0.0f, -cam.z);
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            this->totalTorque = 1000.0f * glm::vec3( cam.x,  0.0f,  cam.z);
+            this->totalTorque = 1000.0f * glm::vec3( cam.x, 0.0f,  cam.z);
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
             this->totalTorque = 1000.0f * glm::vec3( 0.0f, -1.0f,  0.0f);
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)

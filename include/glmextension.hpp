@@ -4,7 +4,7 @@
 
 namespace glm
 {
-    bool approximately_equal_to(const glm::highp_mat4 &m1, const glm::highp_mat4 &m2)
+    bool approximately_equal_to(const glm::highp_mat4& m1, const glm::highp_mat4& m2)
     {
         unsigned int c = 0;
         for (unsigned int i = 0; i < 4; i++)

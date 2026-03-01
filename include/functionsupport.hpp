@@ -95,7 +95,7 @@ Collision checkForCollision(glm::dvec3 point, glm::dvec3 planetCenter, glm::mat3
     return result;
 }
 
-std::string vec3ToString(glm::vec3 vec)
+std::string vec3ToString(glm::dvec3 vec)
 {
     std::string x = std::to_string(vec.x);
     std::string y = std::to_string(vec.y);

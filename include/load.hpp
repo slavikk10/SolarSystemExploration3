@@ -7,7 +7,7 @@
 
 // utility function for loading a 2D texture from file
 // ---------------------------------------------------
-unsigned int loadTexture(char const * path, bool gamma_correction, bool sixteenFloat)
+unsigned int loadTexture(char const* path, bool gamma_correction, bool sixteenFloat)
 {
     unsigned int textureID;
     glGenTextures(1, &textureID);

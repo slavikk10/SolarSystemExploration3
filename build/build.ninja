@@ -52,7 +52,7 @@ build cmake_object_order_depends_target_sse3: phony || .
 build CMakeFiles/sse3.dir/main.cpp.o: CXX_COMPILER__sse3_unscanned_Debug /Users/vyacheslav/SSE3_OpenGL/main.cpp || cmake_object_order_depends_target_sse3
   CONFIG = Debug
   DEP_FILE = CMakeFiles/sse3.dir/main.cpp.o.d
-  FLAGS = -g -std=gnu++20 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -Wno-nullability-completeness
+  FLAGS = -g -std=gnu++20 -arch arm64 -Wno-nullability-completeness
   INCLUDES = -I/Users/vyacheslav/.brew/opt/glfw/include -I/Users/vyacheslav/.brew/opt/assimp/include -I/Users/vyacheslav/.brew/opt/freetype/include -I/Users/vyacheslav/SSE3_OpenGL/include -iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks
   OBJECT_DIR = CMakeFiles/sse3.dir
   OBJECT_FILE_DIR = CMakeFiles/sse3.dir
@@ -60,7 +60,7 @@ build CMakeFiles/sse3.dir/main.cpp.o: CXX_COMPILER__sse3_unscanned_Debug /Users/
 build CMakeFiles/sse3.dir/src/glad.c.o: C_COMPILER__sse3_unscanned_Debug /Users/vyacheslav/SSE3_OpenGL/src/glad.c || cmake_object_order_depends_target_sse3
   CONFIG = Debug
   DEP_FILE = CMakeFiles/sse3.dir/src/glad.c.o.d
-  FLAGS = -g -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -Wno-nullability-completeness
+  FLAGS = -g -arch arm64 -Wno-nullability-completeness
   INCLUDES = -I/Users/vyacheslav/.brew/opt/glfw/include -I/Users/vyacheslav/.brew/opt/assimp/include -I/Users/vyacheslav/.brew/opt/freetype/include -I/Users/vyacheslav/SSE3_OpenGL/include -iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks
   OBJECT_DIR = CMakeFiles/sse3.dir
   OBJECT_FILE_DIR = CMakeFiles/sse3.dir/src
@@ -68,7 +68,7 @@ build CMakeFiles/sse3.dir/src/glad.c.o: C_COMPILER__sse3_unscanned_Debug /Users/
 build CMakeFiles/sse3.dir/stb_image.cpp.o: CXX_COMPILER__sse3_unscanned_Debug /Users/vyacheslav/SSE3_OpenGL/stb_image.cpp || cmake_object_order_depends_target_sse3
   CONFIG = Debug
   DEP_FILE = CMakeFiles/sse3.dir/stb_image.cpp.o.d
-  FLAGS = -g -std=gnu++20 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -Wno-nullability-completeness
+  FLAGS = -g -std=gnu++20 -arch arm64 -Wno-nullability-completeness
   INCLUDES = -I/Users/vyacheslav/.brew/opt/glfw/include -I/Users/vyacheslav/.brew/opt/assimp/include -I/Users/vyacheslav/.brew/opt/freetype/include -I/Users/vyacheslav/SSE3_OpenGL/include -iframework /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks
   OBJECT_DIR = CMakeFiles/sse3.dir
   OBJECT_FILE_DIR = CMakeFiles/sse3.dir
@@ -83,7 +83,7 @@ build CMakeFiles/sse3.dir/stb_image.cpp.o: CXX_COMPILER__sse3_unscanned_Debug /U
 
 build sse3: CXX_EXECUTABLE_LINKER__sse3_Debug CMakeFiles/sse3.dir/main.cpp.o CMakeFiles/sse3.dir/src/glad.c.o CMakeFiles/sse3.dir/stb_image.cpp.o | /Users/vyacheslav/.brew/opt/glfw/lib/libglfw.3.dylib /Users/vyacheslav/.brew/opt/assimp/lib/libassimp.5.4.3.dylib /Users/vyacheslav/.brew/opt/freetype/lib/libfreetype.6.dylib /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/OpenGL.framework
   CONFIG = Debug
-  FLAGS = -g -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+  FLAGS = -g -arch arm64
   LINK_FLAGS = -Wl,-search_paths_first -Wl,-headerpad_max_install_names
   LINK_LIBRARIES = /Users/vyacheslav/.brew/opt/glfw/lib/libglfw.3.dylib  /Users/vyacheslav/.brew/opt/assimp/lib/libassimp.5.4.3.dylib  /Users/vyacheslav/.brew/opt/freetype/lib/libfreetype.6.dylib  -framework OpenGL
   OBJECT_DIR = CMakeFiles/sse3.dir
