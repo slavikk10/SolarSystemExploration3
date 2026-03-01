@@ -135,30 +135,30 @@ glm::vec2 convert3Dto2D(glm::vec3 position, const glm::mat4 &view, const glm::ma
     return glm::vec2(newPosition.x * SCR_WIDTH, newPosition.y * SCR_HEIGHT);
 }
 
-void RenderLine(glm::dvec3 pos1, glm::dvec3 pos2, const glm::mat4 &view, const glm::mat4 &projection, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
+static unsigned int lineVAO = 0, lineVBO = 0;
+void RenderLine(glm::dvec3 pos1, glm::dvec3 pos2, const glm::mat4& view, const glm::mat4& projection, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
 {
-    unsigned int lineVAO, lineVBO;
-    glGenVertexArrays(1, &lineVAO);
-    glGenBuffers(1, &lineVBO);
+    if (lineVAO == 0)
+    {
+        glGenVertexArrays(1, &lineVAO);
+        glGenBuffers(1, &lineVBO);
 
-    glBindVertexArray(lineVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
+        glBindVertexArray(lineVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
 
-    glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(float), NULL, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(float), NULL, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
     
     glEnable(GL_SCISSOR_TEST);
     glScissor(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
-    glm::dvec3 pos1c = pos1;
-    glm::dvec3 pos2c = pos2;
-
     std::vector<glm::vec2> data;
-    data.push_back(convert3Dto2D(pos1c, view, projection, SCR_WIDTH, SCR_HEIGHT));
-    data.push_back(convert3Dto2D(pos2c, view, projection, SCR_WIDTH, SCR_HEIGHT));
+    data.push_back(convert3Dto2D(pos1, view, projection, SCR_WIDTH, SCR_HEIGHT));
+    data.push_back(convert3Dto2D(pos2, view, projection, SCR_WIDTH, SCR_HEIGHT));
 
     glBindVertexArray(lineVAO);
     glBindBuffer(GL_ARRAY_BUFFER, lineVBO);

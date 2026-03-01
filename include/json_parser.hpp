@@ -35,8 +35,8 @@ CelestialBody parsePlanetJSON(const char* path) {
     std::string s_avg_radius;
     std::string s_eq_radius;
     std::string s_polar_radius;
-    glm::vec3 position;
-    glm::vec3 velocity;
+    glm::dvec3 position;
+    glm::dvec3 velocity;
     std::string x;
     std::string y;
     std::string z;
@@ -142,7 +142,7 @@ CelestialBody parsePlanetJSON(const char* path) {
 
             size_t lastComma = line.find(',', start);
             x = line.substr(start, lastComma - start);
-            position.x = std::stof(x);
+            position.x = std::stod(x);
         }
         if (y_pos != std::string::npos) {
             err -= 1;
@@ -155,7 +155,7 @@ CelestialBody parsePlanetJSON(const char* path) {
 
             size_t lastComma = line.find(',', start + 1);
             y = line.substr(start, lastComma - start);
-            position.y = std::stof(y);
+            position.y = std::stod(y);
         }
         if (z_pos != std::string::npos) {
             err -= 1;
@@ -168,7 +168,7 @@ CelestialBody parsePlanetJSON(const char* path) {
 
             size_t lastComma = line.find(',', start + 1);
             z = line.substr(start, lastComma - start);
-            position.z = std::stof(z);
+            position.z = std::stod(z);
         }
 
         // velocity (vec3)
@@ -186,7 +186,7 @@ CelestialBody parsePlanetJSON(const char* path) {
 
             size_t lastComma = line.find(',', start);
             vel_x = line.substr(start, lastComma - start);
-            velocity.x = std::stof(vel_x);
+            velocity.x = std::stod(vel_x);
         }
         if (vel_y_pos != std::string::npos) {
             err -= 1;
@@ -199,7 +199,7 @@ CelestialBody parsePlanetJSON(const char* path) {
 
             size_t lastComma = line.find(',', start + 1);
             vel_y = line.substr(start, lastComma - start);
-            velocity.y = std::stof(vel_y);
+            velocity.y = std::stod(vel_y);
         }
         if (vel_z_pos != std::string::npos) {
             err -= 1;
@@ -212,7 +212,7 @@ CelestialBody parsePlanetJSON(const char* path) {
 
             size_t lastComma = line.find(',', start + 1);
             vel_z = line.substr(start, lastComma - start);
-            velocity.z = std::stof(vel_z);
+            velocity.z = std::stod(vel_z);
         }
 
         // axial tilt (float, used for rotating the planet)

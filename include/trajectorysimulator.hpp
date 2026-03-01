@@ -9,7 +9,11 @@ public:
     std::vector<CelestialBody> system;
     double r, v, E, a, T;
 
-    TrajectorySimulator(CelestialBody body, CelestialBody relativeBody) 
+    double periapsis, apoapsis;
+    
+    bool orbit;
+
+    TrajectorySimulator(const CelestialBody& body, const CelestialBody& relativeBody)
     {
         system = { body, relativeBody };
 
@@ -24,47 +28,64 @@ public:
 
     void simulateTrajectory()
     {
-        glm::dvec3 startPos = system[0].position;
-        glm::dvec3 startVel = system[0].velocity;
+        glm::dvec3 startPos  = system[0].position;
+        glm::dvec3 startVel  = system[0].velocity;
 
-        double r = glm::length(startPos - system[1].position);
-        double v = glm::length(startVel);
+        double r             = glm::length(startPos - system[1].position);
+        double v             = glm::length(startVel);
         
-        double a = -system[1].mu / (2.0 * E);
-
-        double T = 2.0 * M_PI * sqrt(a * a * a / system[1].mu);
+        double a             = -system[1].mu / (2.0 * E);
+        double T             = 2.0 * M_PI * sqrt(a * a * a / system[1].mu);
         double simulatedTime = 0.0;
 
-        if (E < 0)
-        {
-            while(simulatedTime < T)
-            {
-                system[0].updateObject(system, 10.0f);
+        glm::dvec3 h         = glm::cross(startPos - system[1].position, startVel);
 
-                positions.push_back(system[0].position);
-                simulatedTime += 10.0;
+        glm::dvec3 eVec      = glm::cross(system[0].velocity, h) / system[1].mu - glm::normalize(startPos - system[1].position);
+        double eccentricity  = glm::length(eVec);
+        double b             = a * sqrt(1 - eccentricity * eccentricity);
+
+        periapsis            = a * (1 - eccentricity);
+        apoapsis             = a * (1 + eccentricity);
+
+        if (E < 0.0 && periapsis > system[1].averageRadius)
+        {
+            orbit = true;
+            for (unsigned int i = 0; i < 1000; ++i)
+            {
+                double M = 2.0 * M_PI * (i / 1000.0);
+
+                double E_anom = M;
+                for (unsigned int i = 0; i < 5; i++)
+                    E_anom += ((M - E_anom + eccentricity * sin(E_anom)) / (1 - eccentricity * cos(E_anom)));
+
+                glm::dvec3 eNorm        = glm::normalize(eVec);
+                glm::dvec3 orbitalPlane = glm::normalize(glm::cross(h, eNorm));
+
+                positions.push_back(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) + system[1].position);
             }
         }
         else
         {
-            while (glm::length(system[0].position - system[1].position) < 1500000000.0)
+            orbit = false;
+            while ((glm::length(system[0].position - system[1].position) < 1500000000.0) && (glm::length(system[0].position - system[1].position) > system[1].averageRadius))
             {
-                system[0].updateObject(system, 10.0f);
+                system[0].updateObject(system, T / 1000.0f);
 
                 positions.push_back(system[0].position);
-                simulatedTime += 10.0;
+                simulatedTime += T / 1000.0f;
             }
         }
     }
 
-    void renderTrajectory(Camera camera, glm::mat4 view, glm::mat4 projection, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
+    void renderTrajectory(const Camera& camera, const glm::mat4& view, const glm::mat4& projection, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
     {
-        RenderLine(camera.Position - system[0].position, camera.Position - positions[0], view, projection, SCR_WIDTH, SCR_HEIGHT);
+        //if (orbit)
+            //RenderLine(camera.Position - system[0].position, camera.Position - positions[0], view, projection, SCR_WIDTH, SCR_HEIGHT);
 
         for (unsigned int i = 0; i < positions.size() - 1; i++)
             RenderLine(camera.Position - positions[i], camera.Position - positions[i + 1], view, projection, SCR_WIDTH, SCR_HEIGHT);
 
-        if (E < 0)
-            RenderLine(camera.Position - positions[positions.size() - 1], camera.Position - system[0].position, view, projection, SCR_WIDTH, SCR_HEIGHT);
+        if (orbit)
+            RenderLine(camera.Position - positions[positions.size() - 1], camera.Position - positions[0], view, projection, SCR_WIDTH, SCR_HEIGHT);
     }
 };

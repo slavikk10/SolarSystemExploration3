@@ -51,7 +51,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_click_callback(GLFWwindow* window, int button, int action);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
-//unsigned int loadTexture(char const * path, bool gamma_correction=false, bool sixteenFloat=false);
 unsigned int genTexture(unsigned char *data, int width, int height, int nrComponents, bool gamma_correction=false, bool sixteenFloat=false);
 Image loadImage(char const * path, bool gamma_correction);
 unsigned int loadCubemap(std::string path, std::string filename_start_text, vector<std::string> faces, bool gamma_correction, bool sixteenFloat=false);
@@ -62,7 +61,7 @@ void loadShaderUniforms(Shader shader);
 std::string toString(const char* v);
 char* stringToChar(std::string v);
 void addToArr(const char* arr[], char* v);
-void renderQuad(float scale, float z_offset);
+void renderQuad();
 void renderSphere(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32);
 SphereCollision renderSphereCollision(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32, glm::dvec3 testPoint=glm::dvec3(0.0), glm::dvec3 scale=glm::dvec3(0.0));
 void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color, bool centered);
@@ -118,7 +117,7 @@ unsigned int textVBO, textVAO;
 unsigned int imageVBO, imageVAO;
 
 // line VBO and VAO
-unsigned int lineVAO, lineVBO;
+//unsigned int lineVAO, lineVBO;
 
 // structs
 struct MouseInput
@@ -352,11 +351,11 @@ int main(int argc, char* argv[]) {
     Shader shader(getFilePath("shaders/pbr/pbr.vert").c_str(), getFilePath("shaders/pbr/pbr.frag").c_str(), getFilePath("shaders/pbr/pbr.tesc").c_str(), getFilePath("shaders/pbr/pbr.tese").c_str());
     Shader shaderTex(getFilePath("shaders/pbr/pbr.vert").c_str(), getFilePath("shaders/pbr/pbr_textured.frag").c_str(), getFilePath("shaders/pbr/pbr.tesc").c_str(), getFilePath("shaders/pbr/pbr.tese").c_str());
     Shader lightShader(getFilePath("shaders/light/light.vert").c_str(), getFilePath("shaders/light/light.frag").c_str(), getFilePath("shaders/light/light.geom").c_str());
-    Shader atmosphereShader(getFilePath("shaders/atmosphere/atmosphere.vert").c_str(), getFilePath("shaders/atmosphere/atmosphere.frag").c_str(), getFilePath("shaders/atmosphere/atmosphere.geom").c_str());
-    Shader equirectangularShader(getFilePath("shaders/equirectangular/skybox.vert").c_str(), getFilePath("shaders/equirectangular/skybox.frag").c_str(), getFilePath("shaders/equirectangular/skybox.geom").c_str());
-    Shader convShader(getFilePath("shaders/convolution/skybox copy.vert").c_str(), getFilePath("shaders/convolution/skybox copy.frag").c_str(), getFilePath("shaders/convolution/skybox copy.geom").c_str());
-    Shader brdfShader(getFilePath("shaders/brdf/brdf.vert").c_str(), getFilePath("shaders/brdf/brdf.frag").c_str(), getFilePath("shaders/brdf/brdf.geom").c_str());
-    Shader prefilterShader(getFilePath("shaders/pre-filter/pre-filter.vert").c_str(), getFilePath("shaders/pre-filter/pre-filter.frag").c_str(), getFilePath("shaders/pre-filter/pre-filter.geom").c_str());
+    //Shader atmosphereShader(getFilePath("shaders/atmosphere/atmosphere.vert").c_str(), getFilePath("shaders/atmosphere/atmosphere.frag").c_str(), getFilePath("shaders/atmosphere/atmosphere.geom").c_str());
+    //Shader equirectangularShader(getFilePath("shaders/equirectangular/skybox.vert").c_str(), getFilePath("shaders/equirectangular/skybox.frag").c_str(), getFilePath("shaders/equirectangular/skybox.geom").c_str());
+    //Shader convShader(getFilePath("shaders/convolution/skybox copy.vert").c_str(), getFilePath("shaders/convolution/skybox copy.frag").c_str(), getFilePath("shaders/convolution/skybox copy.geom").c_str());
+    //Shader brdfShader(getFilePath("shaders/brdf/brdf.vert").c_str(), getFilePath("shaders/brdf/brdf.frag").c_str(), getFilePath("shaders/brdf/brdf.geom").c_str());
+    //Shader prefilterShader(getFilePath("shaders/pre-filter/pre-filter.vert").c_str(), getFilePath("shaders/pre-filter/pre-filter.frag").c_str(), getFilePath("shaders/pre-filter/pre-filter.geom").c_str());
     Shader skyboxShader(getFilePath("shaders/skybox/skybox.vert").c_str(), getFilePath("shaders/skybox/skybox.frag").c_str(), getFilePath("shaders/skybox/skybox.geom").c_str());
     Shader hdrShader(getFilePath("shaders/hdr/hdr.vert").c_str(), getFilePath("shaders/hdr/hdr.frag").c_str(), getFilePath("shaders/hdr/hdr.geom").c_str());
 
@@ -446,7 +445,7 @@ int main(int argc, char* argv[]) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // line VAO and VBO
-    glGenBuffers(1, &lineVBO);
+    /*glGenBuffers(1, &lineVBO);
     glGenVertexArrays(1, &lineVAO);
     glBindVertexArray(lineVAO);
     glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
@@ -454,7 +453,7 @@ int main(int argc, char* argv[]) {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
     glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);*/
 
     std::cout << "Time elapsed to setup VBO/VAO: " << glfwGetTime() - start << std::endl;
     start = glfwGetTime();
@@ -623,7 +622,7 @@ int main(int argc, char* argv[]) {
         texturesLoadingThreads.emplace_back([i, &planetTexturesPaths, &textureLoad, &planetTextureNames]() {
             // save texture cache to use later
             // -------------------------------
-            saveTextureCache(planetTextureNames[i], planetTexturesPaths[i], false);
+            saveTextureCache(planetTextureNames[i], planetTexturesPaths[i]);
 
             // load cached texture
             // -------------------
@@ -645,7 +644,7 @@ int main(int argc, char* argv[]) {
         loadedTextures[i] = genTexture(textureLoad[i].image, textureLoad[i].width, textureLoad[i].height, textureLoad[i].nrComponents);
 
     float duration = glfwGetTime() - start;
-    std::cout << "Time elapsed: " << duration << std::endl;
+    std::cout << "Time elapsed to load textures: " << duration << std::endl;
 
     // Load UI textures
     // ----------------
@@ -745,7 +744,7 @@ int main(int argc, char* argv[]) {
         CelestialBody(glm::vec3(-1.954645686512529E+08, 1.948474304707609E+06, -1.365008465245946E+08), glm::vec3(1.490155449375842E+01, -7.012061170424948E-01, -1.647023847564131E+01), 6.2,   6.2,   6.2,   0.003,  0.0, 0.0), // Mars/Deim
     };
 
-    Rocket rocket(camera, 1000.0f, glm::dvec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07 + 10000.0f), glm::dvec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 0.00000000266972, glm::vec3(5.0f));
+    Rocket rocket(camera, 1000.0f, glm::dvec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07 + 10000.0), glm::dvec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 0.00000000266972, glm::vec3(5.0f));
     bodies[6] = rocket;
 
     std::vector<std::string> bodyNames = {
@@ -873,7 +872,7 @@ int main(int argc, char* argv[]) {
     glViewport(0, 0, 4096, 4096);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         optDepthShader.use();
-        renderQuad(1.0f, -1.0f);
+        renderQuad();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     saveTexture(optDepthColor, getFilePath("resources/textures/HDR"), "optical_depth", 4096, 4096, GL_RED, GL_FLOAT, EXT_HDR);
@@ -934,7 +933,7 @@ int main(int argc, char* argv[]) {
         float pitch = camera.Pitch / 57.296f;
 
         // calculate thrust acceleration of the rocket and calculate total acceleration
-        glm::dvec3 thrustAccel = glm::dvec3(-70.0, 0.0, 0.0);
+        glm::dvec3 thrustAccel = -glm::normalize(rocket.rotationQuaternion * glm::dvec3(0.0, 1.0, 0.0)) * 70.0;
         glm::dvec3 totalAccel = bodies[6].totalAcceleration + thrustAccel;
 
         bodies[6].velocity += (double)(throttle/100) * (totalAccel * ((double)deltaTime * timeMultiplier));
@@ -949,7 +948,7 @@ int main(int argc, char* argv[]) {
 
         TrajectorySimulator rocketTrajectory(bodies[6], bodies[3]);
 
-        if (orbitView)
+        if (orbitView && (glm::length(bodies[6].position - bodies[3].position) < 1500000000.0))
             rocketTrajectory.simulateTrajectory();
         
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -978,10 +977,6 @@ int main(int argc, char* argv[]) {
             shaderTex.setMat4("projection", projection);
             shaderTex.setMat4("view", view);
 
-            atmosphereShader.use();
-            atmosphereShader.setMat4("projection", projection);
-            atmosphereShader.setMat4("view", view);
-
             hdrShader.use();
             hdrShader.setMat4("projection", projection);
             hdrShader.setMat4("view", view);
@@ -996,10 +991,6 @@ int main(int argc, char* argv[]) {
                 shader.setVec3("lightPositions[" + std::to_string(i) + "]", camera.Position);
                 shader.setVec3("lightColors[" + std::to_string(i) + "]", glm::vec3(lightColor[0], lightColor[1], lightColor[2]));
             }
-
-            atmosphereShader.use();
-            atmosphereShader.setVec3("camPos", glm::vec3(0.0f, 0.0f, 0.0f));
-            atmosphereShader.setVec3("lightPos", camera.Position);
 
             hdrShader.use();
             hdrShader.setVec3("camPos", glm::vec3(0.0f, 0.0f, 0.0f));
@@ -1206,10 +1197,10 @@ int main(int argc, char* argv[]) {
 
             glDisable(GL_BLEND);
 
-            atmosphereShader.setVec3("planetWorldPos", (camera.Position - bodies[5].position) + orbitalCameraPosition);
+            /*atmosphereShader.setVec3("planetWorldPos", (camera.Position - bodies[5].position) + orbitalCameraPosition);
             atmosphereShader.setFloat("planetRadius", bodies[5].averageRadius/sscale);
             atmosphereShader.setVec3("wavelengths", glm::vec3(600.0f, 780.0f, 800.0f));
-            atmosphereShader.setFloat("atmosphereHeight", 44000.0f);
+            atmosphereShader.setFloat("atmosphereHeight", 44000.0f);*/
 
             glDepthMask(GL_TRUE);
             glEnable(GL_DEPTH);
@@ -1254,7 +1245,7 @@ int main(int argc, char* argv[]) {
         glBindTexture(GL_TEXTURE_2D, depthBuffer);
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, optDepthColor);
-        renderQuad(1.0f, -1.0f);
+        renderQuad();
 
         // enable blending
         // ---------------
@@ -1293,19 +1284,19 @@ int main(int argc, char* argv[]) {
             RenderText(textShader, fuel_s, 3*SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
             RenderText(textShader, tm_s, SCR_WIDTH / 2, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
             RenderText(textShader, "Rocket rotation: " + rr_s, SCR_WIDTH / 1.5f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, "Camera * up: " + vec3ToString(glm::cross(camera.OrbitalCameraPosition, glm::vec3(0.0f, 1.0f, 0.0f))), SCR_WIDTH / 1.5f, SCR_HEIGHT - 30.0f, 0.3f, glm::vec3(1.0f), true);
+            RenderText(textShader, "Energy: " + std::to_string(rocketTrajectory.E), SCR_WIDTH / 1.5f, SCR_HEIGHT - 45.0f, 0.3f, glm::vec3(1.0f), true);
         }
 
         if (menuState.options)
             RenderCenteredImage(imageShader, options_panel, SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f, 0.85f);
 
-        // render major and minor radius
+        // render apoapsis and periapsis
         // -----------------------------
-        /*if (!menuState.inMenu)
+        if (!menuState.inMenu)
         {
-            RenderText(textShader, std::to_string(majorRadius / 1000.0) + " km", convert3Dto2D(camera.Position - (bodies[3].position + semiMajorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - (bodies[3].position + semiMajorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.4f, glm::vec3(1.0f), true);
-            RenderText(textShader, std::to_string(minorRadius / 1000.0) + " km", convert3Dto2D(camera.Position - (bodies[3].position + semiMinorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - (bodies[3].position + semiMinorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.4f, glm::vec3(1.0f), true);
-        }*/
+            RenderText(textShader, std::to_string(rocketTrajectory.apoapsis  / 1000.0) + " km", convert3Dto2D(camera.Position - (bodies[3].position + semiMajorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - (bodies[3].position + semiMajorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.4f, glm::vec3(1.0f), true);
+            RenderText(textShader, std::to_string(rocketTrajectory.periapsis / 1000.0) + " km", convert3Dto2D(camera.Position - (bodies[3].position + semiMinorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - (bodies[3].position + semiMinorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.4f, glm::vec3(1.0f), true);
+        }
             
         // main menu
         // ---------
@@ -1341,6 +1332,9 @@ int main(int argc, char* argv[]) {
     // ------------------------------------------------------------------------
     glDeleteVertexArrays(1, &skyboxVAO);
     glDeleteBuffers(1, &skyboxVBO);
+
+    glDeleteFramebuffers(1, &fbo);
+    glDeleteFramebuffers(1, &optDepthTex);
 
     glfwTerminate();
     return 0;
@@ -1428,10 +1422,6 @@ void processInput(GLFWwindow *window)
     {
         keyInput.keyF1_lastFrame = false;
     }
-
-    // menu controls
-    if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
-        menuState.inMenu = true;
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -1640,38 +1630,39 @@ unsigned int loadCubemap(std::string path, std::string filename_start_text, vect
     return textureID;
 }
 
-void renderQuad(float scale, float z_offset) {
-    float quadVertices[] = {
-      // positions                                tex coords
-        -1.0f*scale, -1.0f*scale, 0.0f+z_offset,  0.0f, 0.0f,
-        -1.0f*scale,  1.0f*scale, 0.0f+z_offset,  0.0f, 1.0f,
-         1.0f*scale, -1.0f*scale, 0.0f+z_offset,  1.0f, 0.0f,
-         1.0f*scale,  1.0f*scale, 0.0f+z_offset,  1.0f, 1.0f
+static unsigned int quadVAO = 0;
+void renderQuad() {
+    static float quadVertices[] = {
+      // positions           tex coords
+        -1.0f, -1.0f, 0.0f,  0.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f,  0.0f, 1.0f,
+         1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
+         1.0f,  1.0f, 0.0f,  1.0f, 1.0f
     };
 
-    unsigned int quadVAO, quadVBO;
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    if (quadVAO == 0)
+    {
+        glGenVertexArrays(1, &quadVAO);
 
+        unsigned int quadVBO;
+        glGenBuffers(1, &quadVBO);
+
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+    
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
-
-    glDeleteBuffers(1, &quadVBO);
-    glDeleteVertexArrays(1, &quadVAO);
 }
 
-static unsigned int sphereVAO = 0;
-static unsigned int sphereVBO = 0;
-static unsigned int sphereEBO = 0;
-static unsigned int indexCount;
 void renderSphere(bool patches, unsigned int X_SEGMENTS, unsigned int Y_SEGMENTS)
 {
     PlanetKey key = {X_SEGMENTS, Y_SEGMENTS};

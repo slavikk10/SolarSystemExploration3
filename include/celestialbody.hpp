@@ -41,7 +41,7 @@ public:
         this->mu   = G * this->mass;
     }
 
-    glm::dvec3 calculateAcceleration(std::vector<CelestialBody> &bodies, float deltaTime) {
+    glm::dvec3 calculateAcceleration(std::vector<CelestialBody> &bodies) {
         glm::dvec3 totalAccel = glm::dvec3(0.0);
         for (CelestialBody &body : bodies) {
             if (&body == this) continue;
@@ -67,10 +67,10 @@ public:
         return totalAccel;
     }
 
-    void updateObject(std::vector<CelestialBody> &bodies, float deltaTime) {
-        this->position += this->velocity * glm::dvec3((double)deltaTime) + this->totalAcceleration * glm::dvec3((double)(deltaTime * deltaTime * 0.5f));
-        glm::dvec3 newAcceleration = calculateAcceleration(bodies, deltaTime);
-        this->velocity += (this->totalAcceleration + newAcceleration) * ((double)deltaTime * 0.5);
+    void updateObject(std::vector<CelestialBody> &bodies, double deltaTime) {
+        this->position += this->velocity * glm::dvec3(deltaTime) + this->totalAcceleration * glm::dvec3(deltaTime * deltaTime * 0.5);
+        glm::dvec3 newAcceleration = calculateAcceleration(bodies);
+        this->velocity += (this->totalAcceleration + newAcceleration) * (deltaTime * 0.5);
         this->totalAcceleration = newAcceleration;
     }
 
