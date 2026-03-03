@@ -9,7 +9,8 @@ public:
     std::vector<CelestialBody> system;
     double r, v, E, a, T;
 
-    double periapsis, apoapsis;
+    glm::dvec3 periapsis,  apoapsis;
+    double     periapsisd, apoapsisd;
     
     bool orbit;
 
@@ -44,10 +45,10 @@ public:
         double eccentricity  = glm::length(eVec);
         double b             = a * sqrt(1 - eccentricity * eccentricity);
 
-        periapsis            = a * (1 - eccentricity);
-        apoapsis             = a * (1 + eccentricity);
+        periapsisd    = a * (1 - eccentricity);
+        apoapsisd     = a * (1 + eccentricity);
 
-        if (E < 0.0 && periapsis > system[1].averageRadius)
+        if (E < 0.0 && periapsisd > system[1].averageRadius)
         {
             orbit = true;
             for (unsigned int i = 0; i < 1000; ++i)
@@ -60,6 +61,9 @@ public:
 
                 glm::dvec3 eNorm        = glm::normalize(eVec);
                 glm::dvec3 orbitalPlane = glm::normalize(glm::cross(h, eNorm));
+
+                periapsis =  eNorm * periapsisd + system[1].position;
+                apoapsis  = -eNorm * apoapsisd  + system[1].position;
 
                 positions.push_back(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) + system[1].position);
             }
@@ -79,9 +83,6 @@ public:
 
     void renderTrajectory(const Camera& camera, const glm::mat4& view, const glm::mat4& projection, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
     {
-        //if (orbit)
-            //RenderLine(camera.Position - system[0].position, camera.Position - positions[0], view, projection, SCR_WIDTH, SCR_HEIGHT);
-
         for (unsigned int i = 0; i < positions.size() - 1; i++)
             RenderLine(camera.Position - positions[i], camera.Position - positions[i + 1], view, projection, SCR_WIDTH, SCR_HEIGHT);
 

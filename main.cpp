@@ -649,6 +649,7 @@ int main(int argc, char* argv[]) {
     // Load UI textures
     // ----------------
     Image objectNavImg   = loadImage(getFilePath("resources/textures/UI/objectnav.png").c_str(),                    false);
+    Image apoap_periapsi = loadImage(getFilePath("resources/textures/UI/apo-per.png").c_str(),                      false);
     Image mmtl           = loadImage(getFilePath("resources/textures/UI/main_menu/mmtl_sse3.png").c_str(),          false);
     Image start_button   = loadImage(getFilePath("resources/textures/UI/main_menu/start_button.png").c_str(),       false);
     Image options_button = loadImage(getFilePath("resources/textures/UI/main_menu/options_button.png").c_str(),     false);
@@ -1294,8 +1295,17 @@ int main(int argc, char* argv[]) {
         // -----------------------------
         if (!menuState.inMenu)
         {
-            RenderText(textShader, std::to_string(rocketTrajectory.apoapsis  / 1000.0) + " km", convert3Dto2D(camera.Position - (bodies[3].position + semiMajorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - (bodies[3].position + semiMajorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.4f, glm::vec3(1.0f), true);
-            RenderText(textShader, std::to_string(rocketTrajectory.periapsis / 1000.0) + " km", convert3Dto2D(camera.Position - (bodies[3].position + semiMinorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - (bodies[3].position + semiMinorAxis), view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.4f, glm::vec3(1.0f), true);
+            glm::vec2 a = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
+            glm::vec2 p = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).y);
+
+            RenderCenteredImage(imageShader, apoap_periapsi, a.x, a.y, 0.05f);
+            RenderCenteredImage(imageShader, apoap_periapsi, p.x, p.y, 0.05f);
+
+            std::string apoapsiss  = std::to_string(std::round((rocketTrajectory.apoapsisd  - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.apoapsisd   / 100.0)  / 10.0).find(".") + 2);
+            std::string periapsiss = std::to_string(std::round((rocketTrajectory.periapsisd - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.periapsisd  / 100.0)  / 10.0).find(".") + 2);
+
+            RenderText(textShader, apoapsiss  + " km", a.x, a.y + 50.0f, 0.4f, glm::vec3(1.0f), true);
+            RenderText(textShader, periapsiss + " km", p.x, p.y + 50.0f, 0.4f, glm::vec3(1.0f), true);
         }
             
         // main menu
