@@ -73,7 +73,7 @@ void setupPlanetModel(glm::dmat4 &model, glm::dvec3 pos, glm::dvec3 scale, glm::
     model = glm::translate(model, originRebase(pos, camPos));
     model = glm::scale(model, scale);
     if (axialTilt != 0.0f)
-        model = glm::rotate(model, static_cast<double>(glm::radians(-axialTilt)), glm::dvec3(0.0, 0.0, 1.0));
+        model = glm::rotate(model, static_cast<double>(glm::radians(axialTilt)), glm::dvec3(0.0, 0.0, 1.0));
     if (planetRotation != 0.0f)
         model = glm::rotate(model, static_cast<double>(planetRotation), glm::dvec3(0.0, 1.0, 0.0));
 }
