@@ -4,13 +4,18 @@
     "equatorialRadius": 2410500.0,
     "polarRadius": 2410500.0,
     "gravitationalAcceleration": 1.235,
-    "x": 0.000,
-    "y": 0.000,
-    "z": 0.000,
-    "velocityX": 0.000,
-    "velocityY": 0.000,
-    "velocityZ": 0.000,
-    "axialTilt": 0.00,
+
+    "x": -3.805569779606482E+08,
+    "y": 5.612545607148945E+06,
+    "z": 6.895371179866697E+08,
+
+    "velocityX": -1.471501159398828E+01,
+    "velocityY": 5.675166309653257E-03,
+    "velocityZ": -1.322594691010801E+01,
+
+    "axialTilt": 1.0,
+    "rotationSpeed": 0.000248,
+
     "textures": {
       "albedo": "",
       "roughness": "",
@@ -18,10 +23,12 @@
       "height": "",
       "normal": ""
     },
+
     "textureSettings": {
       "flipHorizontally": true,
       "skipRM": true
     },
+
     "hasAtmosphere": false,
     "atmosphereSettings": {
       "breathable": false,
