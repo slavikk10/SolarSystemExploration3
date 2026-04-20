@@ -366,14 +366,14 @@ int main(int argc, char* argv[]) {
     Shader lineShader(getFilePath("shaders/line/line.vert").c_str(), getFilePath("shaders/line/line.frag").c_str());
     Shader optDepthShader(getFilePath("shaders/optical-depth/optical-depth.vert").c_str(), getFilePath("shaders/optical-depth/optical-depth.frag").c_str());
 
-    std::cout << "Time elapsed to load shaders: " << glfwGetTime() - start << std::endl;
+    //std::cout << "Time elapsed to load shaders: " << glfwGetTime() - start << std::endl;
     start = glfwGetTime();
 
     // load models
     // -----------
     Model cylinder(getFilePath("resources/models/simple_rocket.obj"));
 
-    std::cout << "Time elapsed to load model: " << glfwGetTime() - start << std::endl;
+    //std::cout << "Time elapsed to load model: " << glfwGetTime() - start << std::endl;
     start = glfwGetTime();
 
     // setup cube vertices (for skybox)
@@ -455,7 +455,7 @@ int main(int argc, char* argv[]) {
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);*/
 
-    std::cout << "Time elapsed to setup VBO/VAO: " << glfwGetTime() - start << std::endl;
+    //std::cout << "Time elapsed to setup VBO/VAO: " << glfwGetTime() - start << std::endl;
     start = glfwGetTime();
     // generate depth map framebuffer
     /*unsigned int depthCubemapFBO;
@@ -509,7 +509,7 @@ int main(int argc, char* argv[]) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer, 0);
 
-    std::cout << "Time elapsed to setup framebuffer: " << glfwGetTime() - start << std::endl;
+    //std::cout << "Time elapsed to setup framebuffer: " << glfwGetTime() - start << std::endl;
     start = glfwGetTime();
 
     // load PBR required textures
@@ -519,7 +519,7 @@ int main(int argc, char* argv[]) {
     unsigned int prefilterMap   = loadCubemap("resources/textures/PBR", "prefilter_", faces, false, true);
     unsigned int brdfLUTTexture = loadTexture(getFilePath("resources/textures/PBR/brdf_lut.hdr").c_str(), false, true);
 
-    std::cout << "Time elapsed to load PBR textures: " << glfwGetTime() - start << std::endl;
+    //std::cout << "Time elapsed to load PBR textures: " << glfwGetTime() - start << std::endl;
     start = glfwGetTime();
 
     // configure environment cubemap
@@ -549,9 +549,9 @@ int main(int argc, char* argv[]) {
     glBindFramebuffer(GL_FRAMEBUFFER, optDepthTex);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, optDepthColor, 0);
 
-    std::cout << "Time elapsed to configure textures: " << glfwGetTime() - start << std::endl;
+    //std::cout << "Time elapsed to configure textures: " << glfwGetTime() - start << std::endl;
     start = glfwGetTime();
-    std::cout << "Total time elapsed: " << glfwGetTime() - sstart << std::endl;
+    //std::cout << "Total time elapsed: " << glfwGetTime() - sstart << std::endl;
 
     // configure planet texture paths
     // ------------------------------
@@ -576,16 +576,21 @@ int main(int argc, char* argv[]) {
 
         // height
         "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mercury/mercury_height.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_height.jpg",
+        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/venus/venus_height.png",
         "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_height.jpg",
         "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/moon/moon_height.png",
         "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_height.jpg",
+        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/moons/io/io_height.png",
 
         // normal
         "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mercury/mercury_normal.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png",
+        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/venus/venus_normal.png",
         "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png",
         "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/moon/moon_normal.png",
+        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png",
+        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png",
+        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/moons/io/io_normal.png",
+        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png",
         "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png",
         "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png",
 
@@ -607,14 +612,19 @@ int main(int argc, char* argv[]) {
         "earth_metallic",
         "earth_metallic",
         "mercury_height",
-        "earth_height",
+        "venus_height",
         "earth_height",
         "moon_height",
         "earth_height",
+        "io_height",
         "mercury_normal",
-        "earth_normal",
+        "venus_normal",
         "earth_normal",
         "moon_normal",
+        "earth_normal",
+        "earth_normal",
+        "io_normal",
+        "earth_normal",
         "earth_normal",
         "earth_normal",
         "earth_clouds"
@@ -624,7 +634,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::thread> texturesLoadingThreads;
     std::vector<unsigned int> loadedTextures(planetTexturesPaths.size());
 
-    std::cout << "Misc. time elapsed: " << glfwGetTime() - start << std::endl;
+    //std::cout << "Misc. time elapsed: " << glfwGetTime() - start << std::endl;
     start = glfwGetTime();
 
     // start multiple threads to load textures faster
@@ -656,7 +666,7 @@ int main(int argc, char* argv[]) {
         loadedTextures[i] = genTexture(textureLoad[i].image, textureLoad[i].width, textureLoad[i].height, textureLoad[i].nrComponents);
 
     float duration = glfwGetTime() - start;
-    std::cout << "Time elapsed to load textures: " << duration << std::endl;
+    //std::cout << "Time elapsed to load textures: " << duration << std::endl;
 
     // Load UI textures
     // ----------------
@@ -707,10 +717,6 @@ int main(int argc, char* argv[]) {
     shaderTex.setInt("heightMap", 6);
     shaderTex.setInt("normalMap", 7);
 
-    /*atmosphereShader.use();
-    atmosphereShader.setInt("depthTex", 0);
-    atmosphereShader.setInt("colorTex", 1);*/
-
     glm::vec3 lightPos   = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 lightColor = glm::vec3(400000000000000000000000.0f, 400000000000000000000000.0f, 400000000000000000000000.0f);
 
@@ -735,8 +741,8 @@ int main(int argc, char* argv[]) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glm::dvec3 spawnPos = parsePlanetJSON("resources/planets/ganymede.json").position / glm::dvec3(1000.0f);
-    glm::dvec3 spawnVel = parsePlanetJSON("resources/planets/ganymede.json").velocity / glm::dvec3(1000.0f);
+    glm::dvec3 spawnPos = parsePlanetJSON("resources/planets/venus.json").position / glm::dvec3(1000.0f);
+    glm::dvec3 spawnVel = parsePlanetJSON("resources/planets/venus.json").velocity / glm::dvec3(1000.0f);
     std::vector<CelestialBody> bodies = {
         CelestialBody(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), 695700000, 695508000, 695800000, 274.049, 0.0, 0.0), // Sun
         parsePlanetJSON("resources/planets/mercury.json"),
@@ -749,22 +755,13 @@ int main(int argc, char* argv[]) {
         parsePlanetJSON("resources/planets/europa.json"),
         parsePlanetJSON("resources/planets/ganymede.json"),
         parsePlanetJSON("resources/planets/callisto.json"),
-        //CelestialBody(glm::vec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07+6378.137+1000.0), glm::vec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Moon
-        //CelestialBody(glm::vec3(1.325642404204230E+08, 2.593482662561163E+04, -7.248338623823936E+07 - 10000.0f), glm::vec3(1.364897762669466E+01, -7.501512110188457E-04, 2.612917605635382E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Earth
-        //CelestialBody(glm::vec3(-3.010549851451788E+07, -2.405822593778040E+06, -6.359103389001439E+07 + 10000.0f), glm::vec3(3.430790710871147E+01, -4.642893227687938E+00, -1.832212359355950E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mercury
-        //CelestialBody(glm::vec3(-1.954858919301744E+08, 1.958070047790088E+06 - 10000.0f, -1.364989283716056E+08), glm::vec3(1.476574022529569E+01, -7.352840574207127E-01, -1.781400659243546E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mars
-        //CelestialBody(glm::vec3(-1.954828792932118E+08, 1.957055843438603E+06 - 10.0f, -1.364900477469241E+08), glm::vec3(1.299942898733208E+01,  2.312948473565051E-01, -1.713550929627585E+01), 1.81, 1.81, 1.81, 0.0000000014, 0.0, 0.0), // Player/Mars/Phobos
         CelestialBody(glm::dvec3(0.0), glm::dvec3(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), // placeholder for player celestial data
-        CelestialBody(glm::vec3(-4.155962876379675e+10, -2.252909919162691e+09,  7.674747027447987e+11), glm::vec3(-1.319807488636713e+4, -5.516948900142156e-4, -8.347507826614081e-5), 69911000.0, 71492000.0, 66854000.0, 24.79, 0.0, 0.0), // Jupiter
         CelestialBody(glm::vec3( 1.426000189864588e+12, -5.468390271451207e+10, -1.203550185774606e+11), glm::vec3( 2.775345470427069e-4, -1.774901403126501e-4,  9.603681056096420e+3), 58232000.0, 60268000.0, 54364000.0, 10.44, 0.0, 0.0), // Saturn
         CelestialBody(glm::vec3( 1.543100133303414E+09, -1.079295296547151E+07,  2.476645699940574E+09), glm::vec3(-5.829935196501141E+00, 8.764722226773869E-02, 3.283761162053807E+0), 25362000.0, 25559000.0, 24973000.0, 8.690, 0.0, 0.0), // Uranus
         CelestialBody(glm::vec3( 4.469373923682106E+09, -1.033281370518243E+08,  1.586954226509337E+07), glm::vec3(-5.559040099903875E-2, -1.115959486943088E-01, 5.466737189466951E+0), 24624000.0, 24766000.0, 24342000.0, 11.15, 0.0, 0.0), // Neptune
-        // Moons (excluding Luna)
-        parsePlanetJSON("resources/planets/phobos.json"),
-        CelestialBody(glm::vec3(-1.954645686512529E+08, 1.948474304707609E+06, -1.365008465245946E+08), glm::vec3(1.490155449375842E+01, -7.012061170424948E-01, -1.647023847564131E+01), 6.2,   6.2,   6.2,   0.003,  0.0, 0.0), // Mars/Deim
     };
 
-    Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y - 5000.0, spawnPos.z), spawnVel, 0.00000000266972, glm::vec3(5.0f));
+    Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y, spawnPos.z - 10000.0), spawnVel, 0.00000000266972, glm::vec3(5.0f));
     bodies[11] = rocket;
 
     std::vector<std::string> bodyNames = {
@@ -888,7 +885,7 @@ int main(int argc, char* argv[]) {
         loadedTextures[15],
         loadedTextures[16],
         0,
-        0,
+        loadedTextures[17],
         0,
         0,
         0
@@ -896,16 +893,16 @@ int main(int argc, char* argv[]) {
 
     std::vector<unsigned int> planetNormalTextures = {
         0,
-        loadedTextures[17],
         loadedTextures[18],
         loadedTextures[19],
         loadedTextures[20],
         loadedTextures[21],
         loadedTextures[22],
-        loadedTextures[22],
-        loadedTextures[22],
-        loadedTextures[22],
-        loadedTextures[22],
+        loadedTextures[23],
+        loadedTextures[24],
+        loadedTextures[25],
+        loadedTextures[26],
+        loadedTextures[27],
     };
 
     // initialize buttons
@@ -994,8 +991,6 @@ int main(int argc, char* argv[]) {
         float yaw   = camera.Yaw   / 57.296f;
         float pitch = camera.Pitch / 57.296f;
 
-        bodies[11].position = glm::dvec3(bodies[9].position.x, bodies[9].position.y, bodies[9].position.z - 4000000.0);
-
         // calculate thrust acceleration of the rocket and calculate total acceleration
         glm::dvec3 thrustAccel = -glm::normalize(rocket.rotationQuaternion * glm::dvec3(0.0, 1.0, 0.0)) * 70.0;
         glm::dvec3 totalAccel = bodies[numOfPlanets].totalAcceleration + thrustAccel;
@@ -1010,14 +1005,14 @@ int main(int argc, char* argv[]) {
         else
             camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) + orbitalCameraPosition;
 
-        TrajectorySimulator rocketTrajectory(bodies[numOfPlanets], bodies[7]);
+        TrajectorySimulator rocketTrajectory(bodies[numOfPlanets], bodies[9]);
         TrajectorySimulator moonTrajectory(bodies[4], bodies[3]);
         TrajectorySimulator earthTrajectory(bodies[3], bodies[0]);
 
         if (orbitView)
         { 
             //if ((glm::length(bodies[numOfPlanets].position - bodies[3].position) < 1500000000.0))
-                rocketTrajectory.simulateTrajectory();
+                //rocketTrajectory.simulateTrajectory();
 
             //moonTrajectory.simulateTrajectory();
             //earthTrajectory.simulateTrajectory();
@@ -1250,7 +1245,7 @@ int main(int argc, char* argv[]) {
             model = glm::rotate(model, static_cast<double>(glm::radians(bodies[3].axialTilt)), glm::dvec3(0.0, 0.0, 1.0));
             model = glm::rotate(model, static_cast<double>(glm::radians(bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime())), glm::dvec3(0.0, 1.0, 0.0));
 
-            bindDiffuseTexture(loadedTextures[21]);
+            bindDiffuseTexture(loadedTextures[24]);
             shaderTex.setMat4("model", model);
             
             renderSphere(true, 128, 128);
@@ -1304,7 +1299,7 @@ int main(int argc, char* argv[]) {
 
             if (orbitView)
             {
-                rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                //rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 //moonTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 //earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
             }
