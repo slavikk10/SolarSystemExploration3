@@ -741,8 +741,8 @@ int main(int argc, char* argv[]) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glm::dvec3 spawnPos = parsePlanetJSON("resources/planets/venus.json").position / glm::dvec3(1000.0f);
-    glm::dvec3 spawnVel = parsePlanetJSON("resources/planets/venus.json").velocity / glm::dvec3(1000.0f);
+    glm::dvec3 spawnPos = parsePlanetJSON("resources/planets/callisto.json").position / glm::dvec3(1000.0f);
+    glm::dvec3 spawnVel = parsePlanetJSON("resources/planets/callisto.json").velocity / glm::dvec3(1000.0f);
     std::vector<CelestialBody> bodies = {
         CelestialBody(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), 695700000, 695508000, 695800000, 274.049, 0.0, 0.0), // Sun
         parsePlanetJSON("resources/planets/mercury.json"),
@@ -905,6 +905,20 @@ int main(int argc, char* argv[]) {
         loadedTextures[27],
     };
 
+    std::vector<bool> collidable = {
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true
+    };
+
     // initialize buttons
     // ------------------
     HoverButton startButton(startCallback,                       glm::vec2(300.0f, 500.0f), 0.2f, imageShader, start_button,   start_hover);
@@ -1005,14 +1019,16 @@ int main(int argc, char* argv[]) {
         else
             camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) + orbitalCameraPosition;
 
-        TrajectorySimulator rocketTrajectory(bodies[numOfPlanets], bodies[9]);
-        TrajectorySimulator moonTrajectory(bodies[4], bodies[3]);
-        TrajectorySimulator earthTrajectory(bodies[3], bodies[0]);
+        TrajectorySimulator rocketTrajectory(bodies[numOfPlanets], bodies[6]);
+        //TrajectorySimulator moonTrajectory(bodies[4], bodies[3]);
+        //TrajectorySimulator earthTrajectory(bodies[3], bodies[0]);
+        TrajectorySimulator callistoTrajectory(bodies[10], bodies[6]);
 
         if (orbitView)
         { 
             //if ((glm::length(bodies[numOfPlanets].position - bodies[3].position) < 1500000000.0))
-                //rocketTrajectory.simulateTrajectory();
+                rocketTrajectory.simulateTrajectory();
+            callistoTrajectory.simulateTrajectory();
 
             //moonTrajectory.simulateTrajectory();
             //earthTrajectory.simulateTrajectory();
@@ -1196,16 +1212,21 @@ int main(int argc, char* argv[]) {
 
                 planetShaders[i].setMat3("rotationMatrix", rotationMatrices[i]);
 
-                SphereCollision collision;
-                if (collisionTestState[i])
-                    collision = renderSphereCollision(patchesOptions[i], numOfSegments[i], numOfSegments[i], (bodies[numOfPlanets].position - bodies[i].position) / planetScales[i], planetScales[i]);
-                else
-                    renderSphere(patchesOptions[i], numOfSegments[i], numOfSegments[i]);
-
-                if (collision.collisionState)
+                if (collidable[i])
                 {
-                    bodies[numOfPlanets].position += collision.closestSurface;
-                    bodies[numOfPlanets].velocity = bodies[i].velocity;
+                    SphereCollision collision;
+                    if (collisionTestState[i])
+                        collision = renderSphereCollision(patchesOptions[i], numOfSegments[i], numOfSegments[i], (bodies[numOfPlanets].position - bodies[i].position) / planetScales[i], planetScales[i]);
+                    else
+                        renderSphere(patchesOptions[i], numOfSegments[i], numOfSegments[i]);
+
+                    if (collision.collisionState)
+                    {
+                        bodies[numOfPlanets].position += collision.closestSurface;
+                        bodies[numOfPlanets].velocity = bodies[i].velocity;
+                    }
+                } else {
+                    renderSphere(patchesOptions[i], numOfSegments[i], numOfSegments[i]);
                 }
             }
 
@@ -1299,7 +1320,8 @@ int main(int argc, char* argv[]) {
 
             if (orbitView)
             {
-                //rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                callistoTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 //moonTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 //earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
             }
