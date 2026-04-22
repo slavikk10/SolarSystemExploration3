@@ -1,4 +1,0 @@
-/Users/vyacheslav/SSE3_OpenGL/build/CMakeFiles/glad.dir
-/Users/vyacheslav/SSE3_OpenGL/build/CMakeFiles/sse3.dir
-/Users/vyacheslav/SSE3_OpenGL/build/CMakeFiles/edit_cache.dir
-/Users/vyacheslav/SSE3_OpenGL/build/CMakeFiles/rebuild_cache.dir
