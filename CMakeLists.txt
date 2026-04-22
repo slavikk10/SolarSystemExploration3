@@ -1,25 +1,30 @@
-cmake_minimum_required(VERSION 3.10)
-set(CMAKE_OSX_ARCHITECTURES "arm64")
-project(sse3)
+cmake_minimum_required(VERSION 3.20)
 
-execute_process(COMMAND xcrun --show-sdk-path OUTPUT_VARIABLE MACOSX_SDK_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
-set(CMAKE_OSX_SYSROOT "${MACOSX_SDK_PATH}")
-set(CMAKE_XCODE_VERSION 26.2)
-add_compile_options(-Wno-nullability-completeness)
+project(sse3 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if(APPLE)
+    execute_process(COMMAND xcrun --show-sdk-path OUTPUT_VARIABLE MACOSX_SDK_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
+    set(CMAKE_OSX_SYSROOT "${MACOSX_SDK_PATH}")
+    set(CMAKE_OSX_ARCHITECTURES "arm64")
+endif()
 
 find_package(OpenGL REQUIRED)
 find_package(Freetype REQUIRED)
+find_package(glfw3 REQUIRED)
+find_package(assimp REQUIRED)
 
-add_executable(sse3  main.cpp src/glad.c stb_image.cpp include/)
+add_library(glad src/glad.c)
+target_include_directories(glad PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
-include_directories(/Users/vyacheslav/.brew/opt/glfw/include)
-include_directories(/Users/vyacheslav/.brew/opt/assimp/include)
-include_directories(/Users/vyacheslav/.brew/opt/freetype/include)
-include_directories(/Users/vyacheslav/SSE3_OpenGL/include)
+add_executable(sse3 main.cpp stb_image.cpp)
 
-target_link_libraries(sse3 /Users/vyacheslav/.brew/opt/glfw/lib/libglfw.3.dylib)
-target_link_libraries(sse3 /Users/vyacheslav/.brew/opt/assimp/lib/libassimp.5.4.3.dylib)
-target_link_libraries(sse3 /Users/vyacheslav/.brew/opt/freetype/lib/libfreetype.6.dylib)
-target_link_libraries(sse3 OpenGL::GL)
+target_include_directories(sse3 PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+target_link_libraries(sse3 PRIVATE glad OpenGL::GL glfw Freetype::Freetype assimp::assimp)
+
+if(WIN32)
+    set_target_properties(sse3 PROPERTIES WIN32_EXECUTABLE TRUE)
+endif()

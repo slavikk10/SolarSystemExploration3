@@ -7,14 +7,26 @@ set(CMAKE_DEPENDS_GENERATOR "Unix Makefiles")
 # The top level Makefile was generated from the following files:
 set(CMAKE_MAKEFILE_DEPENDS
   "CMakeCache.txt"
+  "/Users/vyacheslav/.brew/lib/cmake/assimp-5.4/assimpConfig.cmake"
+  "/Users/vyacheslav/.brew/lib/cmake/assimp-5.4/assimpConfigVersion.cmake"
+  "/Users/vyacheslav/.brew/lib/cmake/assimp-5.4/assimpTargets-release.cmake"
+  "/Users/vyacheslav/.brew/lib/cmake/assimp-5.4/assimpTargets.cmake"
+  "/Users/vyacheslav/.brew/lib/cmake/glfw3/glfw3Config.cmake"
+  "/Users/vyacheslav/.brew/lib/cmake/glfw3/glfw3ConfigVersion.cmake"
+  "/Users/vyacheslav/.brew/lib/cmake/glfw3/glfw3Targets-release.cmake"
+  "/Users/vyacheslav/.brew/lib/cmake/glfw3/glfw3Targets.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/CMakeCInformation.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/CMakeCXXInformation.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/CMakeCommonLanguageInclude.cmake"
+  "/Users/vyacheslav/.brew/share/cmake/Modules/CMakeFindDependencyMacro.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/CMakeGenericSystem.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/CMakeInitializeConfigs.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/CMakeLanguageInformation.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/CMakeSystemSpecificInformation.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/CMakeSystemSpecificInitialize.cmake"
+  "/Users/vyacheslav/.brew/share/cmake/Modules/CheckCSourceCompiles.cmake"
+  "/Users/vyacheslav/.brew/share/cmake/Modules/CheckIncludeFile.cmake"
+  "/Users/vyacheslav/.brew/share/cmake/Modules/CheckLibraryExists.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/Compiler/AppleClang-C.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/Compiler/AppleClang-CXX.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/Compiler/CMakeCommonCompilerMacros.cmake"
@@ -24,9 +36,11 @@ set(CMAKE_MAKEFILE_DEPENDS
   "/Users/vyacheslav/.brew/share/cmake/Modules/FindOpenGL.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/FindPackageHandleStandardArgs.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/FindPackageMessage.cmake"
+  "/Users/vyacheslav/.brew/share/cmake/Modules/FindThreads.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/Internal/CMakeCLinkerInformation.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/Internal/CMakeCXXLinkerInformation.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/Internal/CMakeCommonLinkerInformation.cmake"
+  "/Users/vyacheslav/.brew/share/cmake/Modules/Internal/CheckSourceCompiles.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/Linker/AppleClang-C.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/Linker/AppleClang-CXX.cmake"
   "/Users/vyacheslav/.brew/share/cmake/Modules/Linker/AppleClang.cmake"
@@ -61,5 +75,6 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
+  "CMakeFiles/glad.dir/DependInfo.cmake"
   "CMakeFiles/sse3.dir/DependInfo.cmake"
   )

@@ -33,7 +33,7 @@ CMakeFiles/sse3.dir/main.cpp.o: /Users/vyacheslav/SSE3_OpenGL/main.cpp \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/_types/_uintptr_t.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/_types/_intmax_t.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/_types/_uintmax_t.h \
-  /Users/vyacheslav/.brew/opt/glfw/include/GLFW/glfw3.h \
+  /Users/vyacheslav/.brew/include/GLFW/glfw3.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/stddef.h \
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/stddef.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/stddef.h \
@@ -1319,37 +1319,37 @@ CMakeFiles/sse3.dir/main.cpp.o: /Users/vyacheslav/SSE3_OpenGL/main.cpp \
   /Users/vyacheslav/SSE3_OpenGL/include/camera.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/glm/gtc/quaternion.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/model.hpp \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/Importer.hpp \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/types.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/defs.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/config.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/vector2.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/vector3.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/color4.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/matrix3x3.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/matrix4x4.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/quaternion.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/vector2.inl \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/vector3.inl \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/color4.inl \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/matrix3x3.inl \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/matrix4x4.inl \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/MathFunctions.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/quaternion.inl \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/scene.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/texture.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/./Compiler/pushpack1.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/./Compiler/poppack1.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/mesh.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/aabb.h \
+  /Users/vyacheslav/.brew/include/assimp/Importer.hpp \
+  /Users/vyacheslav/.brew/include/assimp/types.h \
+  /Users/vyacheslav/.brew/include/assimp/defs.h \
+  /Users/vyacheslav/.brew/include/assimp/config.h \
+  /Users/vyacheslav/.brew/include/assimp/vector2.h \
+  /Users/vyacheslav/.brew/include/assimp/vector3.h \
+  /Users/vyacheslav/.brew/include/assimp/color4.h \
+  /Users/vyacheslav/.brew/include/assimp/matrix3x3.h \
+  /Users/vyacheslav/.brew/include/assimp/matrix4x4.h \
+  /Users/vyacheslav/.brew/include/assimp/quaternion.h \
+  /Users/vyacheslav/.brew/include/assimp/vector2.inl \
+  /Users/vyacheslav/.brew/include/assimp/vector3.inl \
+  /Users/vyacheslav/.brew/include/assimp/color4.inl \
+  /Users/vyacheslav/.brew/include/assimp/matrix3x3.inl \
+  /Users/vyacheslav/.brew/include/assimp/matrix4x4.inl \
+  /Users/vyacheslav/.brew/include/assimp/MathFunctions.h \
+  /Users/vyacheslav/.brew/include/assimp/quaternion.inl \
+  /Users/vyacheslav/.brew/include/assimp/scene.h \
+  /Users/vyacheslav/.brew/include/assimp/texture.h \
+  /Users/vyacheslav/.brew/include/assimp/./Compiler/pushpack1.h \
+  /Users/vyacheslav/.brew/include/assimp/./Compiler/poppack1.h \
+  /Users/vyacheslav/.brew/include/assimp/mesh.h \
+  /Users/vyacheslav/.brew/include/assimp/aabb.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/unordered_set \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/light.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/camera.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/material.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/material.inl \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/anim.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/metadata.h \
-  /Users/vyacheslav/.brew/opt/assimp/include/assimp/postprocess.h \
+  /Users/vyacheslav/.brew/include/assimp/light.h \
+  /Users/vyacheslav/.brew/include/assimp/camera.h \
+  /Users/vyacheslav/.brew/include/assimp/material.h \
+  /Users/vyacheslav/.brew/include/assimp/material.inl \
+  /Users/vyacheslav/.brew/include/assimp/anim.h \
+  /Users/vyacheslav/.brew/include/assimp/metadata.h \
+  /Users/vyacheslav/.brew/include/assimp/postprocess.h \
   /Users/vyacheslav/SSE3_OpenGL/include/mesh.hpp \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/map \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__fwd/map.h \
@@ -1360,24 +1360,24 @@ CMakeFiles/sse3.dir/main.cpp.o: /Users/vyacheslav/SSE3_OpenGL/main.cpp \
   /Users/vyacheslav/SSE3_OpenGL/include/filesystem.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/functionsupport.hpp \
   /Users/vyacheslav/SSE3_OpenGL/include/ui.hpp \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/ft2build.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/ftheader.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/freetype.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/ftconfig.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/ftoption.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/ftstdlib.h \
+  /Users/vyacheslav/.brew/include/freetype2/ft2build.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/config/ftheader.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/freetype.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/config/ftconfig.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/config/ftoption.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/config/ftstdlib.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/setjmp.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/integer-types.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/public-macros.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/config/mac-support.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/config/integer-types.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/config/public-macros.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/config/mac-support.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityMacros.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/TargetConditionals.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/fttypes.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/ftsystem.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/ftimage.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/fterrors.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/ftmoderr.h \
-  /Users/vyacheslav/.brew/opt/freetype/include/freetype2/freetype/fterrdef.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/fttypes.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/ftsystem.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/ftimage.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/fterrors.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/ftmoderr.h \
+  /Users/vyacheslav/.brew/include/freetype2/freetype/fterrdef.h \
   /Users/vyacheslav/SSE3_OpenGL/include/threads.hpp \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/thread \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__thread/this_thread.h \

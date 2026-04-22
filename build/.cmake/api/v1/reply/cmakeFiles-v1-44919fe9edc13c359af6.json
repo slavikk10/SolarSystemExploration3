@@ -240,6 +240,78 @@
 			"isCMake" : true,
 			"isExternal" : true,
 			"path" : "/Users/vyacheslav/.brew/share/cmake/Modules/FindPackageMessage.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/lib/cmake/glfw3/glfw3ConfigVersion.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/lib/cmake/glfw3/glfw3Config.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/share/cmake/Modules/CMakeFindDependencyMacro.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/share/cmake/Modules/FindThreads.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/share/cmake/Modules/CheckLibraryExists.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/share/cmake/Modules/CheckIncludeFile.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/share/cmake/Modules/CheckCSourceCompiles.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/share/cmake/Modules/Internal/CheckSourceCompiles.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/share/cmake/Modules/FindPackageHandleStandardArgs.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/share/cmake/Modules/FindPackageMessage.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/lib/cmake/glfw3/glfw3Targets.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/lib/cmake/glfw3/glfw3Targets-release.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/lib/cmake/assimp-5.4/assimpConfigVersion.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/lib/cmake/assimp-5.4/assimpConfig.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/lib/cmake/assimp-5.4/assimpTargets.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/Users/vyacheslav/.brew/lib/cmake/assimp-5.4/assimpTargets-release.cmake"
 		}
 	],
 	"kind" : "cmakeFiles",
