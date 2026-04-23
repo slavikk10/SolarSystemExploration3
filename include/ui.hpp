@@ -8,7 +8,7 @@
 #include <functional>
 
 #include <ft2build.h>
-#include "vcpkg/installed/x64-windows/include/freetype/freetype/freetype.h"
+#include <freetype/freetype.h>
 
 #include <shader.hpp>
 
