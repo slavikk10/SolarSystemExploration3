@@ -1,3 +1,34 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:848c66bd5dab1bc1e695299e1bfea4f802d28a84a4f31ab14dad52f11b6dfe98
-size 4503
+#include "detail/_fixes.hpp"
+
+#include "detail/setup.hpp"
+
+#pragma once
+
+#include <cmath>
+#include <climits>
+#include <cfloat>
+#include <limits>
+#include <cassert>
+#include "fwd.hpp"
+
+#include "vec2.hpp"
+#include "vec3.hpp"
+#include "vec4.hpp"
+#include "mat2x2.hpp"
+#include "mat2x3.hpp"
+#include "mat2x4.hpp"
+#include "mat3x2.hpp"
+#include "mat3x3.hpp"
+#include "mat3x4.hpp"
+#include "mat4x2.hpp"
+#include "mat4x3.hpp"
+#include "mat4x4.hpp"
+
+#include "trigonometric.hpp"
+#include "exponential.hpp"
+#include "common.hpp"
+#include "packing.hpp"
+#include "geometric.hpp"
+#include "matrix.hpp"
+#include "vector_relational.hpp"
+#include "integer.hpp"
