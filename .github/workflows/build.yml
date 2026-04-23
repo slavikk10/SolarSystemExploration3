@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: Clone vcpkg
         run: git clone https://github.com/microsoft/vcpkg ${{github.workspace}}\vcpkg
