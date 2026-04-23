@@ -36,7 +36,7 @@ jobs:
           cmake -B build -S . `
             -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}\vcpkg\scripts\buildsystems\vcpkg.cmake `
             -DVCPKG_TARGET_TRIPLET=x64-windows `
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release `
             -DVCPKG_INSTALLED_DIR=${{github.workspace}}\vcpkg\installed
 
       - name: Build
