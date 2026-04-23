@@ -24,6 +24,7 @@ jobs:
         with:
           path: ${{github.workspace}}\vcpkg\installed
           key: vcpkg-pkgs-x64-windows-glfw3-freetype-assimp
+          save-always: true
 
       - name: Install dependencies
         if: steps.cache-pkgs.outputs.cache-hit != 'true'
@@ -36,6 +37,7 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}\vcpkg\scripts\buildsystems\vcpkg.cmake `
             -DVCPKG_TARGET_TRIPLET=x64-windows `
             -DCMAKE_BUILD_TYPE=Release
+            -DVCPKG_INSTALLED_DIR=${{github.workspace}}\vcpkg\installed
 
       - name: Build
         run: cmake --build build --config Release
