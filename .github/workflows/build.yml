@@ -12,6 +12,9 @@ jobs:
         with:
           lfs: true
 
+      - name: Check freetype headers
+        run: dir ${{github.workspace}}\vcpkg\installed\x64-windows\include\freetype
+
       - name: Clone vcpkg
         run: git clone https://github.com/microsoft/vcpkg ${{github.workspace}}\vcpkg
 
