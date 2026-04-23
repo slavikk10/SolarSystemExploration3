@@ -22,6 +22,9 @@ find_package(assimp REQUIRED)
 
 message(STATUS "Freetype include dirs: ${FREETYPE_INCLUDE_DIRS}")
 
+file(GLOB_RECURSE contents "${FREETYPE_INCLUDE_DIRS}/**")
+message(STATUS "${contents}")
+
 add_library(glad src/glad.c)
 target_include_directories(glad PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
