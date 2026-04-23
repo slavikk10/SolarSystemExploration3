@@ -30,17 +30,6 @@ jobs:
             -DVCPKG_TARGET_TRIPLET=x64-windows `
             -DCMAKE_BUILD_TYPE=Release
 
-      - name: Show glad.c contents
-        run: |
-          echo "---- FIRST 20 LINES ----"
-          sed -n '1,20p' src/glad.c
-
-          echo "---- WITH LINE NUMBERS ----"
-          nl -ba src/glad.c | head -n 20
-
-          echo "---- RAW BYTES (IMPORTANT) ----"
-          xxd -l 64 src/glad.c
-
       - name: Build
         run: cmake --build build --config Release
 
