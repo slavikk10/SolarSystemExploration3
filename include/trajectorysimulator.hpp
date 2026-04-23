@@ -2,6 +2,8 @@
 #include <ui.hpp>
 #include <camera.hpp>
 
+const double PI = 3.1415926535;
+
 class TrajectorySimulator
 {
 public:
@@ -36,7 +38,7 @@ public:
         double v             = glm::length(startVel);
         
         double a             = -system[1].mu / (2.0 * E);
-        double T             = 2.0 * M_PI * sqrt(a * a * a / system[1].mu);
+        double T             = 2.0 * PI * sqrt(a * a * a / system[1].mu);
         double simulatedTime = 0.0;
 
         glm::dvec3 h         = glm::cross(startPos - system[1].position, startVel);
@@ -53,7 +55,7 @@ public:
             orbit = true;
             for (unsigned int i = 0; i < 1000; ++i)
             {
-                double M = 2.0 * M_PI * (i / 1000.0);
+                double M = 2.0 * PI * (i / 1000.0);
 
                 double E_anom = M;
                 for (unsigned int i = 0; i < 5; i++)
