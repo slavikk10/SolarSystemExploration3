@@ -1,3 +1,8 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:19ae6283818fa823c1d7e9e65e979edeeb0f35b07ce72a06c2de5cd73e5003b5
-size 171
+//
+// Created by Vyacheslav on 31.03.2025.
+//
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
