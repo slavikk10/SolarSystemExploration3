@@ -1,4 +1,4 @@
-name: windows build
+name: windows and linux (ubuntu) build
 on:
   push:
   pull_request:
@@ -51,3 +51,26 @@ jobs:
         with:
           name: sse3-windows
           path: build/Release/
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglfw3-dev libfreetype-dev libassimp-dev libgl1-mesa-dev
+
+      - name: Configure CMake
+        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sse3-linux
+          path: build/sse3
