@@ -15,6 +15,8 @@ if(APPLE)
     set(CMAKE_OSX_ARCHITECTURES "arm64")
 endif()
 
+set(BUILD_SHARED_LIBS OFF)
+
 find_package(OpenGL REQUIRED)
 find_package(Freetype REQUIRED)
 find_package(glfw3 REQUIRED)
