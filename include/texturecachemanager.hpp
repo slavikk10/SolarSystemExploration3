@@ -11,8 +11,7 @@
 #include <filesystem.hpp>
 
 void saveTextureCache(std::string cacheFileName, std::string texturePath) {
-    std::filesystem::path p = std::getenv("HOME");
-    p /= "SSE3_OpenGL/cache/TextureCache";
+    std::filesystem::path p = getFilePath("cache/TextureCache");
 
     if (!(std::filesystem::exists(p) && std::filesystem::is_directory(p)))
         std::filesystem::create_directories(p);
