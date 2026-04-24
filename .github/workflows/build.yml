@@ -74,7 +74,6 @@ jobs:
           cp /usr/lib/x86_64-linux-gnu/libglfw.so.3 build/
           cp /usr/lib/x86_64-linux-gnu/libassimp.so.5 build/
           cp /usr/lib/x86_64-linux-gnu/libfreetype.so.6 build/
-          cp ${{github.workspace}}/shaders build/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
