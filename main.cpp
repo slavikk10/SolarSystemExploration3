@@ -68,8 +68,8 @@ void RenderText(Shader &s, std::string text, float x, float y, float scale, glm:
 void saveCubemap(unsigned int cubemap, const std::string& folder, const std::string& filename_start_text, unsigned int size);
 
 // settings
-unsigned int SCR_WIDTH = 1920;
-unsigned int SCR_HEIGHT = 1080;
+unsigned int SCR_WIDTH;
+unsigned int SCR_HEIGHT;
 
 // camera
 Camera camera(glm::vec3(8.241306702279538e+09, 3.218946189282089e+07, -1.526005896490690e+11)/10000.0f);
@@ -196,6 +196,14 @@ int main(int argc, char* argv[]) {
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
+
+    // glfw: get primary monitor resolution
+    // ------------------------------------
+    GLFWmonitor* primary = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(primary);
+
+    SCR_WIDTH  = (unsigned int)mode->width;
+    SCR_HEIGHT = (unsigned int)mode->height;
 
     // glfw window creation
     // --------------------
