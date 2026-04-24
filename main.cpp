@@ -557,45 +557,45 @@ int main(int argc, char* argv[]) {
     // ------------------------------
     std::vector<std::string> planetTexturesPaths = {
         // diffuse
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mercury/mercury_surface.jpg",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/venus/venus_atmo.jpg",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_surface.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/moon/moon_surface.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mars/mars_surface.jpg",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/jupiter_atmo.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/moons/io/io_surface.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/moons/europa/europa_surface.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/moons/ganymede/ganymede_surface.jpg",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/moons/callisto/callisto_surface.png",
+        getFilePath("resources/textures/planets/mercury/mercury_surface.jpg"),
+        getFilePath("resources/textures/planets/venus/venus_atmo.jpg"),
+        getFilePath("resources/textures/planets/earth/earth_surface.png"),
+        getFilePath("resources/textures/planets/earth/moon/moon_surface.png"),
+        getFilePath("resources/textures/planets/mars/mars_surface.jpg"),
+        getFilePath("resources/textures/planets/jupiter/jupiter_atmo.png"),
+        getFilePath("resources/textures/planets/jupiter/moons/io/io_surface.png"),
+        getFilePath("resources/textures/planets/jupiter/moons/europa/europa_surface.png"),
+        getFilePath("resources/textures/planets/jupiter/moons/ganymede/ganymede_surface.jpg"),
+        getFilePath("resources/textures/planets/jupiter/moons/callisto/callisto_surface.png"),
 
         // metallic
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_metallic.jpg",
+        getFilePath("resources/textures/planets/earth/earth_metallic.jpg"),
 
         // roughness
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_metallic.jpg",
+        getFilePath("resources/textures/planets/earth/earth_metallic.jpg"),
 
         // height
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mercury/mercury_height.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/venus/venus_height.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_height.jpg",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/moon/moon_height.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_height.jpg",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/moons/io/io_height.png",
+        getFilePath("resources/textures/planets/mercury/mercury_height.png"),
+        getFilePath("resources/textures/planets/venus/venus_height.png"),
+        getFilePath("resources/textures/planets/earth/earth_height.jpg"),
+        getFilePath("resources/textures/planets/earth/moon/moon_height.png"),
+        getFilePath("resources/textures/planets/earth/earth_height.jpg"),
+        getFilePath("resources/textures/planets/jupiter/moons/io/io_height.png"),
 
         // normal
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/mercury/mercury_normal.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/venus/venus_normal.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/moon/moon_normal.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/jupiter/moons/io/io_normal.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png",
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_normal.png",
+        getFilePath("resources/textures/planets/mercury/mercury_normal.png"),
+        getFilePath("resources/textures/planets/venus/venus_normal.png"),
+        getFilePath("resources/textures/planets/earth/earth_normal.png"),
+        getFilePath("resources/textures/planets/earth/moon/moon_normal.png"),
+        getFilePath("resources/textures/planets/earth/earth_normal.png"),
+        getFilePath("resources/textures/planets/earth/earth_normal.png"),
+        getFilePath("resources/textures/planets/jupiter/moons/io/io_normal.png"),
+        getFilePath("resources/textures/planets/earth/earth_normal.png"),
+        getFilePath("resources/textures/planets/earth/earth_normal.png"),
+        getFilePath("resources/textures/planets/earth/earth_normal.png"),
 
         // clouds
-        "/Users/vyacheslav/SSE3_OpenGL/resources/textures/planets/earth/earth_clouds.png"
+        getFilePath("resources/textures/planets/earth/earth_clouds.png")
     };
 
     std::vector<std::string> planetTextureNames = {

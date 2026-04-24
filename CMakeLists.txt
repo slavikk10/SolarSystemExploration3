@@ -33,7 +33,3 @@ add_executable(sse3 main.cpp stb_image.cpp)
 target_include_directories(sse3 PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 target_link_libraries(sse3 PRIVATE glad OpenGL::GL glfw Freetype::Freetype assimp::assimp)
-
-if(WIN32)
-    set_target_properties(sse3 PROPERTIES WIN32_EXECUTABLE TRUE)
-endif()
