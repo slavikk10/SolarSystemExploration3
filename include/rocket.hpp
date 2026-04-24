@@ -46,6 +46,8 @@ public:
         cam.x = cam.x + cam.x * cam.y;
         cam.z = cam.z + cam.z * cam.y;
 
+        glm::vec3 forward = glm::quat(this->rotationQuaternion) * glm::vec3(0.0f, 1.0f, 0.0f);
+
         // rocket rotation controls
         // ------------------------
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -57,9 +59,9 @@ public:
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
             this->totalTorque = 1000.0f * glm::vec3( cam.x, 0.0f,  cam.z);
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-            this->totalTorque = 1000.0f * glm::vec3( 0.0f, -1.0f,  0.0f);
+            this->totalTorque = 1000.0f * -forward;
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-            this->totalTorque = 1000.0f * glm::vec3( 0.0f,  1.0f,  0.0f);
+            this->totalTorque = 1000.0f *  forward;
     }
 
 private:
@@ -68,9 +70,17 @@ private:
         glm::vec3 frictionTorque = -500.0f * this->rotationalVelocity;                 // calculate friction due to rotation
         this->rotationalAcceleration = (this->totalTorque + frictionTorque) / 1000.0f; // apply total torque to get rotational acceleration
         this->rotationalVelocity += this->rotationalAcceleration * deltaTime;
-        this->rotation += this->rotationalVelocity * deltaTime;
-        this->rotation = resetVec(this->rotation);
-        this->rotationQuaternion = glm::angleAxis(glm::length(this->rotation), glm::normalize(this->rotation));
+
+        glm::vec3 axis = glm::normalize(this->rotationalVelocity);
+        float angle = glm::length(this->rotationalVelocity) * deltaTime;
+        if (angle > 0.0001f) {
+            glm::dquat delta = glm::angleAxis(angle, axis);
+            this->rotationQuaternion = glm::normalize(delta * this->rotationQuaternion);
+        }
+
+        //this->rotation += this->rotationalVelocity * deltaTime;
+        //this->rotation = resetVec(this->rotation);
+        //this->rotationQuaternion = glm::angleAxis(glm::length(this->rotation), glm::normalize(this->rotation));
     }
 
     glm::vec3 resetVec(glm::vec3 vec)
