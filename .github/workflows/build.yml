@@ -79,4 +79,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sse3-linux
-          path: build/sse3
+          path: build/
