@@ -1035,8 +1035,8 @@ int main(int argc, char* argv[]) {
         if (orbitView)
         { 
             //if ((glm::length(bodies[numOfPlanets].position - bodies[3].position) < 1500000000.0))
-                //rocketTrajectory.simulateTrajectory();
-            //callistoTrajectory.simulateTrajectory();
+                rocketTrajectory.simulateTrajectory();
+            callistoTrajectory.simulateTrajectory();
 
             //moonTrajectory.simulateTrajectory();
             //earthTrajectory.simulateTrajectory();
@@ -1328,8 +1328,8 @@ int main(int argc, char* argv[]) {
 
             if (orbitView)
             {
-                //rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                //callistoTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                callistoTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 //moonTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 //earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
             }
