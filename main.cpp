@@ -749,8 +749,8 @@ int main(int argc, char* argv[]) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glm::dvec3 spawnPos = parsePlanetJSON("resources/planets/callisto.json").position / glm::dvec3(1000.0f);
-    glm::dvec3 spawnVel = parsePlanetJSON("resources/planets/callisto.json").velocity / glm::dvec3(1000.0f);
+    glm::dvec3 spawnPos = parsePlanetJSON("resources/planets/earth.json").position / glm::dvec3(1000.0f);
+    glm::dvec3 spawnVel = parsePlanetJSON("resources/planets/earth.json").velocity / glm::dvec3(1000.0f);
     std::vector<CelestialBody> bodies = {
         CelestialBody(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), 695700000, 695508000, 695800000, 274.049, 0.0, 0.0), // Sun
         parsePlanetJSON("resources/planets/mercury.json"),
@@ -769,7 +769,7 @@ int main(int argc, char* argv[]) {
         CelestialBody(glm::vec3( 4.469373923682106E+09, -1.033281370518243E+08,  1.586954226509337E+07), glm::vec3(-5.559040099903875E-2, -1.115959486943088E-01, 5.466737189466951E+0), 24624000.0, 24766000.0, 24342000.0, 11.15, 0.0, 0.0), // Neptune
     };
 
-    Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y, spawnPos.z - 10000.0), spawnVel, 0.00000000266972, glm::vec3(5.0f));
+    Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y, spawnPos.z + 10000.0), spawnVel, 0.00000000266972, glm::vec3(5.0f));
     bodies[11] = rocket;
 
     std::vector<std::string> bodyNames = {
@@ -1027,19 +1027,17 @@ int main(int argc, char* argv[]) {
         else
             camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) + orbitalCameraPosition;
 
-        TrajectorySimulator rocketTrajectory(bodies[numOfPlanets], bodies[10]);
-        //TrajectorySimulator moonTrajectory(bodies[4], bodies[3]);
-        //TrajectorySimulator earthTrajectory(bodies[3], bodies[0]);
-        TrajectorySimulator callistoTrajectory(bodies[10], bodies[6]);
+        TrajectorySimulator rocketTrajectory(bodies[numOfPlanets], bodies[3]);
+        TrajectorySimulator moonTrajectory(bodies[4], bodies[3]);
+        TrajectorySimulator earthTrajectory(bodies[3], bodies[0]);
 
         if (orbitView)
         { 
-            //if ((glm::length(bodies[numOfPlanets].position - bodies[3].position) < 1500000000.0))
+            if ((glm::length(bodies[numOfPlanets].position - bodies[3].position) < 1500000000.0))
                 rocketTrajectory.simulateTrajectory();
-            callistoTrajectory.simulateTrajectory();
 
-            //moonTrajectory.simulateTrajectory();
-            //earthTrajectory.simulateTrajectory();
+            moonTrajectory.simulateTrajectory();
+            earthTrajectory.simulateTrajectory();
         }
         
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1144,7 +1142,7 @@ int main(int argc, char* argv[]) {
                         }
 
                         glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationAroundAxis), 0.0f, glm::sin(rotationAroundAxis)), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationAroundAxis), 0.0f, glm::cos(rotationAroundAxis)));                                                                                                                          // rotation matrix for Y axis
-                        glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(-bodies[i].axialTilt)), -glm::sin(glm::radians(-bodies[i].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(-bodies[i].axialTilt)), glm::cos(glm::radians(-bodies[i].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis
+                        glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(bodies[i].axialTilt)), -glm::sin(glm::radians(bodies[i].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(bodies[i].axialTilt)), glm::cos(glm::radians(bodies[i].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis
                         glm::mat3 rotationMatrix = rotationMatrixY * rotationMatrixZ;
 
                         {
@@ -1271,10 +1269,10 @@ int main(int argc, char* argv[]) {
             model = glm::dmat4(1.0);
             model = glm::translate(model, camera.Position - bodies[3].position);
             model = glm::scale(model, glm::dvec3(bodies[3].averageRadius + 15000.0f));
-            model = glm::rotate(model, static_cast<double>(glm::radians(bodies[3].axialTilt)), glm::dvec3(0.0, 0.0, 1.0));
+            //model = glm::rotate(model, static_cast<double>(glm::radians(bodies[3].axialTilt)), glm::dvec3(0.0, 0.0, 1.0));
             model = glm::rotate(model, static_cast<double>(glm::radians(bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime())), glm::dvec3(0.0, 1.0, 0.0));
 
-            bindDiffuseTexture(loadedTextures[24]);
+            bindDiffuseTexture(loadedTextures[28]);
             shaderTex.setMat4("model", model);
             
             renderSphere(true, 128, 128);
@@ -1329,9 +1327,8 @@ int main(int argc, char* argv[]) {
             if (orbitView)
             {
                 rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                callistoTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                //moonTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                //earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                moonTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
             }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -1395,7 +1392,7 @@ int main(int argc, char* argv[]) {
 
         // render apoapsis and periapsis
         // -----------------------------
-        if (!menuState.inMenu)
+        if (!menuState.inMenu && rocketTrajectory.orbit)
         {
             glm::vec2 a = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
             glm::vec2 p = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).y);
