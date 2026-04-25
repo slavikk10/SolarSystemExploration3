@@ -1027,10 +1027,10 @@ int main(int argc, char* argv[]) {
         else
             camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) + orbitalCameraPosition;
 
-        //TrajectorySimulator rocketTrajectory(bodies[numOfPlanets], bodies[10]);
+        TrajectorySimulator rocketTrajectory(bodies[numOfPlanets], bodies[10]);
         //TrajectorySimulator moonTrajectory(bodies[4], bodies[3]);
         //TrajectorySimulator earthTrajectory(bodies[3], bodies[0]);
-        //TrajectorySimulator callistoTrajectory(bodies[10], bodies[6]);
+        TrajectorySimulator callistoTrajectory(bodies[10], bodies[6]);
 
         if (orbitView)
         { 
