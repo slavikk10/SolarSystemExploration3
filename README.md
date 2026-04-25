@@ -7,3 +7,5 @@ WASDQE - rocket orientation
 <> - time multiplier (the higher it is, the faster the time is inside the game)
 RMB hold and drag - move camera around the rocket
 Mouse scroll wheel - zoom out or in from the rocket
+T - turn on/off engines
+R/F - manage throttle
