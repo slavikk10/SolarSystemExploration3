@@ -1352,7 +1352,7 @@ int main(int argc, char* argv[]) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        /*if (!menuState.inMenu && orbitView)
+        if (!menuState.inMenu && orbitView)
         {
             for (unsigned int i = 0; i < 13; i++)
             {
@@ -1362,12 +1362,6 @@ int main(int argc, char* argv[]) {
                     RenderText(textShader, bodyNames[i], convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).y + 35, 0.4f, glm::vec3(1.0f), true);
                 }
             }
-        }*/
-
-        if (glm::dot(glm::normalize(bodies[0].position - (glm::dvec3)camera.Position), -(glm::dvec3)camera.Right) > 0.0) // check if the target is in front of the camera
-        {
-            RenderCenteredImage(imageShader, objectNavImg, convert3Dto2D(glm::dvec3(camera.Position) - bodies[0].position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[0].position, view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.15f);
-            RenderText(textShader, bodyNames[0], convert3Dto2D(glm::dvec3(camera.Position) - bodies[0].position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[0].position, view, projection, SCR_WIDTH, SCR_HEIGHT).y + 35, 0.4f, glm::vec3(1.0f), true);
         }
 
         // render text
