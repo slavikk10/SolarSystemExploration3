@@ -1354,7 +1354,7 @@ int main(int argc, char* argv[]) {
 
         if (!menuState.inMenu && orbitView)
         {
-            for (unsigned int i = 0; i < 13; i++)
+            for (unsigned int i = 0; i < bodyNames.size(); i++)
             {
                 if (glm::dot(glm::normalize(bodies[i].position - (glm::dvec3)camera.Position), -(glm::dvec3)camera.Right) > 0.0) // check if the target is in front of the camera
                 {
