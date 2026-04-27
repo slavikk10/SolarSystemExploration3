@@ -1270,7 +1270,7 @@ int main(int argc, char* argv[]) {
             model = glm::translate(model, camera.Position - bodies[3].position);
             model = glm::scale(model, glm::dvec3(bodies[3].averageRadius + 15000.0f));
             //model = glm::rotate(model, static_cast<double>(glm::radians(bodies[3].axialTilt)), glm::dvec3(0.0, 0.0, 1.0));
-            model = glm::rotate(model, static_cast<double>(glm::radians(bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime())), glm::dvec3(0.0, 1.0, 0.0));
+            //model = glm::rotate(model, static_cast<double>(glm::radians(bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime())), glm::dvec3(0.0, 1.0, 0.0));
 
             bindDiffuseTexture(loadedTextures[28]);
             shaderTex.setMat4("model", model);
