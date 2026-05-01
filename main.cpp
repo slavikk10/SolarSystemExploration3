@@ -1485,6 +1485,7 @@ int main(int argc, char* argv[]) {
         std::string throttle_s = "Throttle: " + std::format("{:.1f}", throttle) + "%";
         std::string fuel_s     = "Fuel: " + std::format("{:.1f}", fuel / 3000000.0f * 100.0f) + "%"; // divide the left fuel by original fuel and multiply by 100 to get in percents
         std::string tm_s       = "Time multiplier: " + std::to_string(timeMultiplier);
+        std::string dtm_s      = "Distance to Moon: " + std::to_string(glm::length(bodies[numOfPlanets].position - bodies[4].position) / 1000.0) + " km";
         textShader.use();
         textShader.setMat4("projection", orthoProjection); // switch to orthographic projection for rending text
         imageShader.use();
@@ -1497,6 +1498,7 @@ int main(int argc, char* argv[]) {
             RenderText(textShader, enginesOn ? "Engines: on" : "Engines: off", SCR_WIDTH/2, 10.0f, 0.5f, enginesOn ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f), true);
             RenderText(textShader, fuel_s, 3*SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
             RenderText(textShader, tm_s, SCR_WIDTH / 2, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
+            RenderText(textShader, dtm_s, 3*SCR_WIDTH/4, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
         }
 
         if (menuState.options)
@@ -1504,7 +1506,7 @@ int main(int argc, char* argv[]) {
 
         // render apoapsis and periapsis and also transfer window
         // ------------------------------------------------------
-        if (!menuState.inMenu && rocketTrajectory.orbit)// && orbitView)
+        if (!menuState.inMenu && rocketTrajectory.orbit && orbitView)
         {
             glm::vec2 a = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
             glm::vec2 p = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).y);
@@ -1512,18 +1514,22 @@ int main(int argc, char* argv[]) {
             RenderCenteredImage(imageShader, apoap_periapsi, a.x, a.y, 0.05f);
             RenderCenteredImage(imageShader, apoap_periapsi, p.x, p.y, 0.05f);
 
+            glm::vec2 bp = glm::vec2(convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + transfer.burnDirection * 5.0), view, projection, SCR_WIDTH, SCR_HEIGHT));
+            RenderCenteredImage(imageShader, apoap_periapsi, bp.x, bp.y, 0.05f); // burn direсtion point
+
             if (glm::length(bodies[numOfPlanets].position - (transferWindow + bodies[3].position)) > 200000.0)
             {
                 glm::vec2 tw = glm::vec2(convert3Dto2D(camera.Position - (transferWindow + bodies[3].position), view, projection, SCR_WIDTH, SCR_HEIGHT));
                 RenderCenteredImage(imageShader, apoap_periapsi, tw.x, tw.y, 0.05f);
+                RenderText(textShader, "Transfer window", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
             } 
             else 
             {
-                glm::vec2 tw = glm::vec2(convert3Dto2D(camera.Position - bodies[numOfPlanets].position, view, projection, SCR_WIDTH, SCR_HEIGHT));
-                glm::vec2 bp = glm::vec2(convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + transfer.burnDirection * 5.0), view, projection, SCR_WIDTH, SCR_HEIGHT));
-                RenderText(textShader, std::format("{:.2f}", std::round(transfer.deltaVelocity / 10.0) / 100.0) + " km/s", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
+                if (enginesOn && throttle > 0.0)
+                    transferWindow = bodies[numOfPlanets].position + bodies[3].position;
 
-                RenderCenteredImage(imageShader, apoap_periapsi, bp.x, bp.y, 0.05f); // burn direсtion point
+                glm::vec2 tw = glm::vec2(convert3Dto2D(camera.Position - bodies[numOfPlanets].position, view, projection, SCR_WIDTH, SCR_HEIGHT));
+                RenderText(textShader, std::format("{:.2f}", std::round(glm::length(transfer.velocityVector - bodies[numOfPlanets].velocity) / 10.0) / 100.0) + " km/s", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
             }
 
             std::string apoapsiss  = std::to_string(std::round((rocketTrajectory.apoapsisd  - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.apoapsisd   / 100.0)  / 10.0).find(".") + 2);

@@ -53,6 +53,7 @@ struct Transfer
     double timeOfFlight;
 
     glm::dvec3 burnDirection;
+    glm::dvec3 velocityVector;
 };
 
 ObjectState findObjectStateAtTime(double time, Orbit rocketOrbit, double timeOfPeriapsisPassage, double gravitationalParameter)
@@ -120,11 +121,13 @@ glm::dvec3 lambertSolver(OrbitalObject rocketOrbital, OrbitalObject moonOrbital,
     glm::dvec3 r1 = rocketDeparturePosition;
     glm::dvec3 r2 = arrivalMoonState.r;
 
+    glm::dvec3 h = rocketOrbital.state.r * rocketOrbital.state.v;
+
     double r1l = glm::length(r1);
     double r2l = glm::length(r2);
 
     double cosTheta = glm::dot(r1, r2) / (r1l * r2l);
-    double A        = sqrt(r1l * r2l * (1 + cosTheta));
+    double A        = (h.y / abs(h.y)) * sqrt(r1l * r2l * (1 + cosTheta));
 
     if (A == 0.0)
         return glm::dvec3(INFINITY);
@@ -258,7 +261,7 @@ Transfer findTransferWindow(double x_min, double x_max, double y_min, double y_m
         for (double j = x_min; j < x_max; j += x_step)
         {
             glm::dvec3 velocityVector = lambertSolver(rocketOrbital, targetOrbital, j, i, gravitationalParameter, rocketDeparturePositions[j]);
-            double vel = glm::length(velocityVector);
+            double vel = glm::length(velocityVector - rocketOrbital.state.v);
 
             if (vel < deltaVelocity)
             {
@@ -266,7 +269,7 @@ Transfer findTransferWindow(double x_min, double x_max, double y_min, double y_m
 
                 departureTime = j;
                 timeOfFlight  = i;
-                velVector     = velocityVector;
+                velVector     = velocityVector - rocketOrbital.state.v;
             }
         }
     }
@@ -275,6 +278,7 @@ Transfer findTransferWindow(double x_min, double x_max, double y_min, double y_m
     transfer.deltaVelocity  = deltaVelocity;
     transfer.departureTime  = departureTime;
     transfer.timeOfFlight   = timeOfFlight;
+    transfer.velocityVector = velVector + rocketOrbital.state.v;
     transfer.burnDirection  = glm::normalize(velVector);
 
     return transfer;
