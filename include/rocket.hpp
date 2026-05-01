@@ -19,7 +19,6 @@ public:
     glm::vec3 totalTorque            = glm::vec3(0.0f);
     glm::vec3 rotationalAcceleration = glm::vec3(0.0f);
     glm::vec3 rotationalVelocity     = glm::vec3(0.0f);
-    glm::vec3 rotation               = glm::vec3(0.0f, 0.00000001f, 0.0f);
     glm::dquat rotationQuaternion;
 
     Rocket(const Camera& camera, float mass, glm::dvec3 position, glm::dvec3 velocity, float gravity, glm::vec3 size)
@@ -43,10 +42,8 @@ public:
         this->totalTorque = glm::vec3(0.0f);
 
         glm::vec3 cam = camera.OrbitalCameraPosition;
-        cam.x = cam.x + cam.x * cam.y;
-        cam.z = cam.z + cam.z * cam.y;
-
-        std::cout << vec3ToString(cam) << std::endl;
+        //cam.x = cam.x + cam.x * cam.y;
+        //cam.z = cam.z + cam.z * cam.y;
 
         glm::vec3 forward = glm::quat(this->rotationQuaternion) * glm::vec3(0.0f, 1.0f, 0.0f);
 

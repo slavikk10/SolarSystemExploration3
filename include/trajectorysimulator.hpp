@@ -1,8 +1,10 @@
 #include <celestialbody.hpp>
 #include <ui.hpp>
 #include <camera.hpp>
+#include <functionsupport.hpp>
+#include <navigator.hpp>
 
-const double PI = 3.1415926535;
+constexpr double PI = 3.1415926535;
 
 class TrajectorySimulator
 {
@@ -26,7 +28,7 @@ public:
         r = glm::length(system[0].position - system[1].position);
         v = glm::length(system[0].velocity);
 
-        E = (v * v) / 2.0 - system[1].mu / r;
+        E = pow(v, 2) / 2.0 - system[1].mu / r;
     }
 
     void simulateTrajectory()
@@ -38,14 +40,14 @@ public:
         double v             = glm::length(startVel);
         
         double a             = -system[1].mu / (2.0 * E);
-        double T             = 2.0 * PI * sqrt(a * a * a / system[1].mu);
+        double T             = 2.0 * PI * sqrt(pow(a, 3) / system[1].mu);
         double simulatedTime = 0.0;
 
         glm::dvec3 h         = glm::cross(startPos - system[1].position, startVel);
 
         glm::dvec3 eVec      = glm::cross(system[0].velocity, h) / system[1].mu - glm::normalize(startPos - system[1].position);
         double eccentricity  = glm::length(eVec);
-        double b             = a * sqrt(1 - eccentricity * eccentricity);
+        double b             = a * sqrt(1 - pow(eccentricity, 2));
 
         periapsisd    = a * (1 - eccentricity);
         apoapsisd     = a * (1 + eccentricity);

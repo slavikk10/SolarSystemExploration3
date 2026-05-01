@@ -17,6 +17,7 @@
 #include <ui.hpp>
 #include <threads.hpp>
 #include <trajectorysimulator.hpp>
+#include <navigator.hpp>
 #include <texturesave.hpp>
 #include <callbacks.hpp>
 #include <rocket.hpp>
@@ -32,6 +33,7 @@
 #include <functional>
 #include <string>
 #include <string_view>
+#include <format>
 
 //#include <sys/socket.h>
 //#include <netinet/in.h>
@@ -185,6 +187,62 @@ int maxBearing = 0, maxHMB = 0;
 
 int main(int argc, char* argv[]) {
     float start = glfwGetTime();
+
+    /*Orbit rocketo;
+    rocketo.semiMajorAxis = 7000;
+    rocketo.eccentricity = 0;
+    rocketo.inclination = 0;
+    rocketo.raan = 0;
+    rocketo.argumentOfPeriapsis = 0;
+    rocketo.meanMotion = 0.061770761839396;
+
+    ObjectOrbitalState rocketoos;
+    rocketoos.meanAnomaly = 0;
+    rocketoos.timeOfPeriapsisPassage = 0;
+    rocketoos.trueAnomaly = 0;
+
+    ObjectState rocketos;
+    rocketos.r = glm::dvec3(0.0, 0.0, 7000.0);
+    rocketos.v = glm::dvec3(7.546053290107542, 0.0, 0.0);
+
+    OrbitalObject rocketoo;
+    rocketoo.state = rocketos;
+    rocketoo.orbitalState = rocketoos;
+    rocketoo.orbit = rocketo;
+
+
+
+
+    Orbit moono;
+    moono.semiMajorAxis = 384400;
+    moono.eccentricity = 0;
+    moono.inclination = 0;
+    moono.raan = 0;
+    moono.argumentOfPeriapsis = 0;
+    moono.meanMotion = 0.000151526184356;
+
+    ObjectOrbitalState moonoos;
+    moonoos.meanAnomaly = 0;
+    moonoos.timeOfPeriapsisPassage = 0;
+    moonoos.trueAnomaly = 0;
+
+    ObjectState moonos;
+    moonos.r = glm::dvec3(0.0, 0.0, 384400.0);
+    moonos.v = glm::dvec3(1.036941835067638, 0.0, 0.0);
+
+    OrbitalObject moonoo;
+    moonoo.state = moonos;
+    moonoo.orbitalState = moonoos;
+    moonoo.orbit = moono;
+
+
+
+
+    Transfer moonTransfer = findTransferWindow(0, 720, 70, 120, 1, 1, rocketoo, moonoo, 398600.4414);
+
+    std::cout << "∆v: " << moonTransfer.deltaVelocity << std::endl;
+    std::cout << "t1: " << moonTransfer.departureTime << std::endl;
+    std::cout << "∆t: " << moonTransfer.timeOfFlight  << std::endl;*/
 
     // glfw: initialize and configure
     // ------------------------------
@@ -960,6 +1018,58 @@ int main(int argc, char* argv[]) {
 
     glm::dmat4 prevRocketModel = glm::dmat4(1.0);
 
+    double lastSemiMajorAxis = 0.0;
+    double lastEccentricity  = 0.0;
+    double lastInclination   = 0.0;
+    double lastTime          = 0.0;
+    double lastDeltaVelocity = 0.0;
+
+    Transfer transfer;
+    glm::dvec3 transferWindow;
+
+    OrbitalObject rocketOrbital;
+    std::mutex rocketOrbitalMutex;
+
+    std::thread navigatorThread([&]() {
+        while (!glfwWindowShouldClose(window))
+        {
+            if (orbitView)
+            {
+                {
+                    std::lock_guard<std::mutex> lock_rom(rocketOrbitalMutex);
+                    rocketOrbital = findOrbitalElements(bodies[numOfPlanets].position - bodies[3].position, bodies[numOfPlanets].velocity - bodies[3].velocity, bodies[3].mu);
+                }
+
+                OrbitalObject moonOrbital = findOrbitalElements(bodies[4].position - bodies[3].position, bodies[4].velocity - bodies[3].velocity, bodies[3].mu);
+
+                if ((((abs(rocketOrbital.orbit.semiMajorAxis - lastSemiMajorAxis) > 10000) || (abs(rocketOrbital.orbit.eccentricity - lastEccentricity) > 0.01) || (abs(rocketOrbital.orbit.inclination - lastInclination) > 0.1)) || (glfwGetTime() - lastTime) * timeMultiplier >= 2.0) && (rocketOrbital.orbit.semiMajorAxis * (1 - rocketOrbital.orbit.eccentricity) > bodies[3].averageRadius) && (pow(glm::length(rocketOrbital.state.v), 2) / 2.0 - bodies[3].mu / glm::length(rocketOrbital.state.r) < 0.0))
+                {
+                    Transfer moonTransfer = findTransferWindow(0.0, 150.0, 70.0, 120.0, 1.0, 1.0, rocketOrbital, moonOrbital, bodies[3].mu);
+
+                    if (moonTransfer.departureTime <= 150.0 && std::abs(moonTransfer.deltaVelocity - lastDeltaVelocity) >= 1000.0 && !(enginesOn && throttle > 0.0))
+                    {
+                        transfer          = moonTransfer;
+                        transferWindow    = findTransferWindowPosition(transfer.departureTime, rocketOrbital, rocketOrbital.orbitalState.timeOfPeriapsisPassage, bodies[3].mu);
+
+                        lastDeltaVelocity = transfer.deltaVelocity;
+                    }
+
+                    lastSemiMajorAxis = rocketOrbital.orbit.semiMajorAxis;
+                    lastEccentricity  = rocketOrbital.orbit.eccentricity;
+                    lastInclination   = rocketOrbital.orbit.inclination;
+                    
+                    lastTime = glfwGetTime();
+                }
+                else if ((glfwGetTime() - lastTime) * timeMultiplier >= 2.0)
+                {
+                    lastTime = glfwGetTime();
+                }
+            }
+        }
+    });
+
+    navigatorThread.detach();
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -1031,13 +1141,17 @@ int main(int argc, char* argv[]) {
         TrajectorySimulator moonTrajectory(bodies[4], bodies[3]);
         TrajectorySimulator earthTrajectory(bodies[3], bodies[0]);
 
-        if (orbitView)
-        { 
-            if ((glm::length(bodies[numOfPlanets].position - bodies[3].position) < 1500000000.0))
-                rocketTrajectory.simulateTrajectory();
+        if (orbitView && !menuState.inMenu)
+        {
+            {
+                std::lock_guard<std::mutex> lock_rom(rocketOrbitalMutex);
+
+                if ((glm::length(bodies[numOfPlanets].position - bodies[3].position) < 1500000000.0))
+                    rocketTrajectory.simulateTrajectory();
+            }
 
             moonTrajectory.simulateTrajectory();
-            earthTrajectory.simulateTrajectory();
+            //earthTrajectory.simulateTrajectory();
         }
         
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1269,11 +1383,12 @@ int main(int argc, char* argv[]) {
             model = glm::dmat4(1.0);
             model = glm::translate(model, camera.Position - bodies[3].position);
             model = glm::scale(model, glm::dvec3(bodies[3].averageRadius + 15000.0f));
-            //model = glm::rotate(model, static_cast<double>(glm::radians(bodies[3].axialTilt)), glm::dvec3(0.0, 0.0, 1.0));
-            //model = glm::rotate(model, static_cast<double>(glm::radians(bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime())), glm::dvec3(0.0, 1.0, 0.0));
+            model = glm::rotate(model, static_cast<double>(glm::radians(bodies[3].axialTilt)), glm::dvec3(0.0, 0.0, 1.0));
+            model = glm::rotate(model, static_cast<double>(-glm::radians(bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime())), glm::dvec3(0.0, 1.0, 0.0));
 
             bindDiffuseTexture(loadedTextures[28]);
             shaderTex.setMat4("model", model);
+            shaderTex.setMat4("rotationMatrix", rotationMatrices[3]);
             
             renderSphere(true, 128, 128);
 
@@ -1324,11 +1439,11 @@ int main(int argc, char* argv[]) {
             lineShader.use();
             lineShader.setMat4("projection", orthoProjection);
 
-            if (orbitView)
+            if (orbitView && !menuState.inMenu)
             {
                 rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 moonTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                //earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
             }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -1367,10 +1482,9 @@ int main(int argc, char* argv[]) {
         // render text
         // -----------
         std::string fps_s      = "FPS: " + std::to_string(fps);
-        std::string throttle_s = "Throttle: " + std::to_string(throttle) + "%";
-        std::string fuel_s     = "Fuel: " + std::to_string(fuel / 3000000.0f * 100.0f) + "%"; // divide the left fuel by original fuel and multiply by 100 to get in percents
+        std::string throttle_s = "Throttle: " + std::format("{:.1f}", throttle) + "%";
+        std::string fuel_s     = "Fuel: " + std::format("{:.1f}", fuel / 3000000.0f * 100.0f) + "%"; // divide the left fuel by original fuel and multiply by 100 to get in percents
         std::string tm_s       = "Time multiplier: " + std::to_string(timeMultiplier);
-        std::string rr_s       = vec3ToString(rocket.rotation);
         textShader.use();
         textShader.setMat4("projection", orthoProjection); // switch to orthographic projection for rending text
         imageShader.use();
@@ -1383,22 +1497,34 @@ int main(int argc, char* argv[]) {
             RenderText(textShader, enginesOn ? "Engines: on" : "Engines: off", SCR_WIDTH/2, 10.0f, 0.5f, enginesOn ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f), true);
             RenderText(textShader, fuel_s, 3*SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
             RenderText(textShader, tm_s, SCR_WIDTH / 2, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, "Rocket rotation: " + rr_s, SCR_WIDTH / 1.5f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, "Energy: " + std::to_string(rocketTrajectory.E), SCR_WIDTH / 1.5f, SCR_HEIGHT - 45.0f, 0.3f, glm::vec3(1.0f), true);
         }
 
         if (menuState.options)
             RenderCenteredImage(imageShader, options_panel, SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f, 0.85f);
 
-        // render apoapsis and periapsis
-        // -----------------------------
-        if (!menuState.inMenu && rocketTrajectory.orbit)
+        // render apoapsis and periapsis and also transfer window
+        // ------------------------------------------------------
+        if (!menuState.inMenu && rocketTrajectory.orbit)// && orbitView)
         {
             glm::vec2 a = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
             glm::vec2 p = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).y);
 
             RenderCenteredImage(imageShader, apoap_periapsi, a.x, a.y, 0.05f);
             RenderCenteredImage(imageShader, apoap_periapsi, p.x, p.y, 0.05f);
+
+            if (glm::length(bodies[numOfPlanets].position - (transferWindow + bodies[3].position)) > 200000.0)
+            {
+                glm::vec2 tw = glm::vec2(convert3Dto2D(camera.Position - (transferWindow + bodies[3].position), view, projection, SCR_WIDTH, SCR_HEIGHT));
+                RenderCenteredImage(imageShader, apoap_periapsi, tw.x, tw.y, 0.05f);
+            } 
+            else 
+            {
+                glm::vec2 tw = glm::vec2(convert3Dto2D(camera.Position - bodies[numOfPlanets].position, view, projection, SCR_WIDTH, SCR_HEIGHT));
+                glm::vec2 bp = glm::vec2(convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + transfer.burnDirection * 5.0), view, projection, SCR_WIDTH, SCR_HEIGHT));
+                RenderText(textShader, std::format("{:.2f}", std::round(transfer.deltaVelocity / 10.0) / 100.0) + " km/s", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
+
+                RenderCenteredImage(imageShader, apoap_periapsi, bp.x, bp.y, 0.05f); // burn direсtion point
+            }
 
             std::string apoapsiss  = std::to_string(std::round((rocketTrajectory.apoapsisd  - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.apoapsisd   / 100.0)  / 10.0).find(".") + 2);
             std::string periapsiss = std::to_string(std::round((rocketTrajectory.periapsisd - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.periapsisd  / 100.0)  / 10.0).find(".") + 2);

@@ -2,6 +2,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <iostream>
+
 #pragma once
 
 constexpr double G = 6.6743e-11;
