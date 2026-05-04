@@ -82,7 +82,7 @@ ObjectState findObjectStateAtTime(double time, Orbit rocketOrbit, double timeOfP
     return result;
 }
 
-glm::dvec3 findTransferWindowPosition(double time, OrbitalObject rocketOrbital, double timeOfPeriapsisPassage, double gravitationalParameter)
+glm::dvec3 findMeanPosition(double time, OrbitalObject rocketOrbital, double gravitationalParameter)
 {
     double r             = glm::length(rocketOrbital.state.r);
     double v             = glm::length(rocketOrbital.state.v);
@@ -99,7 +99,7 @@ glm::dvec3 findTransferWindowPosition(double time, OrbitalObject rocketOrbital, 
     double eccentricity  = glm::length(eVec);
     double b             = a * sqrt(1 - pow(eccentricity, 2));
 
-    double M = rocketOrbital.orbit.meanMotion * (time - timeOfPeriapsisPassage);
+    double M = rocketOrbital.orbit.meanMotion * (time - rocketOrbital.orbitalState.timeOfPeriapsisPassage);
 
     double E_anom = M;
     for (unsigned int i = 0; i < 5; i++)
@@ -115,11 +115,11 @@ glm::dvec3 lambertSolver(OrbitalObject rocketOrbital, OrbitalObject moonOrbital,
 {
     double arrivalTime = departureTime + timeOfFlight;
 
-    ObjectState arrivalMoonState     = findObjectStateAtTime(arrivalTime, moonOrbital.orbit, moonOrbital.orbitalState.timeOfPeriapsisPassage, gravitationalParameter);
-    arrivalMoonState.r += 66100000.0 * -glm::normalize(arrivalMoonState.r);
+    glm::dvec3 arrivalMoonState = findMeanPosition(arrivalTime, moonOrbital, gravitationalParameter);
+    arrivalMoonState += 66100000.0 * -glm::normalize(arrivalMoonState);
 
     glm::dvec3 r1 = rocketDeparturePosition;
-    glm::dvec3 r2 = arrivalMoonState.r;
+    glm::dvec3 r2 = arrivalMoonState;
 
     glm::dvec3 h = rocketOrbital.state.r * rocketOrbital.state.v;
 
@@ -254,7 +254,7 @@ Transfer findTransferWindow(double x_min, double x_max, double y_min, double y_m
     std::vector<glm::dvec3> rocketDeparturePositions(x_max);
 
     for (double i = x_min; i < x_max; i += x_step)
-        rocketDeparturePositions[i] = findObjectStateAtTime(i, rocketOrbital.orbit, rocketOrbital.orbitalState.timeOfPeriapsisPassage, gravitationalParameter).r;
+        rocketDeparturePositions[i] = findMeanPosition(i, rocketOrbital, gravitationalParameter);
 
     for (double i = y_min; i < y_max; i += y_step)
     {
@@ -278,7 +278,7 @@ Transfer findTransferWindow(double x_min, double x_max, double y_min, double y_m
     transfer.deltaVelocity  = deltaVelocity;
     transfer.departureTime  = departureTime;
     transfer.timeOfFlight   = timeOfFlight;
-    transfer.velocityVector = velVector + rocketOrbital.state.v;
+    transfer.velocityVector = velVector;
     transfer.burnDirection  = glm::normalize(velVector);
 
     return transfer;

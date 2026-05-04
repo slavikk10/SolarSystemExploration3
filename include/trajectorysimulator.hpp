@@ -16,7 +16,7 @@ public:
     glm::dvec3 periapsis,  apoapsis;
     double     periapsisd, apoapsisd;
     
-    bool orbit;
+    bool orbit, moonSoi;
 
     TrajectorySimulator(const CelestialBody& body, const CelestialBody& relativeBody)
     {
@@ -31,7 +31,7 @@ public:
         E = pow(v, 2) / 2.0 - system[1].mu / r;
     }
 
-    void simulateTrajectory()
+    void simulateTrajectory(OrbitalObject moonOrbital=OrbitalObject(), bool isRocket=false)
     {
         glm::dvec3 startPos  = system[0].position;
         glm::dvec3 startVel  = system[0].velocity;
@@ -54,10 +54,10 @@ public:
 
         if (E < 0.0 && periapsisd > system[1].averageRadius)
         {
-            orbit = true;
-            for (unsigned int i = 0; i < 1000; ++i)
+            orbit   = true;
+            for (unsigned int i = 0; i < 2000; ++i)
             {
-                double M = 2.0 * PI * (i / 1000.0);
+                double M = 2.0 * PI * (i / 2000.0);
 
                 double E_anom = M;
                 for (unsigned int i = 0; i < 5; i++)
@@ -69,12 +69,25 @@ public:
                 periapsis =  eNorm * periapsisd + system[1].position;
                 apoapsis  = -eNorm * apoapsisd  + system[1].position;
 
+                double time = (i / 2000.0) * T;
+
+                if (!moonSoi && isRocket && glm::length(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) - findMeanPosition(time, moonOrbital, system[1].mu)) <= 66100000.0)
+                {
+                    orbit   = false;
+                    moonSoi = true;
+                    break;
+                }
+                else
+                {
+                    moonSoi = false;
+                }
+
                 positions.push_back(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) + system[1].position);
             }
         }
         else
         {
-            orbit = false;
+            orbit   = false;
             while ((glm::length(system[0].position - system[1].position) < 1500000000.0) && (glm::length(system[0].position - system[1].position) > system[1].averageRadius))
             {
                 system[0].updateObject(system, T / 1000.0f);

@@ -1024,11 +1024,17 @@ int main(int argc, char* argv[]) {
     double lastTime          = 0.0;
     double lastDeltaVelocity = 0.0;
 
+    glm::dvec3 lastVelocityVector = glm::dvec3(0.0);
+    glm::dvec3 lastRocketVelocity = glm::dvec3(0.0);
+
+    bool lastDeltaVelocityShow = false;
+
     Transfer transfer;
     glm::dvec3 transferWindow;
 
     OrbitalObject rocketOrbital;
-    std::mutex rocketOrbitalMutex;
+    OrbitalObject moonOrbital;
+    std::mutex orbitalElementsMutex;
 
     std::thread navigatorThread([&]() {
         while (!glfwWindowShouldClose(window))
@@ -1036,11 +1042,10 @@ int main(int argc, char* argv[]) {
             if (orbitView)
             {
                 {
-                    std::lock_guard<std::mutex> lock_rom(rocketOrbitalMutex);
+                    std::lock_guard<std::mutex> lock_rom(orbitalElementsMutex);
                     rocketOrbital = findOrbitalElements(bodies[numOfPlanets].position - bodies[3].position, bodies[numOfPlanets].velocity - bodies[3].velocity, bodies[3].mu);
+                    moonOrbital   = findOrbitalElements(bodies[4].position - bodies[3].position, bodies[4].velocity - bodies[3].velocity, bodies[3].mu);
                 }
-
-                OrbitalObject moonOrbital = findOrbitalElements(bodies[4].position - bodies[3].position, bodies[4].velocity - bodies[3].velocity, bodies[3].mu);
 
                 if ((((abs(rocketOrbital.orbit.semiMajorAxis - lastSemiMajorAxis) > 10000) || (abs(rocketOrbital.orbit.eccentricity - lastEccentricity) > 0.01) || (abs(rocketOrbital.orbit.inclination - lastInclination) > 0.1)) || (glfwGetTime() - lastTime) * timeMultiplier >= 2.0) && (rocketOrbital.orbit.semiMajorAxis * (1 - rocketOrbital.orbit.eccentricity) > bodies[3].averageRadius) && (pow(glm::length(rocketOrbital.state.v), 2) / 2.0 - bodies[3].mu / glm::length(rocketOrbital.state.r) < 0.0))
                 {
@@ -1048,10 +1053,12 @@ int main(int argc, char* argv[]) {
 
                     if (moonTransfer.departureTime <= 150.0 && std::abs(moonTransfer.deltaVelocity - lastDeltaVelocity) >= 1000.0 && !(enginesOn && throttle > 0.0))
                     {
-                        transfer          = moonTransfer;
-                        transferWindow    = findTransferWindowPosition(transfer.departureTime, rocketOrbital, rocketOrbital.orbitalState.timeOfPeriapsisPassage, bodies[3].mu);
+                        transfer           = moonTransfer;
+                        transferWindow     = findMeanPosition(transfer.departureTime, rocketOrbital, bodies[3].mu);
 
-                        lastDeltaVelocity = transfer.deltaVelocity;
+                        lastDeltaVelocity  = transfer.deltaVelocity;
+                        lastVelocityVector = transfer.velocityVector;
+                        lastRocketVelocity = bodies[numOfPlanets].velocity;
                     }
 
                     lastSemiMajorAxis = rocketOrbital.orbit.semiMajorAxis;
@@ -1138,16 +1145,23 @@ int main(int argc, char* argv[]) {
             camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) + orbitalCameraPosition;
 
         TrajectorySimulator rocketTrajectory(bodies[numOfPlanets], bodies[3]);
+        TrajectorySimulator rocketTrajectoryMoon(bodies[numOfPlanets], bodies[4]);
         TrajectorySimulator moonTrajectory(bodies[4], bodies[3]);
         TrajectorySimulator earthTrajectory(bodies[3], bodies[0]);
 
         if (orbitView && !menuState.inMenu)
         {
             {
-                std::lock_guard<std::mutex> lock_rom(rocketOrbitalMutex);
+                std::lock_guard<std::mutex> lock_rom(orbitalElementsMutex);
 
                 if ((glm::length(bodies[numOfPlanets].position - bodies[3].position) < 1500000000.0))
-                    rocketTrajectory.simulateTrajectory();
+                    rocketTrajectory.simulateTrajectory(moonOrbital, true);
+
+                //if (rocketTrajectory.moonSoi)
+                //{
+                    rocketTrajectoryMoon.moonSoi = true;
+                    rocketTrajectoryMoon.simulateTrajectory(moonOrbital, true);
+                //}
             }
 
             moonTrajectory.simulateTrajectory();
@@ -1443,6 +1457,10 @@ int main(int argc, char* argv[]) {
             {
                 rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 moonTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+
+                //if (rocketTrajectory.moonSoi)
+                    rocketTrajectoryMoon.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+
                 //earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
             }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1526,10 +1544,16 @@ int main(int argc, char* argv[]) {
             else 
             {
                 if (enginesOn && throttle > 0.0)
-                    transferWindow = bodies[numOfPlanets].position + bodies[3].position;
+                    transferWindow = bodies[numOfPlanets].position - bodies[3].position;
+
+                if (!lastDeltaVelocityShow)
+                {
+                    lastRocketVelocity    = bodies[numOfPlanets].velocity;
+                    lastDeltaVelocityShow = true;
+                }
 
                 glm::vec2 tw = glm::vec2(convert3Dto2D(camera.Position - bodies[numOfPlanets].position, view, projection, SCR_WIDTH, SCR_HEIGHT));
-                RenderText(textShader, std::format("{:.2f}", std::round(glm::length(transfer.velocityVector - bodies[numOfPlanets].velocity) / 10.0) / 100.0) + " km/s", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
+                RenderText(textShader, std::to_string(glm::length(lastRocketVelocity + lastVelocityVector - bodies[numOfPlanets].velocity) / 1000.0) + " km/s", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
             }
 
             std::string apoapsiss  = std::to_string(std::round((rocketTrajectory.apoapsisd  - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.apoapsisd   / 100.0)  / 10.0).find(".") + 2);
