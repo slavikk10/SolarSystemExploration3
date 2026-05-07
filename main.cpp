@@ -1047,7 +1047,7 @@ int main(int argc, char* argv[]) {
                     moonOrbital   = findOrbitalElements(bodies[4].position - bodies[3].position, bodies[4].velocity - bodies[3].velocity, bodies[3].mu);
                 }
 
-                if ((((abs(rocketOrbital.orbit.semiMajorAxis - lastSemiMajorAxis) > 10000) || (abs(rocketOrbital.orbit.eccentricity - lastEccentricity) > 0.01) || (abs(rocketOrbital.orbit.inclination - lastInclination) > 0.1)) || (glfwGetTime() - lastTime) * timeMultiplier >= 2.0) && (rocketOrbital.orbit.semiMajorAxis * (1 - rocketOrbital.orbit.eccentricity) > bodies[3].averageRadius) && (pow(glm::length(rocketOrbital.state.v), 2) / 2.0 - bodies[3].mu / glm::length(rocketOrbital.state.r) < 0.0))
+                if ((((abs(rocketOrbital.orbit.semiMajorAxis - lastSemiMajorAxis) > 10000) || (abs(rocketOrbital.orbit.eccentricity - lastEccentricity) > 0.01) || (abs(rocketOrbital.orbit.inclination - lastInclination) > 0.1)) || (glfwGetTime() - lastTime) * timeMultiplier >= 10.0) && (rocketOrbital.orbit.semiMajorAxis * (1 - rocketOrbital.orbit.eccentricity) > bodies[3].averageRadius) && (pow(glm::length(rocketOrbital.state.v), 2) / 2.0 - bodies[3].mu / glm::length(rocketOrbital.state.r) < 0.0))
                 {
                     Transfer moonTransfer = findTransferWindow(0.0, 150.0, 70.0, 120.0, 1.0, 1.0, rocketOrbital, moonOrbital, bodies[3].mu);
 
@@ -1067,7 +1067,7 @@ int main(int argc, char* argv[]) {
                     
                     lastTime = glfwGetTime();
                 }
-                else if ((glfwGetTime() - lastTime) * timeMultiplier >= 2.0)
+                else if ((glfwGetTime() - lastTime) * timeMultiplier >= 10.0)
                 {
                     lastTime = glfwGetTime();
                 }
@@ -1144,24 +1144,26 @@ int main(int argc, char* argv[]) {
         else
             camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) + orbitalCameraPosition;
 
-        TrajectorySimulator rocketTrajectory(bodies[numOfPlanets], bodies[3]);
-        TrajectorySimulator rocketTrajectoryMoon(bodies[numOfPlanets], bodies[4]);
-        TrajectorySimulator moonTrajectory(bodies[4], bodies[3]);
-        TrajectorySimulator earthTrajectory(bodies[3], bodies[0]);
+        TrajectorySimulator rocketTrajectory;
+        if (glm::length(bodies[numOfPlanets].position - bodies[4].position) > 66100000.0)
+            rocketTrajectory = TrajectorySimulator(bodies[numOfPlanets], bodies[3], 3);
+        else
+            rocketTrajectory = TrajectorySimulator(bodies[numOfPlanets], bodies[4], 4);
+
+        TrajectorySimulator moonTrajectory(bodies[4], bodies[3], 3);
+        TrajectorySimulator earthTrajectory(bodies[3], bodies[0], 0);
 
         if (orbitView && !menuState.inMenu)
         {
             {
                 std::lock_guard<std::mutex> lock_rom(orbitalElementsMutex);
+                rocketTrajectory.simulateTrajectory();
 
-                if ((glm::length(bodies[numOfPlanets].position - bodies[3].position) < 1500000000.0))
-                    rocketTrajectory.simulateTrajectory(moonOrbital, true);
-
-                //if (rocketTrajectory.moonSoi)
-                //{
+                /*if (rocketTrajectory.moonSoi)
+                {
                     rocketTrajectoryMoon.moonSoi = true;
                     rocketTrajectoryMoon.simulateTrajectory(moonOrbital, true);
-                //}
+                }*/
             }
 
             moonTrajectory.simulateTrajectory();
@@ -1398,10 +1400,16 @@ int main(int argc, char* argv[]) {
             model = glm::translate(model, camera.Position - bodies[3].position);
             model = glm::scale(model, glm::dvec3(bodies[3].averageRadius + 15000.0f));
             model = glm::rotate(model, static_cast<double>(glm::radians(bodies[3].axialTilt)), glm::dvec3(0.0, 0.0, 1.0));
-            model = glm::rotate(model, static_cast<double>(-glm::radians(bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime())), glm::dvec3(0.0, 1.0, 0.0));
+            double rotationAroundAxis = -glm::radians(bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
+            model = glm::rotate(model, static_cast<double>(rotationAroundAxis), glm::dvec3(0.0, 1.0, 0.0));
+            setupPlanetModel(model, bodies[3].position, glm::dvec3(bodies[3].averageRadius + 15000.0f), camera.Position, orbitalCameraPosition, bodies[3].axialTilt, rotationAroundAxis);
+
+            glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationAroundAxis), 0.0f, glm::sin(rotationAroundAxis)), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationAroundAxis), 0.0f, glm::cos(rotationAroundAxis)));                                                                                                                          // rotation matrix for Y axis
+            glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(bodies[3].axialTilt)), -glm::sin(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(bodies[3].axialTilt)), glm::cos(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis
+            glm::mat3 rotationMatrix = rotationMatrixY * rotationMatrixZ;
 
             bindDiffuseTexture(loadedTextures[28]);
-            shaderTex.setMat4("model", model);
+            shaderTex.setMat4("model", static_cast<glm::mat4>(model));
             shaderTex.setMat4("rotationMatrix", rotationMatrices[3]);
             
             renderSphere(true, 128, 128);
@@ -1457,9 +1465,6 @@ int main(int argc, char* argv[]) {
             {
                 rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 moonTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-
-                //if (rocketTrajectory.moonSoi)
-                    rocketTrajectoryMoon.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
 
                 //earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
             }
@@ -1524,13 +1529,22 @@ int main(int argc, char* argv[]) {
 
         // render apoapsis and periapsis and also transfer window
         // ------------------------------------------------------
-        if (!menuState.inMenu && rocketTrajectory.orbit && orbitView)
+        if (!menuState.inMenu && orbitView)
         {
-            glm::vec2 a = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
-            glm::vec2 p = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).y);
+            if (glm::length(rocketTrajectory.apoapsis) > 0.0)
+            {
+                glm::vec2 a = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
+                std::string apoapsiss  = std::to_string(std::round((rocketTrajectory.apoapsisd  - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.apoapsisd   / 100.0)  / 10.0).find(".") + 2);
 
-            RenderCenteredImage(imageShader, apoap_periapsi, a.x, a.y, 0.05f);
+                RenderCenteredImage(imageShader, apoap_periapsi, a.x, a.y, 0.05f);
+                RenderText(textShader, apoapsiss  + " km", a.x, a.y + 50.0f, 0.4f, glm::vec3(1.0f), true);
+            }
+
+            glm::vec2 p = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).y);
+            std::string periapsiss = std::to_string(std::round((rocketTrajectory.periapsisd - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.periapsisd  / 100.0)  / 10.0).find(".") + 2);
+            
             RenderCenteredImage(imageShader, apoap_periapsi, p.x, p.y, 0.05f);
+            RenderText(textShader, periapsiss + " km", p.x, p.y + 50.0f, 0.4f, glm::vec3(1.0f), true);
 
             glm::vec2 bp = glm::vec2(convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + transfer.burnDirection * 5.0), view, projection, SCR_WIDTH, SCR_HEIGHT));
             RenderCenteredImage(imageShader, apoap_periapsi, bp.x, bp.y, 0.05f); // burn direсtion point
@@ -1555,12 +1569,6 @@ int main(int argc, char* argv[]) {
                 glm::vec2 tw = glm::vec2(convert3Dto2D(camera.Position - bodies[numOfPlanets].position, view, projection, SCR_WIDTH, SCR_HEIGHT));
                 RenderText(textShader, std::to_string(glm::length(lastRocketVelocity + lastVelocityVector - bodies[numOfPlanets].velocity) / 1000.0) + " km/s", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
             }
-
-            std::string apoapsiss  = std::to_string(std::round((rocketTrajectory.apoapsisd  - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.apoapsisd   / 100.0)  / 10.0).find(".") + 2);
-            std::string periapsiss = std::to_string(std::round((rocketTrajectory.periapsisd - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.periapsisd  / 100.0)  / 10.0).find(".") + 2);
-
-            RenderText(textShader, apoapsiss  + " km", a.x, a.y + 50.0f, 0.4f, glm::vec3(1.0f), true);
-            RenderText(textShader, periapsiss + " km", p.x, p.y + 50.0f, 0.4f, glm::vec3(1.0f), true);
         }
             
         // main menu

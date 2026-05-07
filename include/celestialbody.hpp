@@ -24,6 +24,7 @@ public:
     std::string normalTexPath;
     double mass;
     double mu;
+    double soi;
 
     glm::dvec3 velocity = glm::dvec3(0.0);
     glm::dvec3 sqrDstVec = glm::dvec3(0.0);

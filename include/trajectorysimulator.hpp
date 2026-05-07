@@ -6,6 +6,20 @@
 
 constexpr double PI = 3.1415926535;
 
+std::vector<double> soiRadiuses = {
+    4570000000000000,
+    117000000,
+    616000000,
+    1470000000,
+    66100000,
+    578000000,
+    48000000000,
+    10200000,
+    9700000,
+    32200000,
+    52200000,
+};
+
 class TrajectorySimulator
 {
 public:
@@ -14,16 +28,21 @@ public:
     double r, v, E, a, T;
 
     glm::dvec3 periapsis,  apoapsis;
-    double     periapsisd, apoapsisd;
+    double     periapsisd = 99999999999999.9;
+    double     apoapsisd  = 0.0;
     
     bool orbit, moonSoi;
 
-    TrajectorySimulator(const CelestialBody& body, const CelestialBody& relativeBody)
+    unsigned int rbi;
+
+    TrajectorySimulator(const CelestialBody& body, const CelestialBody& relativeBody, unsigned int relativeBodyIndex)
     {
         system = { body, relativeBody };
 
         system[0].velocity -= system[1].velocity;
         system[1].velocity = glm::dvec3(0.0);
+
+        rbi = relativeBodyIndex;
 
         r = glm::length(system[0].position - system[1].position);
         v = glm::length(system[0].velocity);
@@ -31,7 +50,9 @@ public:
         E = pow(v, 2) / 2.0 - system[1].mu / r;
     }
 
-    void simulateTrajectory(OrbitalObject moonOrbital=OrbitalObject(), bool isRocket=false)
+    TrajectorySimulator() {}
+
+    void simulateTrajectory(const OrbitalObject& moonOrbital=OrbitalObject(), bool isRocket=false)
     {
         glm::dvec3 startPos  = system[0].position;
         glm::dvec3 startVel  = system[0].velocity;
@@ -40,8 +61,6 @@ public:
         double v             = glm::length(startVel);
         
         double a             = -system[1].mu / (2.0 * E);
-        double T             = 2.0 * PI * sqrt(pow(a, 3) / system[1].mu);
-        double simulatedTime = 0.0;
 
         glm::dvec3 h         = glm::cross(startPos - system[1].position, startVel);
 
@@ -52,8 +71,30 @@ public:
         periapsisd    = a * (1 - eccentricity);
         apoapsisd     = a * (1 + eccentricity);
 
-        if (E < 0.0 && periapsisd > system[1].averageRadius)
+        double vc = (glm::dot(startPos - system[1].position, startVel) / abs(glm::dot(startPos - system[1].position, startVel))) * acos((1.0 / eccentricity) * ((-(a * (pow(eccentricity, 2) - 1)) / r) - 1));
+        double vl = acos((1.0 / eccentricity) * ((-(a * (pow(eccentricity, 2) - 1)) / soiRadiuses[rbi]) - 1));
+
+        double Fc = (vc / abs(vc)) * acosh((eccentricity + cos(vc)) / (1.0 + eccentricity * cos(vc)));
+        double Fl = (vl / abs(vl)) * acosh((eccentricity + cos(vl)) / (1.0 + eccentricity * cos(vl)));
+
+        double T;
+        if (a >= 0.0)
         {
+            T = 2.0 * PI * sqrt(pow(a, 3) / system[1].mu);
+        }
+        else
+        {
+            T = sqrt(-pow(a, 3) / system[1].mu) * ((eccentricity * sinh(Fl) - Fl) - (eccentricity * sinh(Fc) - Fc));
+            //std::cout << "a < 0.0\n";
+        }
+
+        std::cout << "T: " << T << "; a: " << a << "; Fc: " << Fc << "; Fl: " << Fl << "; e: " << eccentricity << "; E: " << E << "; periapsis: " << periapsisd << "; apoapsis: " << apoapsisd << std::endl;
+
+        double simulatedTime = 0.0;        
+
+        if (E < 0.0 && periapsisd > system[1].averageRadius && apoapsisd < soiRadiuses[rbi])
+        {
+            std::cout << "simulating orbit\n";
             orbit   = true;
             for (unsigned int i = 0; i < 2000; ++i)
             {
@@ -71,7 +112,7 @@ public:
 
                 double time = (i / 2000.0) * T;
 
-                if (!moonSoi && isRocket && glm::length(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) - findMeanPosition(time, moonOrbital, system[1].mu)) <= 66100000.0)
+                /*if (!moonSoi && isRocket && glm::length(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) - findMeanPosition(time, moonOrbital, system[1].mu)) <= 66100000.0)
                 {
                     orbit   = false;
                     moonSoi = true;
@@ -80,7 +121,7 @@ public:
                 else
                 {
                     moonSoi = false;
-                }
+                }*/
 
                 positions.push_back(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) + system[1].position);
             }
@@ -88,12 +129,27 @@ public:
         else
         {
             orbit   = false;
-            while ((glm::length(system[0].position - system[1].position) < 1500000000.0) && (glm::length(system[0].position - system[1].position) > system[1].averageRadius))
+            unsigned int i = 0;
+            while ((glm::length(system[0].position - system[1].position) > system[1].averageRadius) && (glm::length(system[0].position - system[1].position) <= soiRadiuses[rbi]) && i < 1000)
             {
                 system[0].updateObject(system, T / 1000.0f);
 
                 positions.push_back(system[0].position);
                 simulatedTime += T / 1000.0f;
+
+                if (glm::length(system[0].position - system[1].position) < periapsisd)
+                {
+                    periapsisd = glm::length(system[0].position - system[1].position);
+                    periapsis  = system[0].position;
+                }
+
+                if (glm::length(system[0].position - system[1].position) > apoapsisd)
+                {
+                    apoapsisd = glm::length(system[0].position - system[1].position);
+                    apoapsis  = system[0].position;
+                }
+
+                i++;
             }
         }
     }
