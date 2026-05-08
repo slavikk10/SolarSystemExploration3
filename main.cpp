@@ -1263,7 +1263,7 @@ int main(int argc, char* argv[]) {
                         glm::dmat4 planet_model(1.0);
 
                         glm::dvec3 planetScale = glm::dvec3(bodies[i].equatorialRadius, bodies[i].polarRadius, bodies[i].equatorialRadius);
-                        float rotationAroundAxis = -glm::radians(bodies[i].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
+                        float rotationAroundAxis = glm::radians(bodies[i].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
                         setupPlanetModel(planet_model, bodies[i].position, planetScale, camera.Position, orbitalCameraPosition, bodies[i].axialTilt, rotationAroundAxis);
 
                         {
@@ -1391,26 +1391,21 @@ int main(int argc, char* argv[]) {
             // -------------------
             shaderTex.use();
 
-            glActiveTexture(GL_TEXTURE6);
-            glBindTexture(GL_TEXTURE_2D, 0);
-            glActiveTexture(GL_TEXTURE7);
-            glBindTexture(GL_TEXTURE_2D, planetNormalTextures[3]);
+            bindDiffuseTexture(loadedTextures[28]);
+            bindMetallicTexture(0);
+            bindRoughnessTexture(0);
+            bindHeightTexture(0);
+            bindNormalTexture(planetNormalTextures[3]);
 
-            model = glm::dmat4(1.0);
-            model = glm::translate(model, camera.Position - bodies[3].position);
-            model = glm::scale(model, glm::dvec3(bodies[3].averageRadius + 15000.0f));
-            model = glm::rotate(model, static_cast<double>(glm::radians(bodies[3].axialTilt)), glm::dvec3(0.0, 0.0, 1.0));
-            double rotationAroundAxis = -glm::radians(bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
-            model = glm::rotate(model, static_cast<double>(rotationAroundAxis), glm::dvec3(0.0, 1.0, 0.0));
+            double rotationAroundAxis = glm::radians(1.5 * bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
             setupPlanetModel(model, bodies[3].position, glm::dvec3(bodies[3].averageRadius + 15000.0f), camera.Position, orbitalCameraPosition, bodies[3].axialTilt, rotationAroundAxis);
 
             glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationAroundAxis), 0.0f, glm::sin(rotationAroundAxis)), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationAroundAxis), 0.0f, glm::cos(rotationAroundAxis)));                                                                                                                          // rotation matrix for Y axis
             glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(bodies[3].axialTilt)), -glm::sin(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(bodies[3].axialTilt)), glm::cos(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis
-            glm::mat3 rotationMatrix = rotationMatrixY * rotationMatrixZ;
+            glm::mat3 rotationMatrix  = rotationMatrixY * rotationMatrixZ;
 
-            bindDiffuseTexture(loadedTextures[28]);
             shaderTex.setMat4("model", static_cast<glm::mat4>(model));
-            shaderTex.setMat4("rotationMatrix", rotationMatrices[3]);
+            shaderTex.setMat3("rotationMatrix", rotationMatrix);
             
             renderSphere(true, 128, 128);
 

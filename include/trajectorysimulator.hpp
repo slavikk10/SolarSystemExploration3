@@ -28,10 +28,10 @@ public:
     double r, v, E, a, T;
 
     glm::dvec3 periapsis,  apoapsis;
-    double     periapsisd = 99999999999999.9;
+    double     periapsisd = INFINITY;
     double     apoapsisd  = 0.0;
     
-    bool orbit, moonSoi;
+    bool orbit;
 
     unsigned int rbi;
 
@@ -112,15 +112,10 @@ public:
 
                 double time = (i / 2000.0) * T;
 
-                /*if (!moonSoi && isRocket && glm::length(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) - findMeanPosition(time, moonOrbital, system[1].mu)) <= 66100000.0)
+                /*if (isRocket && glm::length(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) - findMeanPosition(time, moonOrbital, system[1].mu)) <= 66100000.0)
                 {
-                    orbit   = false;
-                    moonSoi = true;
+                    orbit = false;
                     break;
-                }
-                else
-                {
-                    moonSoi = false;
                 }*/
 
                 positions.push_back(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) + system[1].position);
