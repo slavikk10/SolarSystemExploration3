@@ -45,6 +45,7 @@ CelestialBody parsePlanetJSON(const char* path) {
     std::string vel_z;
     std::string s_axial_tilt;
     std::string s_rotation_speed;
+    std::string s_view_switch_height;
 
     double g_accel;
     double avg_radius;
@@ -52,8 +53,9 @@ CelestialBody parsePlanetJSON(const char* path) {
     double polar_radius;
     double axial_tilt;
     double rotation_speed;
+    double view_switch_height;
 
-    unsigned int err = 13;
+    unsigned int err = 14;
     while (std::getline(jsonStream, line)) {
         size_t name_pos = line.find("name");
         if (name_pos != std::string::npos) {
@@ -244,20 +246,37 @@ CelestialBody parsePlanetJSON(const char* path) {
             size_t lastComma = line.find(',', start + 1);
             s_rotation_speed = line.substr(start, lastComma - start);
         }
+
+        // view switch height (altitude above planet's surface at which camera view becomes relative to planet)
+        size_t s_view_switch_height_pos = line.find("viewSwitchHeight");
+        if (s_view_switch_height_pos != std::string::npos) {
+            err -= 1;
+
+            size_t start;
+            if (line[s_view_switch_height_pos+18] == ' ')
+                start = s_view_switch_height_pos+19;
+            else
+                start = s_view_switch_height_pos+18;
+
+            size_t lastComma = line.find(',', start + 1);
+            s_view_switch_height = line.substr(start, lastComma - start);
+        }
+
     }
 
     if (err != 0) {
         std::cout << "Error: JSON file error at path: " << getFilePath(path) << std::endl;
     }
 
-    g_accel        = std::stod(s_g_accel);
-    avg_radius     = std::stod(s_avg_radius);
-    eq_radius      = std::stod(s_eq_radius);
-    polar_radius   = std::stod(s_polar_radius);
-    axial_tilt     = std::stod(s_axial_tilt);
-    rotation_speed = std::stod(s_rotation_speed);
+    g_accel            = std::stod(s_g_accel);
+    avg_radius         = std::stod(s_avg_radius);
+    eq_radius          = std::stod(s_eq_radius);
+    polar_radius       = std::stod(s_polar_radius);
+    axial_tilt         = std::stod(s_axial_tilt);
+    rotation_speed     = std::stod(s_rotation_speed);
+    view_switch_height = std::stod(s_view_switch_height);
 
-    CelestialBody body(position, velocity, avg_radius, eq_radius, polar_radius, g_accel, axial_tilt, rotation_speed);
+    CelestialBody body(position, velocity, avg_radius, eq_radius, polar_radius, g_accel, axial_tilt, rotation_speed, view_switch_height);
 
     return body;
 }

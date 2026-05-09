@@ -79,22 +79,14 @@ public:
 
         double T;
         if (a >= 0.0)
-        {
             T = 2.0 * PI * sqrt(pow(a, 3) / system[1].mu);
-        }
         else
-        {
             T = sqrt(-pow(a, 3) / system[1].mu) * ((eccentricity * sinh(Fl) - Fl) - (eccentricity * sinh(Fc) - Fc));
-            //std::cout << "a < 0.0\n";
-        }
-
-        std::cout << "T: " << T << "; a: " << a << "; Fc: " << Fc << "; Fl: " << Fl << "; e: " << eccentricity << "; E: " << E << "; periapsis: " << periapsisd << "; apoapsis: " << apoapsisd << std::endl;
 
         double simulatedTime = 0.0;        
 
         if (E < 0.0 && periapsisd > system[1].averageRadius && apoapsisd < soiRadiuses[rbi])
         {
-            std::cout << "simulating orbit\n";
             orbit   = true;
             for (unsigned int i = 0; i < 2000; ++i)
             {

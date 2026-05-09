@@ -17,6 +17,7 @@ public:
     double polarRadius;
     double axialTilt;
     double rotationSpeed;
+    double viewSwitchHeight;
     std::string albedoTexPath;
     std::string metallicTexPath;
     std::string roughnessTexPath;
@@ -34,11 +35,11 @@ public:
     glm::dvec3 totalAcceleration = glm::dvec3(0.0);
 
     CelestialBody()
-        : position(0.0), velocity(0.0), averageRadius(0), equatorialRadius(0), polarRadius(0), gravityAcceleration(0), axialTilt(0.0), rotationSpeed(0.0) {}
+        : position(0.0), velocity(0.0), averageRadius(0), equatorialRadius(0), polarRadius(0), gravityAcceleration(0), axialTilt(0.0), rotationSpeed(0.0), viewSwitchHeight(0.0) {}
         //, albedoTexPath(""), roughnessTexPath(""), metallicTexPath(""), heightTexPath(""), normalTexPath("")
 
-    CelestialBody(glm::dvec3 position, glm::dvec3 velocity, double averageRadius, double equatorialRadius, double polarRadius, double gravityAcceleration, double axialTilt, double rotationSpeed)
-        : position(position*1000.0), velocity(velocity*1000.0), averageRadius(averageRadius), equatorialRadius(equatorialRadius), polarRadius(polarRadius), gravityAcceleration(gravityAcceleration), axialTilt(axialTilt), rotationSpeed(rotationSpeed)
+    CelestialBody(glm::dvec3 position, glm::dvec3 velocity, double averageRadius, double equatorialRadius, double polarRadius, double gravityAcceleration, double axialTilt, double rotationSpeed, double viewSwitchHeight)
+        : position(position*1000.0), velocity(velocity*1000.0), averageRadius(averageRadius), equatorialRadius(equatorialRadius), polarRadius(polarRadius), gravityAcceleration(gravityAcceleration), axialTilt(axialTilt), rotationSpeed(rotationSpeed), viewSwitchHeight(viewSwitchHeight)
     {
         this->mass = calculateMass();
         this->mu   = G * this->mass;

@@ -6,6 +6,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/ext/quaternion_float.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <shader.hpp>
 #include <camera.hpp>
@@ -810,7 +812,7 @@ int main(int argc, char* argv[]) {
     glm::dvec3 spawnPos = parsePlanetJSON("resources/planets/earth.json").position / glm::dvec3(1000.0f);
     glm::dvec3 spawnVel = parsePlanetJSON("resources/planets/earth.json").velocity / glm::dvec3(1000.0f);
     std::vector<CelestialBody> bodies = {
-        CelestialBody(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), 695700000, 695508000, 695800000, 274.049, 0.0, 0.0), // Sun
+        CelestialBody(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), 695700000, 695508000, 695800000, 274.049, 0.0, 0.0, 1000000000.0), // Sun
         parsePlanetJSON("resources/planets/mercury.json"),
         parsePlanetJSON("resources/planets/venus.json"),
         parsePlanetJSON("resources/planets/earth.json"),
@@ -821,13 +823,13 @@ int main(int argc, char* argv[]) {
         parsePlanetJSON("resources/planets/europa.json"),
         parsePlanetJSON("resources/planets/ganymede.json"),
         parsePlanetJSON("resources/planets/callisto.json"),
-        CelestialBody(glm::dvec3(0.0), glm::dvec3(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), // placeholder for player celestial data
-        CelestialBody(glm::vec3( 1.426000189864588e+12, -5.468390271451207e+10, -1.203550185774606e+11), glm::vec3( 2.775345470427069e-4, -1.774901403126501e-4,  9.603681056096420e+3), 58232000.0, 60268000.0, 54364000.0, 10.44, 0.0, 0.0), // Saturn
+        CelestialBody(glm::dvec3(0.0), glm::dvec3(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), // placeholder for player celestial data
+        /*CelestialBody(glm::vec3( 1.426000189864588e+12, -5.468390271451207e+10, -1.203550185774606e+11), glm::vec3( 2.775345470427069e-4, -1.774901403126501e-4,  9.603681056096420e+3), 58232000.0, 60268000.0, 54364000.0, 10.44, 0.0, 0.0), // Saturn
         CelestialBody(glm::vec3( 1.543100133303414E+09, -1.079295296547151E+07,  2.476645699940574E+09), glm::vec3(-5.829935196501141E+00, 8.764722226773869E-02, 3.283761162053807E+0), 25362000.0, 25559000.0, 24973000.0, 8.690, 0.0, 0.0), // Uranus
-        CelestialBody(glm::vec3( 4.469373923682106E+09, -1.033281370518243E+08,  1.586954226509337E+07), glm::vec3(-5.559040099903875E-2, -1.115959486943088E-01, 5.466737189466951E+0), 24624000.0, 24766000.0, 24342000.0, 11.15, 0.0, 0.0), // Neptune
+        CelestialBody(glm::vec3( 4.469373923682106E+09, -1.033281370518243E+08,  1.586954226509337E+07), glm::vec3(-5.559040099903875E-2, -1.115959486943088E-01, 5.466737189466951E+0), 24624000.0, 24766000.0, 24342000.0, 11.15, 0.0, 0.0), // Neptune*/
     };
 
-    Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y, spawnPos.z + 10000.0), spawnVel, 0.00000000266972, glm::vec3(5.0f));
+    Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y - 2000.0f, spawnPos.z + bodies[3].equatorialRadius / 1000.0 + 100.0f), spawnVel, 0.00000000266972, glm::vec3(5.0f));
     bodies[11] = rocket;
 
     std::vector<std::string> bodyNames = {
@@ -1077,6 +1079,14 @@ int main(int argc, char* argv[]) {
 
     navigatorThread.detach();
 
+    glm::dquat orbitalCameraQuaternion, localQuaternion;
+
+    glm::dvec3 lastD = glm::dvec3(0.0);
+
+    bool firstD = true;
+
+    double lastYaw, lastPitch = 0.0;
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -1130,13 +1140,59 @@ int main(int argc, char* argv[]) {
         float yaw   = camera.Yaw   / 57.296f;
         float pitch = camera.Pitch / 57.296f;
 
+        float deltaYaw   = yaw   - lastYaw;
+        float deltaPitch = pitch - lastPitch;
+
         // calculate thrust acceleration of the rocket and calculate total acceleration
         glm::dvec3 thrustAccel = -glm::normalize(rocket.rotationQuaternion * glm::dvec3(0.0, 1.0, 0.0)) * 70.0;
         glm::dvec3 totalAccel = bodies[numOfPlanets].totalAcceleration + thrustAccel;
 
         bodies[numOfPlanets].velocity += (enginesOn ? (double)(throttle/100) : 0) * (totalAccel * ((double)deltaTime * timeMultiplier));
 
-        glm::dvec3 orbitalCameraPosition = glm::dvec3(static_cast<double>(camera.Zoom)) * glm::dvec3(cos(pitch) * sin(-yaw), sin(pitch), cos(pitch) * cos(-yaw));
+        // check whatever body we are close to
+        bool isViewSwitchHeight = false;
+        unsigned int viewSwitchBody;
+        for (unsigned int i = 0; i < numOfPlanets; i++)
+        {
+            if (glm::length(bodies[numOfPlanets].position - bodies[i].position) - bodies[i].averageRadius <= bodies[i].viewSwitchHeight)
+            {
+                isViewSwitchHeight = true;
+                viewSwitchBody = i;
+            }
+        }
+
+        glm::dvec3 d = glm::normalize(bodies[numOfPlanets].position - bodies[viewSwitchBody].position);
+        
+        if (firstD)
+        {
+            orbitalCameraQuaternion = glm::dquat(glm::dvec3(0.0, -1.0, 0.0), d);
+            localQuaternion         = glm::dquat(1.0, 0.0, 0.0, 0.0);
+
+            lastD = d;
+            firstD = false;
+        }
+        else
+        {
+            if (isViewSwitchHeight)
+            {
+                orbitalCameraQuaternion = glm::normalize(glm::dquat(glm::dot(lastD, d) + 1.0, glm::cross(lastD, d)) * orbitalCameraQuaternion);
+                orbitalCameraQuaternion = glm::angleAxis((double)deltaYaw, d) * orbitalCameraQuaternion;
+
+                localQuaternion = localQuaternion * glm::angleAxis((double)-deltaPitch, glm::dvec3(1.0, 0.0, 0.0));
+            }
+            else
+            {
+                orbitalCameraQuaternion = glm::quat(1.0, 0.0, 0.0, 0.0);
+                localQuaternion         = glm::angleAxis((double)-deltaYaw, glm::dvec3(0.0, 1.0, 0.0)) * localQuaternion * glm::angleAxis((double)-deltaPitch, glm::dvec3(1.0, 0.0, 0.0));
+            }
+
+            lastD = d;
+        }
+
+        lastYaw   = yaw;
+        lastPitch = pitch;
+
+        glm::dvec3 orbitalCameraPosition = (orbitalCameraQuaternion * localQuaternion) * glm::dvec3(0.0, 0.0, static_cast<double>(camera.Zoom));
         camera.OrbitalCameraPosition = orbitalCameraPosition / glm::dvec3(static_cast<double>(camera.Zoom));
 
         if (menuState.inMenu)
@@ -1180,7 +1236,7 @@ int main(int argc, char* argv[]) {
 
             glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100000000000000000.0f); // 100 quintillion meters far plane (1e17, or 100 trillion (1e14) km)
             glm::mat4 orthoProjection = glm::ortho(0.0f, (float)SCR_WIDTH, 0.0f, (float)SCR_HEIGHT);
-            glm::mat4 view = camera.GetViewMatrix(bodies[numOfPlanets].position);
+            glm::mat4 view = camera.GetViewMatrix(bodies[numOfPlanets].position, (orbitalCameraQuaternion * localQuaternion) * glm::dvec3(0.0, 1.0, 0.0));
 
             // setup shaders
             // -------------
