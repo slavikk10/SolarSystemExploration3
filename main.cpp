@@ -439,7 +439,9 @@ int main(int argc, char* argv[]) {
 
     // load models
     // -----------
-    Model cylinder(getFilePath("resources/models/simple_rocket.obj"));
+    Model rocketModel(getFilePath("resources/models/simple_rocket.obj"));
+    Model cylinder(getFilePath("resources/models/cylinder.obj"));
+    Model cone(getFilePath("resources/models/cone.obj"));
 
     //std::cout << "Time elapsed to load model: " << glfwGetTime() - start << std::endl;
     start = glfwGetTime();
@@ -1150,12 +1152,12 @@ int main(int argc, char* argv[]) {
         // check whatever body we are close to
         bool isViewSwitchHeight = false;
         unsigned int viewSwitchBody;
+        double distance = INFINITY;
         for (unsigned int i = 0; i < numOfPlanets; i++)
         {
             if (glm::length(bodies[numOfPlanets].position - bodies[i].position) - bodies[i].averageRadius <= bodies[i].viewSwitchHeight)
             {
                 isViewSwitchHeight = true;
-                viewSwitchBody     = i;
 
                 if (!lastViewSwitch)
                     firstD = true;
@@ -1166,10 +1168,16 @@ int main(int argc, char* argv[]) {
             {
                 lastViewSwitch = false;
             }
+
+            if (glm::length(bodies[numOfPlanets].position - bodies[i].position) < distance)
+            {
+                distance       = glm::length(bodies[numOfPlanets].position - bodies[i].position);
+                viewSwitchBody = i;
+            }
         }
 
         glm::dvec3 d = glm::normalize(bodies[numOfPlanets].position - bodies[viewSwitchBody].position);
-        
+
         if (firstD)
         {
             orbitalCameraQuaternion = glm::dquat(glm::dvec3(0.0, -1.0, 0.0), d);
@@ -1177,6 +1185,7 @@ int main(int argc, char* argv[]) {
 
             lastD = d;
             firstD = false;
+
         }
         else
         {
@@ -1222,7 +1231,7 @@ int main(int argc, char* argv[]) {
             moonTrajectory.simulateTrajectory();
             //earthTrajectory.simulateTrajectory();
         }
-        
+
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -1502,7 +1511,7 @@ int main(int argc, char* argv[]) {
 
             shader.setMat4("model", model);
             shader.setVec3("albedo", glm::vec3(1.0f));
-            cylinder.DrawPatched(shader);
+            rocketModel.DrawPatched(shader);
 
             // render trajectories
             // -------------------
@@ -1616,6 +1625,36 @@ int main(int argc, char* argv[]) {
 
                 glm::vec2 tw = glm::vec2(convert3Dto2D(camera.Position - bodies[numOfPlanets].position, view, projection, SCR_WIDTH, SCR_HEIGHT));
                 RenderText(textShader, std::to_string(glm::length(lastRocketVelocity + lastVelocityVector - bodies[numOfPlanets].velocity) / 1000.0) + " km/s", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
+            }
+
+            if (isViewSwitchHeight)
+            {
+                glm::dvec3 relativeVelocity = bodies[numOfPlanets].velocity - bodies[viewSwitchBody].velocity;
+
+                glm::dvec3 towardsPlanet   = -glm::normalize(bodies[numOfPlanets].position - bodies[viewSwitchBody].position);
+                glm::dvec3 rightFromPlanet = glm::cross(glm::dvec3(0.0, 1.0, 0.0), towardsPlanet);
+                glm::dvec3 forward         = glm::cross(towardsPlanet, rightFromPlanet);
+
+                glm::vec2 vtpp = convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + towardsPlanet   * 5.0), view, projection, SCR_WIDTH, SCR_HEIGHT);
+                glm::vec2 rfpp = convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + rightFromPlanet * 5.0), view, projection, SCR_WIDTH, SCR_HEIGHT);
+                glm::vec2 ffpp = convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + forward         * 5.0), view, projection, SCR_WIDTH, SCR_HEIGHT);
+
+                double velocityTowardsPlanet = round(glm::dot(relativeVelocity, towardsPlanet)   * 10.0) / 10.0;
+                double velocityRight         = round(glm::dot(relativeVelocity, rightFromPlanet) * 10.0) / 10.0;
+                double velocityForward       = round(glm::dot(relativeVelocity, forward)         * 10.0) / 10.0;
+
+                std::string svtp = std::format("{:.1f}", velocityTowardsPlanet) + " m/s";
+                std::string srfp = std::format("{:.1f}", velocityRight)         + " m/s";
+                std::string sffp = std::format("{:.1f}", velocityForward)       + " m/s";
+
+                if (svtp != "0.0 m/s")
+                    RenderText(textShader, svtp, vtpp.x, vtpp.y, 0.4f, glm::vec3(1.0f), true);
+
+                if (srfp != "0.0 m/s")
+                    RenderText(textShader, srfp, rfpp.x, rfpp.y, 0.4f, glm::vec3(1.0f), true);
+
+                if (sffp != "0.0 m/s")
+                    RenderText(textShader, sffp, ffpp.x, ffpp.y, 0.4f, glm::vec3(1.0f), true);
             }
         }
             
