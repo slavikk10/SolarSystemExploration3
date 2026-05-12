@@ -22,11 +22,6 @@ find_package(Freetype REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(assimp REQUIRED)
 
-message(STATUS "Freetype include dirs: ${FREETYPE_INCLUDE_DIRS}")
-
-execute_process(COMMAND cmd /c dir "$ENV{GITHUB_WORKSPACE}\\vcpkg\\installed\\x64-windows\\include\\freetype" /s /b OUTPUT_VARIABLE dir_output)
-message(STATUS "include dir: ${dir_output}")
-
 add_library(glad src/glad.c)
 target_include_directories(glad PUBLIC ${CMAKE_SOURCE_DIR}/include)
 

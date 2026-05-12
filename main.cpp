@@ -26,6 +26,7 @@
 #include <glmextension.hpp>
 #include <load.hpp>
 #include <texturecachemanager.hpp>
+#include <soundmanager.hpp>
 
 #include <atomic>
 #include <cstdlib>
@@ -1525,6 +1526,45 @@ int main(int argc, char* argv[]) {
 
                 //earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
             }
+
+            // find arrow scale depending on velocity
+            // --------------------------------------
+            double velocityScale = glm::length(bodies[numOfPlanets].velocity - bodies[3].velocity) / 200.0;
+
+            if (!menuState.inMenu && orbitView)
+            {
+                // find velocity arrow rotation matrix
+                // -----------------------------------
+                glm::vec3 normalizedVelocity = (glm::vec3)glm::normalize(bodies[numOfPlanets].velocity - bodies[3].velocity);
+                normalizedVelocity.y = -normalizedVelocity.y;
+
+                glm::quat velocityArrowQuat = glm::quat(normalizedVelocity, glm::vec3(0.0f, 1.0f, 0.0f));
+                glm::dmat4 velocityArrowRotationMat = (glm::dmat4)glm::mat4_cast(velocityArrowQuat);
+
+                // render velocity arrow
+                // ---------------------
+                lightShader.use();
+
+                // cylinder
+                model = glm::dmat4(1.0);
+                model = glm::translate(model, camera.Position - bodies[numOfPlanets].position);
+                model *= velocityArrowRotationMat;
+                model = glm::translate(model, glm::dvec3(0.0, 5.0 + velocityScale, 0.0));
+                model = glm::scale(model, glm::dvec3(0.05, velocityScale, 0.05));
+
+                lightShader.setMat4("model", model);
+                cylinder.Draw(lightShader);
+
+                // cone
+                model = glm::dmat4(1.0);
+                model = glm::translate(model, camera.Position - bodies[numOfPlanets].position);
+                model *= velocityArrowRotationMat;
+                model = glm::translate(model, glm::dvec3(0.0, 5 + velocityScale * 2, 0.0));
+                model = glm::scale(model, glm::dvec3(0.25));
+
+                lightShader.setMat4("model", model);
+                cone.Draw(lightShader);
+            }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         hdrShader.use();
@@ -1612,7 +1652,7 @@ int main(int argc, char* argv[]) {
                 RenderCenteredImage(imageShader, apoap_periapsi, tw.x, tw.y, 0.05f);
                 RenderText(textShader, "Transfer window", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
             } 
-            else 
+            else
             {
                 if (enginesOn && throttle > 0.0)
                     transferWindow = bodies[numOfPlanets].position - bodies[3].position;
@@ -1627,13 +1667,15 @@ int main(int argc, char* argv[]) {
                 RenderText(textShader, std::to_string(glm::length(lastRocketVelocity + lastVelocityVector - bodies[numOfPlanets].velocity) / 1000.0) + " km/s", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
             }
 
+            // render velocity relative to planet
+            // ----------------------------------
             if (isViewSwitchHeight)
             {
                 glm::dvec3 relativeVelocity = bodies[numOfPlanets].velocity - bodies[viewSwitchBody].velocity;
 
                 glm::dvec3 towardsPlanet   = -glm::normalize(bodies[numOfPlanets].position - bodies[viewSwitchBody].position);
-                glm::dvec3 rightFromPlanet = glm::cross(glm::dvec3(0.0, 1.0, 0.0), towardsPlanet);
-                glm::dvec3 forward         = glm::cross(towardsPlanet, rightFromPlanet);
+                glm::dvec3 rightFromPlanet =  glm::cross(glm::dvec3(0.0, 1.0, 0.0), towardsPlanet);
+                glm::dvec3 forward         =  glm::cross(towardsPlanet, rightFromPlanet);
 
                 glm::vec2 vtpp = convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + towardsPlanet   * 5.0), view, projection, SCR_WIDTH, SCR_HEIGHT);
                 glm::vec2 rfpp = convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + rightFromPlanet * 5.0), view, projection, SCR_WIDTH, SCR_HEIGHT);
@@ -1656,6 +1698,11 @@ int main(int argc, char* argv[]) {
                 if (sffp != "0.0 m/s")
                     RenderText(textShader, sffp, ffpp.x, ffpp.y, 0.4f, glm::vec3(1.0f), true);
             }
+
+            // render velocity text
+            // --------------------
+            glm::vec2 vtp = convert3Dto2D(camera.Position - (glm::normalize(bodies[numOfPlanets].velocity - bodies[3].velocity) * (2 * velocityScale + 7.5) + bodies[numOfPlanets].position), view, projection, SCR_WIDTH, SCR_HEIGHT);
+            RenderText(textShader, std::format("{:.4f}", glm::length(bodies[numOfPlanets].velocity - bodies[3].velocity) / 1000.0) + " km/s", vtp.x, vtp.y, 0.4f, glm::vec3(1.0f), true);
         }
             
         // main menu
