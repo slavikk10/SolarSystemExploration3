@@ -1,5 +1,5 @@
 #define MINIAUDIO_IMPLEMENTATION
-#include <miniaudio.h>
+#include <miniaudio.hpp>
 
 #include <iostream>
 
