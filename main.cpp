@@ -1,3 +1,7 @@
+#ifdef __WIN32__
+    #define _HAS_STD_BYTE 0
+#endif
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
