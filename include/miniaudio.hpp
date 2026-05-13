@@ -3738,6 +3738,8 @@ See below for some tips on improving performance.
 #ifndef miniaudio_h
 #define miniaudio_h
 
+#define _HAS_STD_BYTE 0
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -11570,7 +11572,6 @@ IMPLEMENTATION
 #endif
 
 #if defined(MA_WIN32)
-    #define _HAS_STD_BYTE 0
     #include <windows.h>
 
     /*
