@@ -11570,6 +11570,7 @@ IMPLEMENTATION
 #endif
 
 #if defined(MA_WIN32)
+    #define _HAS_STD_BYTE 0
     #include <windows.h>
 
     /*
