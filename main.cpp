@@ -1,7 +1,5 @@
-#ifdef __WIN32__
-    #define _HAS_STD_BYTE 0
-    #define WIN32_LEAN_AND_MEAN
-#endif
+#define _HAS_STD_BYTE 0
+#define WIN32_LEAN_AND_MEAN
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
