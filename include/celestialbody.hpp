@@ -4,9 +4,9 @@
 
 #include <iostream>
 
-#pragma once
+#include <constants.hpp>
 
-constexpr double G = 6.6743e-11;
+#pragma once
 
 class CelestialBody {
 public:

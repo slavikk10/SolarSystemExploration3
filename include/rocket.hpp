@@ -8,10 +8,9 @@
 #include <camera.hpp>
 #include <celestialbody.hpp>
 #include <functionsupport.hpp>
+#include <constants.hpp>
 
 #include <vector>
-
-const double PI1 = 3.1415926535;
 
 class Rocket: public CelestialBody
 {
@@ -87,8 +86,8 @@ private:
         glm::vec3 result = glm::vec3(0.0f);
         for (unsigned int i = 0; i < 3; i++)
         {
-            if (vec[i] > (2.0 * PI1))
-                result[i] = vec[i] - int(vec[i] / static_cast<float>(2.0 * PI1)) * static_cast<float>(2.0 * PI1);
+            if (vec[i] > (2.0 * PI))
+                result[i] = vec[i] - int(vec[i] / static_cast<float>(2.0 * PI)) * static_cast<float>(2.0 * PI);
             else
                 result[i] = vec[i];
         }

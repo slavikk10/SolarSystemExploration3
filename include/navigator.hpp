@@ -7,10 +7,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <functionsupport.hpp>
+#include <constants.hpp>
 
 #pragma once
-
-constexpr double pi = 3.1415926535;
 
 struct ObjectState
 {
@@ -90,7 +89,7 @@ glm::dvec3 findMeanPosition(double time, OrbitalObject rocketOrbital, double gra
     double E             = pow(v, 2) / 2.0 - gravitationalParameter / r;
         
     double a             = -gravitationalParameter / (2.0 * E);
-    double T             = 2.0 * pi * sqrt(pow(a, 3) / gravitationalParameter);
+    double T             = 2.0 * PI * sqrt(pow(a, 3) / gravitationalParameter);
     double simulatedTime = 0.0;
 
     glm::dvec3 h         = glm::cross(rocketOrbital.state.r, rocketOrbital.state.v);
@@ -206,7 +205,7 @@ OrbitalObject findOrbitalElements(glm::dvec3 rocketPosition, glm::dvec3 rocketVe
     if (glm::dot(rocketPosition, rocketVelocity) >= 0.0)
         trueAnomaly = acos(cosTrueAnomaly);
     else
-        trueAnomaly = 2 * pi - acos(cosTrueAnomaly);
+        trueAnomaly = 2 * PI - acos(cosTrueAnomaly);
 
     double tanEccentricAnomalyBy2 = std::sqrt((1 - eccentricity) / (1 + eccentricity)) * tan(trueAnomaly / 2);
     double eccentricAnomaly       = 2 * atan2(std::sqrt(1 - eccentricity) * sin(trueAnomaly / 2), std::sqrt(1 + eccentricity) * cos(trueAnomaly / 2));
@@ -222,7 +221,7 @@ OrbitalObject findOrbitalElements(glm::dvec3 rocketPosition, glm::dvec3 rocketVe
     double argumentOfPeriapsis = acos(glm::dot(nodeVector, eccentricityVector) / (glm::length(nodeVector) * eccentricity));
 
     if (nodeVector.z > 0.0)
-        raan = 2 * pi - raan;
+        raan = 2 * PI - raan;
 
     Orbit result1;
     result1.semiMajorAxis       = semiMajorAxis;

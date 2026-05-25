@@ -55,6 +55,12 @@
 
 struct SphereCollision;
 
+struct TextureState
+{
+    unsigned char* image;
+    int width, height, nrComponents;
+};
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_click_callback(GLFWwindow* window, int button, int action);
@@ -72,7 +78,7 @@ char* stringToChar(std::string v);
 void addToArr(const char* arr[], char* v);
 void renderQuad();
 void renderSphere(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32);
-SphereCollision renderSphereCollision(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32, glm::dvec3 testPoint=glm::dvec3(0.0), glm::dvec3 scale=glm::dvec3(0.0));
+glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32, glm::uvec2 hitSegment=glm::uvec2(0), glm::dvec3 scale=glm::dvec3(0.0), glm::dvec3 rayDirection=glm::dvec3(0.0), glm::dvec3 rayOrigin=glm::dvec3(0.0), TextureState heightTexture=TextureState());
 void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color, bool centered);
 void saveCubemap(unsigned int cubemap, const std::string& folder, const std::string& filename_start_text, unsigned int size);
 
@@ -94,8 +100,59 @@ int timeMultiplierIndex = 0;
 
 // constants
 constexpr float sscale = 1.0f; // scale of the Solar System (1:1)
-const std::vector<std::string> faces = {"right", "left", "top", "bottom", "front", "back"}; // cubemap faces
+const std::vector<std::string> faces           = {"right", "left", "top", "bottom", "front", "back"}; // cubemap faces
 const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000}; // timewarp values
+const std::vector<std::string> monthNames      = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+// date
+struct Date {
+    unsigned int year   = 2026;
+    unsigned int month  = 5;
+    unsigned int day    = 1;
+    unsigned int hour   = 0;
+    unsigned int minute = 0;
+    float        second = 0.0f;
+    std::string date = "00:00:00, May 1, 2026";
+
+    void increment(float seconds)
+    {
+        second += seconds;
+
+        if (second >= 60.0f)
+        {
+            minute += floor(second / 60.0f);
+            second = 0.0f;
+        }
+
+        if (minute >= 60)
+        {
+            hour += floor(minute / 60);
+            minute = 0;
+        }
+
+        if (hour >= 24)
+        {
+            day += floor(hour / 24);
+            hour = 0;
+        }
+
+        if (day >= 32)
+        {
+            month += floor(day / 32);
+            day = 1;
+        }
+
+        if (month >= 13)
+        {
+            year += floor(month / 13);
+            month = 1;
+        }
+
+        date = std::format("{:02}", hour) + ":" + std::format("{:02}", minute) + ":" + std::format("{:02}", floor(second)) + ", " + monthNames[month - 1] + " " + std::to_string(day) + ", " + std::to_string(year);
+    }
+};
+
+Date currentDate;
 
 bool isServer;
 int timestamp;
@@ -151,12 +208,6 @@ struct KeyInput
     bool keyF1_lastFrame = false;
 };
 
-struct TextureState
-{
-    unsigned char* image;
-    int width, height, nrComponents;
-};
-
 MouseInput mouseInput;
 KeyInput keyInput;
 
@@ -173,8 +224,10 @@ struct PlanetKey
 struct PlanetData {
     unsigned int vao, vbo, ebo;
     unsigned int indexCount;
+
     std::vector<glm::vec3> positions;
     std::vector<glm::vec3> normals;
+    std::vector<glm::vec2> texCoords;
 };
 
 struct SphereCollision 
@@ -1092,6 +1145,12 @@ int main(int argc, char* argv[]) {
 
     double lastYaw, lastPitch = 0.0;
 
+    
+
+    for (float y = 0.0f; y < 1.0f; y += 0.01f)
+        for (float x = 0.0f; x < 1.0f; x += 0.01f)
+            std::cout << "Gotten height (x: " << std::format("{:.2f}", x) << "; y: " << std::format("{:.2f}", y) << "): " << getRgbPixel(textureLoad[14].image, glm::vec2(x, y), glm::vec2(textureLoad[14].width, textureLoad[14].height)).x / 255.0f * 0.001387f * bodies[3].equatorialRadius / 1000.0f << " km" << std::endl;
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -1149,7 +1208,7 @@ int main(int argc, char* argv[]) {
         float deltaPitch = pitch - lastPitch;
 
         // calculate thrust acceleration of the rocket and calculate total acceleration
-        glm::dvec3 thrustAccel = -glm::normalize(rocket.rotationQuaternion * glm::dvec3(0.0, 1.0, 0.0)) * 70.0;
+        glm::dvec3 thrustAccel = glm::normalize(rocket.rotationQuaternion * glm::dvec3(0.0, 1.0, 0.0)) * 70.0;
         glm::dvec3 totalAccel = bodies[numOfPlanets].totalAcceleration + thrustAccel;
 
         bodies[numOfPlanets].velocity += (enginesOn ? (double)(throttle/100) : 0) * (totalAccel * ((double)deltaTime * timeMultiplier));
@@ -1185,7 +1244,7 @@ int main(int argc, char* argv[]) {
 
         if (firstD)
         {
-            orbitalCameraQuaternion = glm::dquat(glm::dvec3(0.0, -1.0, 0.0), d);
+            orbitalCameraQuaternion = glm::dquat(glm::dvec3(0.0, 1.0, 0.0), d);
             localQuaternion         = glm::dquat(1.0, 0.0, 0.0, 0.0);
 
             lastD = d;
@@ -1209,7 +1268,7 @@ int main(int argc, char* argv[]) {
         if (menuState.inMenu)
             camera.Position = glm::dvec3(bodies[3].position.x/sscale + 1000000.0f, bodies[3].position.y/sscale + 1000000.0f, bodies[3].position.z/sscale + 50000000.0f);
         else
-            camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) + orbitalCameraPosition;
+            camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) - orbitalCameraPosition;
 
         TrajectorySimulator rocketTrajectory;
         if (glm::length(bodies[numOfPlanets].position - bodies[4].position) > 66100000.0)
@@ -1274,19 +1333,19 @@ int main(int argc, char* argv[]) {
             shader.setFloat("ao", 1.0f);
             shader.setVec3("camPos", glm::vec3(0.0f, 0.0f, 0.0f));
             for (unsigned int i = 0; i < 1; i++) {
-                shader.setVec3("lightPositions[" + std::to_string(i) + "]", camera.Position);
+                shader.setVec3("lightPositions[" + std::to_string(i) + "]", -camera.Position);
                 shader.setVec3("lightColors[" + std::to_string(i) + "]", glm::vec3(lightColor[0], lightColor[1], lightColor[2]));
             }
 
             hdrShader.use();
             hdrShader.setVec3("camPos", glm::vec3(0.0f, 0.0f, 0.0f));
-            hdrShader.setVec3("lightPos", camera.Position);
+            hdrShader.setVec3("lightPos", -camera.Position);
             
             shaderTex.use();
 
             shaderTex.setVec3("camPos", glm::vec3(0.0f, 0.0f, 0.0f));
             for (unsigned int i = 0; i < 1; i++) {
-                shaderTex.setVec3("lightPositions[" + std::to_string(i) + "]", camera.Position);
+                shaderTex.setVec3("lightPositions[" + std::to_string(i) + "]", -camera.Position);
                 shaderTex.setVec3("lightColors[" + std::to_string(i) + "]", glm::vec3(lightColor[0], lightColor[1], lightColor[2]));
             }
 
@@ -1317,7 +1376,7 @@ int main(int argc, char* argv[]) {
 
                 threadsLeft++;
                 planetRenderThreads.enqueue([&, i] {
-                    float distanceToPlanet = glm::length(static_cast<glm::vec3>(camera.Position - bodies[i].position));
+                    float distanceToPlanet = glm::length(static_cast<glm::vec3>(bodies[i].position - camera.Position));
                     float apparentSize = bodies[i].averageRadius / distanceToPlanet;
 
                     if (apparentSize > 0.001)
@@ -1331,7 +1390,7 @@ int main(int argc, char* argv[]) {
 
                         glm::dvec3 planetScale = glm::dvec3(bodies[i].equatorialRadius, bodies[i].polarRadius, bodies[i].equatorialRadius);
                         float rotationAroundAxis = glm::radians(bodies[i].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
-                        setupPlanetModel(planet_model, bodies[i].position, planetScale, camera.Position, orbitalCameraPosition, bodies[i].axialTilt, rotationAroundAxis);
+                        setupPlanetModel(planet_model, bodies[i].position, planetScale, camera.Position, bodies[i].axialTilt, rotationAroundAxis);
 
                         {
                             std::lock_guard<std::mutex> lock_mmm(modelMatricesMutex);
@@ -1394,6 +1453,9 @@ int main(int argc, char* argv[]) {
             while (threadsLeft > 0)
                 std::this_thread::yield();
 
+            glm::dvec3 collisionPoint;
+            unsigned int collisionBody;
+
             // looped planet rendering
             // -----------------------
             for (unsigned int i = 0; i < numOfPlanets; i++)
@@ -1415,23 +1477,35 @@ int main(int argc, char* argv[]) {
 
                 planetShaders[i].setMat3("rotationMatrix", rotationMatrices[i]);
 
-                if (collidable[i])
+                if (collidable[i] && collisionTestState[i])
                 {
-                    SphereCollision collision;
-                    if (collisionTestState[i])
-                        collision = renderSphereCollision(patchesOptions[i], numOfSegments[i], numOfSegments[i], (bodies[numOfPlanets].position - bodies[i].position) / planetScales[i], planetScales[i]);
-                    else
-                        renderSphere(patchesOptions[i], numOfSegments[i], numOfSegments[i]);
+                    glm::uvec2 hitSegment = checkForCollision(bodies[numOfPlanets].position, bodies[3].position, bodies[3].equatorialRadius + 10000.0, numOfSegments[i]);
+                    //if (i == 3)
+                        //std::cout << hitSegment.x << ", " << hitSegment.y << "; " << numOfSegments[i] << std::endl;
 
-                    if (collision.collisionState)
+                    glm::dvec3 collisionPosition;
+                    collisionPosition = renderSphereCollision(patchesOptions[i], numOfSegments[i], numOfSegments[i], hitSegment, planetScales[i], glm::normalize(bodies[i].position - bodies[numOfPlanets].position), bodies[numOfPlanets].position - bodies[i].position, textureLoad[14]);
+
+                    if (glm::length(bodies[numOfPlanets].position - bodies[3].position) > glm::length(collisionPoint))
                     {
-                        bodies[numOfPlanets].position += collision.closestSurface;
-                        bodies[numOfPlanets].velocity = bodies[i].velocity;
+                        collisionPoint = collisionPosition;
+                        collisionBody  = i;
                     }
+
+                    collisionPoint = collisionPosition;
+                    collisionBody  = i;
                 } else {
                     renderSphere(patchesOptions[i], numOfSegments[i], numOfSegments[i]);
                 }
             }
+
+            /*if (glm::length(bodies[numOfPlanets].position - bodies[3].position) <= glm::length(collisionPoint))
+            {
+                bodies[numOfPlanets].velocity = bodies[collisionBody].velocity;
+
+                if (glm::length(bodies[numOfPlanets].position - bodies[3].position) < glm::length(collisionPoint))
+                    bodies[numOfPlanets].position += (collisionPoint - (bodies[numOfPlanets].position - bodies[3].position));
+            }*/
 
             // render skybox
             // set depth function to GL_LEQUAL so fragment passes if it is less or equal to previous value
@@ -1465,7 +1539,7 @@ int main(int argc, char* argv[]) {
             bindNormalTexture(planetNormalTextures[3]);
 
             double rotationAroundAxis = glm::radians(1.5 * bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
-            setupPlanetModel(model, bodies[3].position, glm::dvec3(bodies[3].averageRadius + 15000.0f), camera.Position, orbitalCameraPosition, bodies[3].axialTilt, rotationAroundAxis);
+            setupPlanetModel(model, bodies[3].position, glm::dvec3(bodies[3].averageRadius + 15000.0f), camera.Position, bodies[3].axialTilt, rotationAroundAxis);
 
             glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationAroundAxis), 0.0f, glm::sin(rotationAroundAxis)), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationAroundAxis), 0.0f, glm::cos(rotationAroundAxis)));                                                                                                                          // rotation matrix for Y axis
             glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(bodies[3].axialTilt)), -glm::sin(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(bodies[3].axialTilt)), glm::cos(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis
@@ -1507,7 +1581,7 @@ int main(int argc, char* argv[]) {
             glBindTexture(GL_TEXTURE_2D, 0);
 
             model = glm::dmat4(1.0);
-            model = glm::translate(model, camera.Position - bodies[numOfPlanets].position);
+            model = glm::translate(model, bodies[numOfPlanets].position - camera.Position);
             model = glm::scale(model, glm::dvec3(1.0));
             glm::dmat4 casted_quat = glm::mat4_cast(rocket.rotationQuaternion);
 
@@ -1535,9 +1609,9 @@ int main(int argc, char* argv[]) {
         
             double velocityScale = glm::length(relativeVelocity) / 200.0;
 
-            glm::dvec3 towardsPlanet   = -glm::normalize(bodies[numOfPlanets].position - bodies[viewSwitchBody].position);
-            glm::dvec3 rightFromPlanet = -glm::cross(glm::dvec3(0.0, 1.0, 0.0), towardsPlanet);
-            glm::dvec3 forward         =  glm::cross(towardsPlanet, rightFromPlanet);
+            glm::dvec3 towardsPlanet   = glm::normalize(bodies[viewSwitchBody].position - bodies[numOfPlanets].position);
+            glm::dvec3 rightFromPlanet = glm::cross(glm::dvec3(0.0, 1.0, 0.0), -towardsPlanet);
+            glm::dvec3 forward         = glm::cross(-towardsPlanet, rightFromPlanet);
 
             glm::dvec3 awayFromPlanet  = -towardsPlanet;
             glm::dvec3 leftFromPlanet  = -rightFromPlanet;
@@ -1554,32 +1628,31 @@ int main(int argc, char* argv[]) {
             if (!menuState.inMenu && orbitView)
             {
                 if (!isViewSwitchHeight)
-                    renderArrow(bodies[numOfPlanets].position, (float)velocityScale, (glm::vec3)glm::normalize(relativeVelocity), 5.0f, cylinder, cone, lightShader, camera);
+                    renderArrow(bodies[numOfPlanets].position, (float)velocityScale, (glm::vec3)glm::normalize(-relativeVelocity), 5.0f, cylinder, cone, lightShader, camera);
 
                 if (isViewSwitchHeight)
                 {
                     if (velocityTowardsPlanet > 0.0)
-                        renderArrow(bodies[numOfPlanets].position, (float)velocityTowardsPlanet  / 100.0f, (glm::vec3)towardsPlanet,  5.0f, cylinder, cone, lightShader, camera);
+                        renderArrow(bodies[numOfPlanets].position, (float)velocityTowardsPlanet  / 100.0f, (glm::vec3)-towardsPlanet,   5.0f, cylinder, cone, lightShader, camera);
                     else if (velocityAwayFromPlanet > 0.0)
-                        renderArrow(bodies[numOfPlanets].position, (float)velocityAwayFromPlanet / 100.0f, (glm::vec3)awayFromPlanet, 5.0f, cylinder, cone, lightShader, camera);
+                        renderArrow(bodies[numOfPlanets].position, (float)velocityAwayFromPlanet / 100.0f, (glm::vec3)-awayFromPlanet,  5.0f, cylinder, cone, lightShader, camera);
                     
                     if (velocityRight > 0.0)
-                        renderArrow(bodies[numOfPlanets].position, (float)velocityRight          / 100.0f, (glm::vec3)rightFromPlanet, 5.0f, cylinder, cone, lightShader, camera);
+                        renderArrow(bodies[numOfPlanets].position, (float)velocityRight          / 100.0f, (glm::vec3)-rightFromPlanet, 5.0f, cylinder, cone, lightShader, camera);
                     else if (velocityLeftFromPlanet > 0.0)
-                        renderArrow(bodies[numOfPlanets].position, (float)velocityLeftFromPlanet / 100.0f, (glm::vec3)awayFromPlanet,  5.0f, cylinder, cone, lightShader, camera);
+                        renderArrow(bodies[numOfPlanets].position, (float)velocityLeftFromPlanet / 100.0f, (glm::vec3)-awayFromPlanet,  5.0f, cylinder, cone, lightShader, camera);
 
                     if (velocityForward > 0.0)
-                        renderArrow(bodies[numOfPlanets].position, (float)velocityForward  / 100.0f, (glm::vec3)forward,  5.0f, cylinder, cone, lightShader, camera);
+                        renderArrow(bodies[numOfPlanets].position, (float)velocityForward  / 100.0f, (glm::vec3)-forward,  5.0f, cylinder, cone, lightShader, camera);
                     else if (velocityBackward > 0.0)
-                        renderArrow(bodies[numOfPlanets].position, (float)velocityBackward / 100.0f, (glm::vec3)backward, 5.0f, cylinder, cone, lightShader, camera);
+                        renderArrow(bodies[numOfPlanets].position, (float)velocityBackward / 100.0f, (glm::vec3)-backward, 5.0f, cylinder, cone, lightShader, camera);
                 }
-            }    
-        
+            }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         hdrShader.use();
 
-        hdrShader.setVec3("planetWorldPos", camera.Position - bodies[3].position);
+        hdrShader.setVec3("planetWorldPos", bodies[3].position - camera.Position);
         hdrShader.setFloat("planetRadius", bodies[3].polarRadius/sscale);
         hdrShader.setVec3("wavelengths", glm::vec3(650.0f, 570.0f, 475.0f));
         hdrShader.setFloat("atmosphereHeight", 1000000.0f);
@@ -1601,10 +1674,10 @@ int main(int argc, char* argv[]) {
         {
             for (unsigned int i = 0; i < bodyNames.size(); i++)
             {
-                if (glm::dot(glm::normalize(bodies[i].position - (glm::dvec3)camera.Position), -(glm::dvec3)camera.Right) > 0.0) // check if the target is in front of the camera
+                if (glm::dot(glm::normalize(bodies[i].position - (glm::dvec3)camera.Position), (glm::dvec3)camera.Right) > 0.0) // check if the target is in front of the camera
                 {
-                    RenderCenteredImage(imageShader, objectNavImg, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.15f);
-                    RenderText(textShader, bodyNames[i], convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(glm::dvec3(camera.Position) - bodies[i].position, view, projection, SCR_WIDTH, SCR_HEIGHT).y + 35, 0.4f, glm::vec3(1.0f), true);
+                    RenderCenteredImage(imageShader, objectNavImg, convert3Dto2D(bodies[i].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(bodies[i].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.15f);
+                    RenderText(textShader, bodyNames[i], convert3Dto2D(bodies[i].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(bodies[i].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).y + 35, 0.4f, glm::vec3(1.0f), true);
                 }
             }
         }
@@ -1615,7 +1688,7 @@ int main(int argc, char* argv[]) {
         std::string throttle_s = "Throttle: " + std::format("{:.1f}", throttle) + "%";
         std::string fuel_s     = "Fuel: " + std::format("{:.1f}", fuel / 3000000.0f * 100.0f) + "%"; // divide the left fuel by original fuel and multiply by 100 to get in percents
         std::string tm_s       = "Time multiplier: " + std::to_string(timeMultiplier);
-        std::string dtm_s      = "Distance to Moon: " + std::to_string(glm::length(bodies[numOfPlanets].position - bodies[4].position) / 1000.0) + " km";
+
         textShader.use();
         textShader.setMat4("projection", orthoProjection); // switch to orthographic projection for rending text
         imageShader.use();
@@ -1628,7 +1701,7 @@ int main(int argc, char* argv[]) {
             RenderText(textShader, enginesOn ? "Engines: on" : "Engines: off", SCR_WIDTH/2, 10.0f, 0.5f, enginesOn ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f), true);
             RenderText(textShader, fuel_s, 3*SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
             RenderText(textShader, tm_s, SCR_WIDTH / 2, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, dtm_s, 3*SCR_WIDTH/4, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
+            RenderText(textShader, currentDate.date, 3*SCR_WIDTH/4, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
         }
 
         if (menuState.options)
@@ -1640,25 +1713,25 @@ int main(int argc, char* argv[]) {
         {
             if (glm::length(rocketTrajectory.apoapsis) > 0.0)
             {
-                glm::vec2 a = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.apoapsis,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
+                glm::vec2 a = glm::vec2(convert3Dto2D(rocketTrajectory.apoapsis - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(rocketTrajectory.apoapsis - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
                 std::string apoapsiss  = std::to_string(std::round((rocketTrajectory.apoapsisd  - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.apoapsisd   / 100.0)  / 10.0).find(".") + 2);
 
                 RenderCenteredImage(imageShader, apoap_periapsi, a.x, a.y, 0.05f);
                 RenderText(textShader, apoapsiss  + " km", a.x, a.y + 50.0f, 0.4f, glm::vec3(1.0f), true);
             }
 
-            glm::vec2 p = glm::vec2(convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(camera.Position - rocketTrajectory.periapsis, view, projection, SCR_WIDTH, SCR_HEIGHT).y);
+            glm::vec2 p = glm::vec2(convert3Dto2D(rocketTrajectory.periapsis - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(rocketTrajectory.periapsis - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).y);
             std::string periapsiss = std::to_string(std::round((rocketTrajectory.periapsisd - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.periapsisd  / 100.0)  / 10.0).find(".") + 2);
             
             RenderCenteredImage(imageShader, apoap_periapsi, p.x, p.y, 0.05f);
             RenderText(textShader, periapsiss + " km", p.x, p.y + 50.0f, 0.4f, glm::vec3(1.0f), true);
 
-            glm::vec2 bp = glm::vec2(convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + transfer.burnDirection * 5.0), view, projection, SCR_WIDTH, SCR_HEIGHT));
+            glm::vec2 bp = glm::vec2(convert3Dto2D((bodies[numOfPlanets].position + transfer.burnDirection * 5.0) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
             RenderCenteredImage(imageShader, apoap_periapsi, bp.x, bp.y, 0.05f); // burn direсtion point
 
             if (glm::length(bodies[numOfPlanets].position - (transferWindow + bodies[3].position)) > 200000.0)
             {
-                glm::vec2 tw = glm::vec2(convert3Dto2D(camera.Position - (transferWindow + bodies[3].position), view, projection, SCR_WIDTH, SCR_HEIGHT));
+                glm::vec2 tw = glm::vec2(convert3Dto2D((transferWindow + bodies[3].position) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
                 RenderCenteredImage(imageShader, apoap_periapsi, tw.x, tw.y, 0.05f);
                 RenderText(textShader, "Transfer window", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
             } 
@@ -1673,7 +1746,7 @@ int main(int argc, char* argv[]) {
                     lastDeltaVelocityShow = true;
                 }
 
-                glm::vec2 tw = glm::vec2(convert3Dto2D(camera.Position - bodies[numOfPlanets].position, view, projection, SCR_WIDTH, SCR_HEIGHT));
+                glm::vec2 tw = glm::vec2(convert3Dto2D(bodies[numOfPlanets].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
                 RenderText(textShader, std::to_string(glm::length(lastRocketVelocity + lastVelocityVector - bodies[numOfPlanets].velocity) / 1000.0) + " km/s", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
             }
 
@@ -1683,13 +1756,13 @@ int main(int argc, char* argv[]) {
             {
                 glm::dvec3 relativeVelocity = bodies[numOfPlanets].velocity - bodies[viewSwitchBody].velocity;
 
-                glm::vec2 vtpp = convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + towardsPlanet   * (5.0 + velocityTowardsPlanet / 50.0)), view, projection, SCR_WIDTH, SCR_HEIGHT);
-                glm::vec2 rfpp = convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + rightFromPlanet * (5.0 + velocityRight         / 50.0)), view, projection, SCR_WIDTH, SCR_HEIGHT);
-                glm::vec2 ffpp = convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + forward         * (5.0 + velocityForward       / 50.0)), view, projection, SCR_WIDTH, SCR_HEIGHT);
+                glm::vec2 vtpp = convert3Dto2D((bodies[numOfPlanets].position + towardsPlanet   * (5.0 + velocityTowardsPlanet / 50.0)) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                glm::vec2 rfpp = convert3Dto2D((bodies[numOfPlanets].position + rightFromPlanet * (5.0 + velocityRight         / 50.0)) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                glm::vec2 ffpp = convert3Dto2D((bodies[numOfPlanets].position + forward         * (5.0 + velocityForward       / 50.0)) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
 
-                glm::vec2 vapp = convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + awayFromPlanet * (5.0 + velocityAwayFromPlanet / 50.0)), view, projection, SCR_WIDTH, SCR_HEIGHT);
-                glm::vec2 lfpp = convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + leftFromPlanet * (5.0 + velocityLeftFromPlanet / 50.0)), view, projection, SCR_WIDTH, SCR_HEIGHT);
-                glm::vec2 bfpp = convert3Dto2D(camera.Position - (bodies[numOfPlanets].position + backward       * (5.0 + velocityBackward       / 50.0)), view, projection, SCR_WIDTH, SCR_HEIGHT);
+                glm::vec2 vapp = convert3Dto2D((bodies[numOfPlanets].position + awayFromPlanet * (5.0 + velocityAwayFromPlanet / 50.0)) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                glm::vec2 lfpp = convert3Dto2D((bodies[numOfPlanets].position + leftFromPlanet * (5.0 + velocityLeftFromPlanet / 50.0)) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                glm::vec2 bfpp = convert3Dto2D((bodies[numOfPlanets].position + backward       * (5.0 + velocityBackward       / 50.0)) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
 
                 std::string svtp = std::format("{:.1f}", velocityTowardsPlanet) + " m/s";
                 std::string srfp = std::format("{:.1f}", velocityRight)         + " m/s";
@@ -1719,10 +1792,13 @@ int main(int argc, char* argv[]) {
             // --------------------
             if (!isViewSwitchHeight)
             {
-                glm::vec2 vtp = convert3Dto2D(camera.Position - (glm::normalize(bodies[numOfPlanets].velocity - bodies[3].velocity) * (2 * velocityScale + 7.5) + bodies[numOfPlanets].position), view, projection, SCR_WIDTH, SCR_HEIGHT);
+                glm::vec2 vtp = convert3Dto2D((glm::normalize(bodies[numOfPlanets].velocity - bodies[3].velocity) * (2 * velocityScale + 7.5) + bodies[numOfPlanets].position) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 RenderText(textShader, std::format("{:.4f}", glm::length(bodies[numOfPlanets].velocity - bodies[3].velocity) / 1000.0) + " km/s", vtp.x, vtp.y, 0.4f, glm::vec3(1.0f), true);
             }
         }
+
+        glm::vec2 ecp = glm::vec2(convert3Dto2D((bodies[3].position + collisionPoint) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
+        RenderCenteredImage(imageShader, apoap_periapsi, ecp.x, ecp.y, 0.05f);
             
         // main menu
         // ---------
@@ -1752,6 +1828,8 @@ int main(int argc, char* argv[]) {
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        currentDate.increment(deltaTime * timeMultiplier);
     }
 
     // de-allocate all resources once they've outlived their purpose
@@ -2186,7 +2264,7 @@ void renderSphere(bool patches, unsigned int X_SEGMENTS, unsigned int Y_SEGMENTS
         glDrawElements(GL_PATCHES, sphere.indexCount, GL_UNSIGNED_INT, 0);
 }
 
-SphereCollision renderSphereCollision(bool patches, unsigned int X_SEGMENTS, unsigned int Y_SEGMENTS, glm::dvec3 testPoint, glm::dvec3 scale)
+glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS, unsigned int Y_SEGMENTS, glm::uvec2 hitSegment, glm::dvec3 scale, glm::dvec3 rayDirection, glm::dvec3 rayOrigin, TextureState heightTexture)
 {
     PlanetKey key = {X_SEGMENTS, Y_SEGMENTS};
     bool collisionState = false;
@@ -2216,6 +2294,7 @@ SphereCollision renderSphereCollision(bool patches, unsigned int X_SEGMENTS, uns
                 glm::vec3 pos = glm::vec3(xPos, yPos, zPos);
                 sphere.positions.push_back(pos);
                 uv.push_back(glm::vec2(xSegment, ySegment));
+                sphere.texCoords.push_back(glm::vec2(xSegment, ySegment));
                 sphere.normals.push_back(pos);
             }
         }
@@ -2279,45 +2358,66 @@ SphereCollision renderSphereCollision(bool patches, unsigned int X_SEGMENTS, uns
     else
         glDrawElements(GL_PATCHES, sphere.indexCount, GL_UNSIGNED_INT, 0);
 
-    double minDistance = 10000.0;
-    glm::dvec3 closestNormal;
+    glm::dvec3 v0 = (glm::dvec3)sphere.positions[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y]                          * scale;
+    glm::dvec3 v1 = (glm::dvec3)sphere.positions[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y + 1]                      * scale;
+    glm::dvec3 v2 = (glm::dvec3)sphere.positions[((hitSegment.x + 1) % X_SEGMENTS) * (X_SEGMENTS + 1) + hitSegment.y]     * scale;
+    glm::dvec3 v3 = (glm::dvec3)sphere.positions[((hitSegment.x + 1) % X_SEGMENTS) * (X_SEGMENTS + 1) + hitSegment.y + 1] * scale;
 
-    for (unsigned int y = 0; y < Y_SEGMENTS; ++y) {
-        for (unsigned int x = 0; x < X_SEGMENTS; ++x) {
-            unsigned int i0 = y * (X_SEGMENTS + 1) + x;
-            unsigned int i1 = (y + 1) * (X_SEGMENTS + 1) + x;
-            unsigned int i2 = y * (X_SEGMENTS + 1) + x + 1;
-            unsigned int i3 = (y + 1) * (X_SEGMENTS + 1) + x + 1;
+    v0.x = -v0.x;
+    v0.z = -v0.z;
+
+    v1.x = -v1.x;
+    v1.z = -v1.z;
+
+    v2.x = -v2.x;
+    v2.z = -v2.z;
+
+    v3.x = -v3.x;
+    v3.z = -v3.z;
+
+    std::vector<glm::dvec3> ve0 = {v0, v1, v2};
+    std::vector<glm::dvec3> ve1 = {v1, v3, v2};
+
+    glm::dvec3 triangle1Hit = rayTriangle(rayOrigin, rayDirection, ve0);
+    glm::dvec3 triangle2Hit = rayTriangle(rayOrigin, rayDirection, ve1);
+
+    double height = getRgbPixel(heightTexture.image, glm::vec2(fmod(2.5f - sphere.texCoords[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y].x, 1.0f), 1.0f - sphere.texCoords[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y].y), glm::vec2(heightTexture.width, heightTexture.height)).x / 255.0f * 0.001387f * scale.z;
+
+    //triangle1Hit += glm::normalize(triangle1Hit) * height;
+    //triangle2Hit += glm::normalize(triangle2Hit) * height;
+
+    /*glm::dvec3 hitPosition = glm::dvec3(INFINITY);
+    double lastt           = INFINITY;
+    for (unsigned int x = 0; x < X_SEGMENTS; x++)
+    {
+        for (unsigned int y = 0; y < Y_SEGMENTS; y++) 
+        {
             
-            glm::dvec3 pos    = testPoint - static_cast<glm::dvec3>((sphere.positions[i0] + sphere.positions[i1] + sphere.positions[i2] + sphere.positions[i3]) / glm::vec3(4.0f));
-            glm::dvec3 avgNor = static_cast<glm::dvec3>(glm::normalize((sphere.normals[i0] + sphere.normals[i1] + sphere.normals[i2] + sphere.normals[i3]) / glm::vec3(4.0f)));
-            pos += glm::normalize(pos) * glm::dvec3(2.0);
+            
+            glm::dvec3 u = i1 - i0;
+            glm::dvec3 v = i2 - i0;
 
-            double distanceToSegment = glm::length(testPoint - pos);
+            glm::dvec3 n = glm::normalize(glm::cross(u, v));
 
-            double collisionValue = glm::dot(pos, avgNor);
+            double t = glm::dot(n, (i0 - rayOrigin)) / glm::dot(n, rayDirection);
+            glm::dvec3 rayHit = rayOrigin + t * rayDirection;
 
-            if (collisionValue <= 0.0)
-                insideCounter++;
-
-            if (distanceToSegment < minDistance)
+            if (glm::length(rayHit) < glm::length(hitPosition) && t >= 0.0 && t < lastt)
             {
-                minDistance = distanceToSegment;
-                closestNormal = avgNor;
+                hitPosition = rayHit;
+                lastt       = t;
             }
         }
-    }
+    }*/
 
-    if (insideCounter == X_SEGMENTS * Y_SEGMENTS)
-        collisionState = true;
+    //return rayOrigin + raySphere(rayOrigin, glm::dvec3(0.0), scale.x + 15000.0, rayDirection).x * rayDirection;
+
+    //return v0;
+
+    if (glm::length(triangle1Hit) < 1e-5)
+        return triangle2Hit;
     else
-        collisionState = false;
-
-    SphereCollision result;
-    result.collisionState = collisionState;
-    result.insideCounter  = insideCounter;
-    result.closestSurface = scale * (closestNormal * (1.0 - minDistance));
-    return result;
+        return triangle1Hit;
 }
 
 void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color, bool centered)

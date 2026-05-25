@@ -3,8 +3,7 @@
 #include <camera.hpp>
 #include <functionsupport.hpp>
 #include <navigator.hpp>
-
-constexpr double PI = 3.1415926535;
+#include <constants.hpp>
 
 std::vector<double> soiRadiuses = {
     4570000000000000,
@@ -144,9 +143,9 @@ public:
     void renderTrajectory(const Camera& camera, const glm::mat4& view, const glm::mat4& projection, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
     {
         for (unsigned int i = 0; i < positions.size() - 1; i++)
-            RenderLine(camera.Position - positions[i], camera.Position - positions[i + 1], view, projection, SCR_WIDTH, SCR_HEIGHT);
+            RenderLine(positions[i] - camera.Position, positions[i + 1] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
 
         if (orbit)
-            RenderLine(camera.Position - positions[positions.size() - 1], camera.Position - positions[0], view, projection, SCR_WIDTH, SCR_HEIGHT);
+            RenderLine(positions[positions.size() - 1] - camera.Position, positions[0] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
     }
 };

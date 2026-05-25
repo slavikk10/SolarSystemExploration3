@@ -23,7 +23,7 @@ void renderArrow(glm::dvec3 origin, float length, glm::vec3 rotation, float arro
 
     // cylinder
     glm::dmat4 model = glm::dmat4(1.0);
-    model = glm::translate(model, camera.Position - origin);
+    model = glm::translate(model, origin - camera.Position);
     model *= arrowRotationMat;
     model = glm::translate(model, glm::dvec3(0.0, arrowStart + length, 0.0));
     model = glm::scale(model, glm::dvec3(0.05, length, 0.05));
@@ -33,7 +33,7 @@ void renderArrow(glm::dvec3 origin, float length, glm::vec3 rotation, float arro
 
     // cone
     model = glm::dmat4(1.0);
-    model = glm::translate(model, camera.Position - origin);
+    model = glm::translate(model, origin - camera.Position);
     model *= arrowRotationMat;
     model = glm::translate(model, glm::dvec3(0.0, arrowStart + length * 2.0, 0.0));
     model = glm::scale(model, glm::dvec3(0.25));

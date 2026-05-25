@@ -68,7 +68,7 @@ public:
     // returns the view matrix calculated using Euler Angles and the LookAt Matrix
     glm::mat4 GetViewMatrix(glm::dvec3 target, glm::dvec3 up)
     {
-        return glm::lookAt(glm::vec3(0.0f), static_cast<glm::vec3>(Position - target), static_cast<glm::vec3>(up));
+        return glm::lookAt(glm::vec3(0.0f), static_cast<glm::vec3>(target - Position), static_cast<glm::vec3>(up));
     }
 
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
