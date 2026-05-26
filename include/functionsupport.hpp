@@ -174,3 +174,8 @@ glm::vec3 getRgbPixel(unsigned char* texture, glm::vec2 texCoords, glm::vec2 siz
     unsigned int index = ((1.0f - texCoords.y) * size.y) * size.x + (texCoords.x * size.x);
     return glm::vec3(texture[index], texture[index + 1], texture[index + 2]);
 }
+
+bool stob(std::string s)
+{
+    return (s == "true");
+}

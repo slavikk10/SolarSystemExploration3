@@ -10,8 +10,189 @@
 
 #include <celestialbody.hpp>
 #include <filesystem.hpp>
+#include <functionsupport.hpp>
 
-CelestialBody parsePlanetJSON(const char* path) {
+struct JSON {
+    std::string contents;
+    std::stringstream stream;
+};
+
+struct Textures {
+    std::string diffusePath;
+    std::string roughnessPath;
+    std::string metallicPath;
+    std::string heightPath;
+    std::string normalPath;
+};
+
+struct TextureSettings {
+    bool flipHorizontally;
+    bool skipRM;
+};
+
+JSON loadJSON(const char* path)
+{
+    std::string json;
+    std::ifstream jsonFile;
+    std::stringstream jsonStream;
+
+    jsonFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
+    // load JSON file by given path
+    try {
+        jsonFile.open(getFilePath(path).c_str());
+        jsonStream << jsonFile.rdbuf();
+        jsonFile.close();
+        json = jsonStream.str();
+    }
+    catch(std::ifstream::failure e) {
+        std::cout << "Error reading JSON file at (relative) path: " << path << std::endl;
+    }
+
+    JSON result;
+    result.contents = json;
+    result.stream.str(jsonStream.str());
+    return result;
+}
+
+std::string getJSONValue(JSON& json, std::string key)
+{
+    std::string line;
+
+    while (std::getline(json.stream, line))
+    {
+        size_t startPos = line.find(key);
+        
+        if (startPos != std::string::npos)
+        {
+            size_t colon = line.find(':');
+            size_t start = line.find_first_not_of(" \t", colon + 1);
+
+            std::string extracted;
+
+            if (line[start] == '"')
+            {
+                size_t firstOpenQuote   = line.find('"');
+                size_t firstCloseQuote  = line.find('"', firstOpenQuote + 1);
+                
+                size_t secondOpenQuote  = line.find('"', firstCloseQuote + 1);
+                size_t secondCloseQuote = line.find('"', secondOpenQuote + 1);
+
+                extracted = line.substr(secondOpenQuote + 1, secondCloseQuote - secondOpenQuote - 1);
+            }
+            else
+            {
+                std::string result = line.substr(colon + 1, line.size() - colon - 2);
+                result.erase(0, result.find_first_not_of(" \t"));
+
+                extracted = result;
+            }
+
+            return extracted;
+        }
+    }
+
+    return "";
+}
+
+JSON getJSONSub(JSON& json, std::string subName)
+{
+    std::string line;
+    std::string result = "";
+    bool write = false;
+
+    size_t stripOffset;
+
+    JSON resultJson;
+    std::stringstream resultStream;
+
+    while (std::getline(json.stream, line))
+    {
+        size_t startPos = line.find(subName + '"' + ':');
+        
+        if (startPos != std::string::npos)
+        {
+            write       = true;
+            stripOffset = startPos - 1;
+        }
+
+        std::string stripped = line.erase(0, stripOffset);
+
+        if (write)
+            result += stripped;
+
+        if (stripped[0] != '}')
+        {   
+            if (write)
+                result += '\n';
+        }
+        else
+        {
+            write = false;
+
+            resultStream << result;
+
+            resultJson.contents = result;
+            resultJson.stream.str(resultStream.str());
+
+            return resultJson;
+        }
+    }
+
+    return JSON();
+}
+
+CelestialBody parseCelestialJSONData(const char* path)
+{
+    JSON json = loadJSON(path);
+
+    CelestialBody result;
+    result.averageRadius       = std::stod(getJSONValue(json, "averageRadius"));
+    result.equatorialRadius    = std::stod(getJSONValue(json, "equatorialRadius"));
+    result.polarRadius         = std::stod(getJSONValue(json, "polarRadius"));
+    result.gravityAcceleration = std::stod(getJSONValue(json, "gravitationalAcceleration"));
+
+    result.position = glm::dvec3(std::stod(getJSONValue(json, "x")),         std::stod(getJSONValue(json, "y")),         std::stod(getJSONValue(json, "z")))         * 1000.0;
+    result.velocity = glm::dvec3(std::stod(getJSONValue(json, "velocityX")), std::stod(getJSONValue(json, "velocityY")), std::stod(getJSONValue(json, "velocityZ"))) * 1000.0;
+
+    result.axialTilt     = std::stod(getJSONValue(json, "axialTilt"));
+    result.rotationSpeed = std::stod(getJSONValue(json, "rotationSpeed"));
+
+    result.viewSwitchHeight = std::stod(getJSONValue(json, "viewSwitchHeight"));
+
+    return result;
+}
+
+Textures parseTexturesJSON(const char* path)
+{
+    JSON json        = loadJSON(path);
+    JSON textureJSON = getJSONSub(json, "textures");
+
+    Textures result;
+    result.diffusePath   = getJSONValue(textureJSON, "albedo");
+    result.roughnessPath = getJSONValue(textureJSON, "roughness");
+    result.metallicPath  = getJSONValue(textureJSON, "metallic");
+    result.heightPath    = getJSONValue(textureJSON, "height");
+    result.normalPath    = getJSONValue(textureJSON, "normal");
+
+    return result;
+}
+
+TextureSettings parseTextureSettingsJSON(const char* path)
+{
+    JSON json                = loadJSON(path);
+    JSON textureSettingsJSON = getJSONSub(json, "textureSettings");
+
+    TextureSettings result;
+    result.flipHorizontally = stob(getJSONValue(textureSettingsJSON, "flipHorizontally"));
+    result.skipRM           = stob(getJSONValue(textureSettingsJSON, "skipRM"));
+    
+    return result;
+}
+
+// MIGHT NEED THIS FOR LATER
+
+/*CelestialBody parsePlanetJSON(const char* path)
+{
     std::string json;
     std::ifstream jsonFile;
     std::stringstream jsonStream;
@@ -279,4 +460,4 @@ CelestialBody parsePlanetJSON(const char* path) {
     CelestialBody body(position, velocity, avg_radius, eq_radius, polar_radius, g_accel, axial_tilt, rotation_speed, view_switch_height);
 
     return body;
-}
+}*/

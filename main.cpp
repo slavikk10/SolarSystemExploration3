@@ -107,12 +107,12 @@ const std::vector<std::string> monthNames      = {"Jan", "Feb", "Mar", "Apr", "M
 // date
 struct Date {
     unsigned int year   = 2026;
-    unsigned int month  = 5;
+    unsigned int month  = 6;
     unsigned int day    = 1;
     unsigned int hour   = 0;
     unsigned int minute = 0;
     float        second = 0.0f;
-    std::string date = "00:00:00, May 1, 2026";
+    std::string date = "00:00:00, Jun 1, 2026";
 
     void increment(float seconds)
     {
@@ -677,9 +677,31 @@ int main(int argc, char* argv[]) {
     glBindFramebuffer(GL_FRAMEBUFFER, optDepthTex);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, optDepthColor, 0);
 
-    //std::cout << "Time elapsed to configure textures: " << glfwGetTime() - start << std::endl;
-    start = glfwGetTime();
-    //std::cout << "Total time elapsed: " << glfwGetTime() - sstart << std::endl;
+    std::vector<std::string> planetJSONPaths = {
+        "resources/planets/sun.json",
+        "resources/planets/mercury.json",
+        "resources/planets/venus.json",
+        "resources/planets/earth.json",
+        "resources/planets/moon.json",
+        "resources/planets/mars.json",
+        "resources/planets/jupiter.json",
+        "resources/planets/io.json",
+        "resources/planets/europa.json",
+        "resources/planets/ganymede.json",
+        "resources/planets/callisto.json",
+    };
+
+    std::vector<JSON> planetJSON;
+    for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
+        planetJSON.push_back(loadJSON(planetJSONPaths[i].c_str()));
+
+    std::vector<Textures> planetTextures;
+    for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
+        planetTextures.push_back(parseTexturesJSON(planetJSONPaths[i].c_str()));
+
+    std::vector<TextureSettings> planetTextureSettings;
+    for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
+        planetTextureSettings.push_back(parseTextureSettingsJSON(planetJSONPaths[i].c_str()));    
 
     // configure planet texture paths
     // ------------------------------
@@ -869,40 +891,31 @@ int main(int argc, char* argv[]) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glm::dvec3 spawnPos = parsePlanetJSON("resources/planets/earth.json").position / glm::dvec3(1000.0f);
-    glm::dvec3 spawnVel = parsePlanetJSON("resources/planets/earth.json").velocity / glm::dvec3(1000.0f);
+    glm::dvec3 spawnPos = parseCelestialJSONData("resources/planets/earth.json").position / glm::dvec3(1000.0f);
+    glm::dvec3 spawnVel = parseCelestialJSONData("resources/planets/earth.json").velocity / glm::dvec3(1000.0f);
     std::vector<CelestialBody> bodies = {
         CelestialBody(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), 695700000, 695508000, 695800000, 274.049, 0.0, 0.0, 1000000000.0), // Sun
-        parsePlanetJSON("resources/planets/mercury.json"),
-        parsePlanetJSON("resources/planets/venus.json"),
-        parsePlanetJSON("resources/planets/earth.json"),
-        parsePlanetJSON("resources/planets/moon.json"),
-        parsePlanetJSON("resources/planets/mars.json"),
-        parsePlanetJSON("resources/planets/jupiter.json"),
-        parsePlanetJSON("resources/planets/io.json"),
-        parsePlanetJSON("resources/planets/europa.json"),
-        parsePlanetJSON("resources/planets/ganymede.json"),
-        parsePlanetJSON("resources/planets/callisto.json"),
+        parseCelestialJSONData("resources/planets/mercury.json"),
+        parseCelestialJSONData("resources/planets/venus.json"),
+        parseCelestialJSONData("resources/planets/earth.json"),
+        parseCelestialJSONData("resources/planets/moon.json"),
+        parseCelestialJSONData("resources/planets/mars.json"),
+        parseCelestialJSONData("resources/planets/jupiter.json"),
+        parseCelestialJSONData("resources/planets/io.json"),
+        parseCelestialJSONData("resources/planets/europa.json"),
+        parseCelestialJSONData("resources/planets/ganymede.json"),
+        parseCelestialJSONData("resources/planets/callisto.json"),
         CelestialBody(glm::dvec3(0.0), glm::dvec3(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), // placeholder for player celestial data
     };
 
     Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y, spawnPos.z + bodies[3].equatorialRadius / 1000.0 + 10000.0f), spawnVel, 0.00000000266972, glm::vec3(5.0f));
     bodies[11] = rocket;
 
-    std::vector<std::string> bodyNames = {
-        "Sun",
-        "Mercury",
-        "Venus",
-        "Earth",
-        "Moon",
-        "Mars",
-        "Jupiter",
-        "Io",
-        "Europa",
-        "Ganymede",
-        "Callisto",
-        "Rocket"
-    };
+    std::vector<std::string> bodyNames;
+    for (unsigned int i = 0; i < planetJSON.size(); i++)
+        bodyNames.push_back(getJSONValue(planetJSON[i], "name"));
+
+    bodyNames.push_back("Rocket");
 
     std::vector<Shader> planetShaders = {
         lightShader,
@@ -916,34 +929,6 @@ int main(int argc, char* argv[]) {
         shaderTex,
         shaderTex,
         shaderTex
-    };
-
-    std::vector<bool> flipHorOptions = {
-        false,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true
-    };
-
-    std::vector<bool> skipRMOptions = {
-        true,
-        true,
-        true,
-        false,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true
     };
 
     std::vector<bool> patchesOptions = {
@@ -1147,9 +1132,9 @@ int main(int argc, char* argv[]) {
 
     
 
-    for (float y = 0.0f; y < 1.0f; y += 0.01f)
+    /*for (float y = 0.0f; y < 1.0f; y += 0.01f)
         for (float x = 0.0f; x < 1.0f; x += 0.01f)
-            std::cout << "Gotten height (x: " << std::format("{:.2f}", x) << "; y: " << std::format("{:.2f}", y) << "): " << getRgbPixel(textureLoad[14].image, glm::vec2(x, y), glm::vec2(textureLoad[14].width, textureLoad[14].height)).x / 255.0f * 0.001387f * bodies[3].equatorialRadius / 1000.0f << " km" << std::endl;
+            std::cout << "Gotten height (x: " << std::format("{:.2f}", x) << "; y: " << std::format("{:.2f}", y) << "): " << getRgbPixel(textureLoad[14].image, glm::vec2(x, y), glm::vec2(textureLoad[14].width, textureLoad[14].height)).x / 255.0f * 0.001387f * bodies[3].equatorialRadius / 1000.0f << " km" << std::endl;*/
 
     // render loop
     // -----------
@@ -1471,8 +1456,8 @@ int main(int argc, char* argv[]) {
                 if (planetHeightTextures[i] != 0)    bindHeightTexture(planetHeightTextures[i]);
                 if (planetNormalTextures[i] != 0)    bindNormalTexture(planetNormalTextures[i]);
 
-                planetShaders[i].setBool("flipHor", flipHorOptions[i]);
-                planetShaders[i].setBool("skipRM", skipRMOptions[i]);
+                planetShaders[i].setBool("flipHor", planetTextureSettings[i].flipHorizontally);
+                planetShaders[i].setBool("skipRM",  planetTextureSettings[i].skipRM);
                 planetShaders[i].setMat4("model", static_cast<glm::mat4>(modelMatrices[i]));
 
                 planetShaders[i].setMat3("rotationMatrix", rotationMatrices[i]);
