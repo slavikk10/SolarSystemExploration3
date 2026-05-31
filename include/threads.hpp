@@ -6,12 +6,17 @@
 #include <condition_variable>
 #include <atomic>
 
-class ThreadPool {
+class ThreadPool 
+{
 public:
-    ThreadPool(size_t n) : stop(false) {
-        for (size_t i = 0; i < n; i++) {
-            threads.emplace_back([this] {
-                while (true) {
+    ThreadPool(size_t n) : stop(false) 
+    {
+        for (size_t i = 0; i < n; i++) 
+        {
+            threads.emplace_back([this] 
+            {
+                while (true) 
+                {
                     std::function<void()> task;
                     
                     {
@@ -30,7 +35,8 @@ public:
         }
     }
 
-    ~ThreadPool() {
+    ~ThreadPool() 
+    {
         {
             std::unique_lock<std::mutex> lock(queue_mutex);
             stop = true;
@@ -39,7 +45,8 @@ public:
         for (auto &t : threads) t.join();
     }
 
-    void enqueue(std::function<void()> task) {
+    void enqueue(std::function<void()> task) 
+    {
         {
             std::unique_lock<std::mutex> lock(queue_mutex);
             tasks.push(std::move(task));

@@ -17,17 +17,32 @@ struct JSON {
     std::stringstream stream;
 };
 
-struct Textures {
-    std::string diffusePath;
-    std::string roughnessPath;
-    std::string metallicPath;
-    std::string heightPath;
-    std::string normalPath;
-};
-
 struct TextureSettings {
     bool flipHorizontally;
     bool skipRM;
+};
+
+struct CloudsJSON {
+    std::string texturePath;
+    std::string textureName;
+    double height;
+
+    bool operator==(CloudsJSON compared)
+    {
+        return (texturePath == compared.texturePath) && (height == compared.height);
+    }
+
+    CloudsJSON(std::string tp, double h) 
+    {
+        texturePath = tp;
+        height      = h;
+
+        std::string fileNameWithExtension = texturePath.substr(texturePath.find_last_of('/') + 1);
+        textureName = fileNameWithExtension.erase(fileNameWithExtension.find_first_of('.'));
+    }
+
+    CloudsJSON(std::string tp, std::string fn, double h) {texturePath = tp; textureName = fn; height = h;}
+    CloudsJSON() {texturePath = ""; textureName = ""; height = 0.0;}
 };
 
 JSON loadJSON(const char* path)
@@ -56,11 +71,13 @@ JSON loadJSON(const char* path)
 
 std::string getJSONValue(JSON& json, std::string key)
 {
+    std::stringstream stream(json.contents);
+
     std::string line;
 
-    while (std::getline(json.stream, line))
+    while (std::getline(stream, line))
     {
-        size_t startPos = line.find(key);
+        size_t startPos = line.find('"' + key + '"');
         
         if (startPos != std::string::npos)
         {
@@ -81,7 +98,13 @@ std::string getJSONValue(JSON& json, std::string key)
             }
             else
             {
-                std::string result = line.substr(colon + 1, line.size() - colon - 2);
+                std::string result;
+
+                if (line.back() == ',')
+                    result = line.substr(colon + 1, line.size() - colon - 2);
+                else
+                    result = line.substr(colon + 1, line.size() - colon);
+
                 result.erase(0, result.find_first_not_of(" \t"));
 
                 extracted = result;
@@ -96,6 +119,8 @@ std::string getJSONValue(JSON& json, std::string key)
 
 JSON getJSONSub(JSON& json, std::string subName)
 {
+    std::stringstream stream(json.contents);
+
     std::string line;
     std::string result = "";
     bool write = false;
@@ -162,17 +187,17 @@ CelestialBody parseCelestialJSONData(const char* path)
     return result;
 }
 
-Textures parseTexturesJSON(const char* path)
+std::vector<std::string> parseTexturesJSON(const char* path)
 {
     JSON json        = loadJSON(path);
     JSON textureJSON = getJSONSub(json, "textures");
 
-    Textures result;
-    result.diffusePath   = getJSONValue(textureJSON, "albedo");
-    result.roughnessPath = getJSONValue(textureJSON, "roughness");
-    result.metallicPath  = getJSONValue(textureJSON, "metallic");
-    result.heightPath    = getJSONValue(textureJSON, "height");
-    result.normalPath    = getJSONValue(textureJSON, "normal");
+    std::vector<std::string> result;
+    result.push_back(getJSONValue(textureJSON, "albedo"));
+    result.push_back(getJSONValue(textureJSON, "roughness"));
+    result.push_back(getJSONValue(textureJSON, "metallic"));
+    result.push_back(getJSONValue(textureJSON, "height"));
+    result.push_back(getJSONValue(textureJSON, "normal"));
 
     return result;
 }
@@ -186,6 +211,25 @@ TextureSettings parseTextureSettingsJSON(const char* path)
     result.flipHorizontally = stob(getJSONValue(textureSettingsJSON, "flipHorizontally"));
     result.skipRM           = stob(getJSONValue(textureSettingsJSON, "skipRM"));
     
+    return result;
+}
+
+CloudsJSON parseCloudsJSON(const char* path)
+{
+    JSON json      = loadJSON(path);
+    bool hasClouds = stob(getJSONValue(json, "hasClouds"));
+
+    CloudsJSON result;
+    if (hasClouds)
+    {
+        JSON cloudSettings = getJSONSub(json, "cloudSettings");
+        result = CloudsJSON(getJSONValue(cloudSettings, "cloudTexture"), std::stod(getJSONValue(cloudSettings, "height")));
+    }
+    else
+    {
+        result = CloudsJSON();
+    }
+
     return result;
 }
 

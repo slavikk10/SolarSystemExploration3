@@ -13,16 +13,22 @@
 void saveTextureCache(std::string cacheFileName, std::string texturePath) {
     std::filesystem::path p = getFilePath("cache/TextureCache");
 
+    // create directory if it doesn't exist yet
     if (!(std::filesystem::exists(p) && std::filesystem::is_directory(p)))
         std::filesystem::create_directories(p);
 
+    // if cache is already saved, return early
     if (std::filesystem::exists(getFilePath("cache/TextureCache/") + cacheFileName + ".tca"))
+        return;
+
+    // if path is empty, return early
+    if (texturePath == "")
         return;
 
     int width, height, nrComponents;
     unsigned char* data;
 
-    data = stbi_load(texturePath.c_str(), &width, &height, &nrComponents, 0);
+    data = stbi_load(getFilePath(texturePath).c_str(), &width, &height, &nrComponents, 0);
 
     std::ofstream textureCacheFile(p / (cacheFileName + ".tca"), std::ios::binary);
     textureCacheFile.write(reinterpret_cast<char*>(&width), sizeof(width));               // write texture width
@@ -32,16 +38,24 @@ void saveTextureCache(std::string cacheFileName, std::string texturePath) {
     textureCacheFile.close();
 }
 
-struct TextureCache
+struct Texture
 {
     int width, height, nrComponents;
     unsigned char* data;
 
-    TextureCache(int w, int h, int nc, unsigned char* d): width(w), height(h), nrComponents(nc), data(d) {};
+    Texture(int w, int h, int nc, unsigned char* d): width(w), height(h), nrComponents(nc), data(d) {};
+
+    bool operator==(const Texture& compared) const 
+    {
+        return width == compared.width && height == compared.height && nrComponents == compared.nrComponents && data == compared.data;
+    }
 };
 
-TextureCache loadTextureCache(std::string_view path)
+Texture loadTextureCache(std::string_view path)
 {
+    if (!std::filesystem::exists(path))
+        return Texture(0, 0, 0, 0);
+
     int width, height, nrComponents;
     unsigned char* data;
 
@@ -59,5 +73,5 @@ TextureCache loadTextureCache(std::string_view path)
 
     textureCacheFile.close();
 
-    return TextureCache(width, height, nrComponents, data);
+    return Texture(width, height, nrComponents, data);
 }

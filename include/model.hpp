@@ -27,7 +27,7 @@ class Model
 {
 public:
     // model data 
-    vector<Texture> textures_loaded;	// stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
+    vector<MeshTexture> textures_loaded;	// stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
     vector<Mesh>    meshes;
     string directory;
     bool gammaCorrection;
@@ -101,7 +101,7 @@ private:
         // data to fill
         vector<Vertex> vertices;
         vector<unsigned int> indices;
-        vector<Texture> textures;
+        vector<MeshTexture> textures;
 
         // walk through each of the mesh's vertices
         for(unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -168,27 +168,27 @@ private:
         // normal: texture_normalN
 
         // 1. albedo maps
-        vector<Texture> albedoMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "albedo");
+        vector<MeshTexture> albedoMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "albedo");
         textures.insert(textures.end(), albedoMaps.begin(), albedoMaps.end());
         // 2. normal maps
-        vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_NORMALS, "normal");
+        vector<MeshTexture> normalMaps = loadMaterialTextures(material, aiTextureType_NORMALS, "normal");
         textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
         // 3. normal maps
-        std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
+        std::vector<MeshTexture> heightMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
         textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
         // 4. height maps
-        std::vector<Texture> ambientMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
+        std::vector<MeshTexture> ambientMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
         // return a mesh object created from the extracted mesh data
         return Mesh(vertices, indices, textures);
     }
 
-    // checks all material textures of a given type and loads the textures if they're not loaded yet.
-    // the required info is returned as a Texture struct.
-    vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, string typeName)
+    // checks all material textures of a given type and loads the textures if they're not loaded yet
+    // the required info is returned as a MeshTexture struct
+    vector<MeshTexture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, string typeName)
     {
-        vector<Texture> textures;
+        vector<MeshTexture> textures;
         for(unsigned int i = 0; i < mat->GetTextureCount(type); i++)
         {
             aiString str;
@@ -206,7 +206,7 @@ private:
             }
             if(!skip)
             {   // if texture hasn't been loaded already, load it
-                Texture texture;
+                MeshTexture texture;
                 texture.id = TextureFromFile(str.C_Str(), this->directory);
                 texture.type = typeName;
                 texture.path = str.C_Str();
@@ -217,7 +217,6 @@ private:
         return textures;
     }
 };
-
 
 unsigned int TextureFromFile(const char *path, const string &directory, bool gamma)
 {

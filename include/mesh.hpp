@@ -25,7 +25,7 @@ struct Vertex {
     glm::vec3 Bitangent;
 };
 
-struct Texture {
+struct MeshTexture {
     unsigned int id;
     string type;
     string path;
@@ -36,11 +36,11 @@ public:
     // mesh Data
     vector<Vertex>       vertices;
     vector<unsigned int> indices;
-    vector<Texture>      textures;
+    vector<MeshTexture>  textures;
     unsigned int VAO;
 
     // constructor
-    Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures)
+    Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<MeshTexture> textures)
     {
         this->vertices = vertices;
         this->indices = indices;
@@ -121,7 +121,7 @@ public:
         glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0, num_of_instances);
         glBindVertexArray(0);
 
-        // always good practice to set everything back to defaults once configured.
+        // always good practice to set everything back to defaults once configured
         glActiveTexture(GL_TEXTURE0);
     }
 

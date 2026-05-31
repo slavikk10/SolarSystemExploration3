@@ -55,18 +55,12 @@
 
 struct SphereCollision;
 
-struct TextureState
-{
-    unsigned char* image;
-    int width, height, nrComponents;
-};
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_click_callback(GLFWwindow* window, int button, int action);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
-unsigned int genTexture(unsigned char *data, int width, int height, int nrComponents, bool gamma_correction=false, bool sixteenFloat=false);
+unsigned int genTexture(Texture texture, bool gamma_correction=false, bool sixteenFloat=false);
 Image loadImage(char const * path, bool gamma_correction);
 unsigned int loadCubemap(std::string path, std::string filename_start_text, vector<std::string> faces, bool gamma_correction, bool sixteenFloat=false);
 glm::vec3 floatToVec3(float v[3]);
@@ -78,7 +72,7 @@ char* stringToChar(std::string v);
 void addToArr(const char* arr[], char* v);
 void renderQuad();
 void renderSphere(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32);
-glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32, glm::uvec2 hitSegment=glm::uvec2(0), glm::dvec3 scale=glm::dvec3(0.0), glm::dvec3 rayDirection=glm::dvec3(0.0), glm::dvec3 rayOrigin=glm::dvec3(0.0), TextureState heightTexture=TextureState());
+glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32, glm::uvec2 hitSegment=glm::uvec2(0), glm::dvec3 scale=glm::dvec3(0.0), glm::dvec3 rayDirection=glm::dvec3(0.0), glm::dvec3 rayOrigin=glm::dvec3(0.0), Texture heightTexture=Texture(0, 0, 0, 0));
 void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color, bool centered);
 void saveCubemap(unsigned int cubemap, const std::string& folder, const std::string& filename_start_text, unsigned int size);
 
@@ -247,62 +241,6 @@ int maxBearing = 0, maxHMB = 0;
 
 int main(int argc, char* argv[]) {
     float start = glfwGetTime();
-
-    /*Orbit rocketo;
-    rocketo.semiMajorAxis = 7000;
-    rocketo.eccentricity = 0;
-    rocketo.inclination = 0;
-    rocketo.raan = 0;
-    rocketo.argumentOfPeriapsis = 0;
-    rocketo.meanMotion = 0.061770761839396;
-
-    ObjectOrbitalState rocketoos;
-    rocketoos.meanAnomaly = 0;
-    rocketoos.timeOfPeriapsisPassage = 0;
-    rocketoos.trueAnomaly = 0;
-
-    ObjectState rocketos;
-    rocketos.r = glm::dvec3(0.0, 0.0, 7000.0);
-    rocketos.v = glm::dvec3(7.546053290107542, 0.0, 0.0);
-
-    OrbitalObject rocketoo;
-    rocketoo.state = rocketos;
-    rocketoo.orbitalState = rocketoos;
-    rocketoo.orbit = rocketo;
-
-
-
-
-    Orbit moono;
-    moono.semiMajorAxis = 384400;
-    moono.eccentricity = 0;
-    moono.inclination = 0;
-    moono.raan = 0;
-    moono.argumentOfPeriapsis = 0;
-    moono.meanMotion = 0.000151526184356;
-
-    ObjectOrbitalState moonoos;
-    moonoos.meanAnomaly = 0;
-    moonoos.timeOfPeriapsisPassage = 0;
-    moonoos.trueAnomaly = 0;
-
-    ObjectState moonos;
-    moonos.r = glm::dvec3(0.0, 0.0, 384400.0);
-    moonos.v = glm::dvec3(1.036941835067638, 0.0, 0.0);
-
-    OrbitalObject moonoo;
-    moonoo.state = moonos;
-    moonoo.orbitalState = moonoos;
-    moonoo.orbit = moono;
-
-
-
-
-    Transfer moonTransfer = findTransferWindow(0, 720, 70, 120, 1, 1, rocketoo, moonoo, 398600.4414);
-
-    std::cout << "∆v: " << moonTransfer.deltaVelocity << std::endl;
-    std::cout << "t1: " << moonTransfer.departureTime << std::endl;
-    std::cout << "∆t: " << moonTransfer.timeOfFlight  << std::endl;*/
 
     // glfw: initialize and configure
     // ------------------------------
@@ -474,35 +412,24 @@ int main(int argc, char* argv[]) {
 
     // build and compile shaders
     // -------------------------
-    Shader shader(getFilePath("shaders/pbr/pbr.vert").c_str(), getFilePath("shaders/pbr/pbr.frag").c_str(), getFilePath("shaders/pbr/pbr.tesc").c_str(), getFilePath("shaders/pbr/pbr.tese").c_str());
-    Shader shaderTex(getFilePath("shaders/pbr/pbr.vert").c_str(), getFilePath("shaders/pbr/pbr_textured.frag").c_str(), getFilePath("shaders/pbr/pbr.tesc").c_str(), getFilePath("shaders/pbr/pbr.tese").c_str());
-    Shader lightShader(getFilePath("shaders/light/light.vert").c_str(), getFilePath("shaders/light/light.frag").c_str(), getFilePath("shaders/light/light.geom").c_str());
-    //Shader atmosphereShader(getFilePath("shaders/atmosphere/atmosphere.vert").c_str(), getFilePath("shaders/atmosphere/atmosphere.frag").c_str(), getFilePath("shaders/atmosphere/atmosphere.geom").c_str());
-    //Shader equirectangularShader(getFilePath("shaders/equirectangular/skybox.vert").c_str(), getFilePath("shaders/equirectangular/skybox.frag").c_str(), getFilePath("shaders/equirectangular/skybox.geom").c_str());
-    //Shader convShader(getFilePath("shaders/convolution/skybox copy.vert").c_str(), getFilePath("shaders/convolution/skybox copy.frag").c_str(), getFilePath("shaders/convolution/skybox copy.geom").c_str());
-    //Shader brdfShader(getFilePath("shaders/brdf/brdf.vert").c_str(), getFilePath("shaders/brdf/brdf.frag").c_str(), getFilePath("shaders/brdf/brdf.geom").c_str());
-    //Shader prefilterShader(getFilePath("shaders/pre-filter/pre-filter.vert").c_str(), getFilePath("shaders/pre-filter/pre-filter.frag").c_str(), getFilePath("shaders/pre-filter/pre-filter.geom").c_str());
-    Shader skyboxShader(getFilePath("shaders/skybox/skybox.vert").c_str(), getFilePath("shaders/skybox/skybox.frag").c_str(), getFilePath("shaders/skybox/skybox.geom").c_str());
-    Shader hdrShader(getFilePath("shaders/hdr/hdr.vert").c_str(), getFilePath("shaders/hdr/hdr.frag").c_str(), getFilePath("shaders/hdr/hdr.geom").c_str());
+    Shader shader(      getFilePath("shaders/pbr/pbr.vert").c_str(),                   getFilePath("shaders/pbr/pbr.frag").c_str(),                   getFilePath("shaders/pbr/pbr.tesc").c_str(),                   getFilePath("shaders/pbr/pbr.tese").c_str());
+    Shader shaderTex(   getFilePath("shaders/pbr_textured/pbr_textured.vert").c_str(), getFilePath("shaders/pbr_textured/pbr_textured.frag").c_str(), getFilePath("shaders/pbr_textured/pbr_textured.tesc").c_str(), getFilePath("shaders/pbr_textured/pbr_textured.tese").c_str());
+    Shader lightShader( getFilePath("shaders/light/light.vert").c_str(),               getFilePath("shaders/light/light.frag").c_str(),               getFilePath("shaders/light/light.geom").c_str());
+    Shader skyboxShader(getFilePath("shaders/skybox/skybox.vert").c_str(),             getFilePath("shaders/skybox/skybox.frag").c_str(),             getFilePath("shaders/skybox/skybox.geom").c_str());
+    Shader hdrShader(   getFilePath("shaders/hdr/hdr.vert").c_str(),                   getFilePath("shaders/hdr/hdr.frag").c_str(),                   getFilePath("shaders/hdr/hdr.geom").c_str());
 
     // build and compile 2D shaders
     // ----------------------------
-    Shader textShader(getFilePath("shaders/text/text.vert").c_str(), getFilePath("shaders/text/text.frag").c_str());
-    Shader imageShader(getFilePath("shaders/image/image.vert").c_str(), getFilePath("shaders/image/image.frag").c_str());
-    Shader lineShader(getFilePath("shaders/line/line.vert").c_str(), getFilePath("shaders/line/line.frag").c_str());
+    Shader textShader(    getFilePath("shaders/text/text.vert").c_str(),                   getFilePath("shaders/text/text.frag").c_str());
+    Shader imageShader(   getFilePath("shaders/image/image.vert").c_str(),                 getFilePath("shaders/image/image.frag").c_str());
+    Shader lineShader(    getFilePath("shaders/line/line.vert").c_str(),                   getFilePath("shaders/line/line.frag").c_str());
     Shader optDepthShader(getFilePath("shaders/optical-depth/optical-depth.vert").c_str(), getFilePath("shaders/optical-depth/optical-depth.frag").c_str());
-
-    //std::cout << "Time elapsed to load shaders: " << glfwGetTime() - start << std::endl;
-    start = glfwGetTime();
 
     // load models
     // -----------
     Model rocketModel(getFilePath("resources/models/simple_rocket.obj"));
-    Model cylinder(getFilePath("resources/models/cylinder.obj"));
-    Model cone(getFilePath("resources/models/cone.obj"));
-
-    //std::cout << "Time elapsed to load model: " << glfwGetTime() - start << std::endl;
-    start = glfwGetTime();
+    Model cylinder(   getFilePath("resources/models/cylinder.obj"));
+    Model cone(       getFilePath("resources/models/cone.obj"));
 
     // setup cube vertices (for skybox)
     // --------------------------------
@@ -691,132 +618,89 @@ int main(int argc, char* argv[]) {
         "resources/planets/callisto.json",
     };
 
+    std::unordered_map<std::string, Shader> shaderNames = {
+        {"pbr", shader},
+        {"pbr_textured", shaderTex},
+        {"light", lightShader}
+    };
+
     std::vector<JSON> planetJSON;
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
         planetJSON.push_back(loadJSON(planetJSONPaths[i].c_str()));
 
-    std::vector<Textures> planetTextures;
+    std::vector<std::vector<std::string>> planetTexturePaths;
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
-        planetTextures.push_back(parseTexturesJSON(planetJSONPaths[i].c_str()));
+        planetTexturePaths.push_back(parseTexturesJSON(planetJSONPaths[i].c_str()));
 
     std::vector<TextureSettings> planetTextureSettings;
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
-        planetTextureSettings.push_back(parseTextureSettingsJSON(planetJSONPaths[i].c_str()));    
+        planetTextureSettings.push_back(parseTextureSettingsJSON(planetJSONPaths[i].c_str()));
 
-    // configure planet texture paths
-    // ------------------------------
-    std::vector<std::string> planetTexturesPaths = {
-        // diffuse
-        getFilePath("resources/textures/planets/mercury/mercury_surface.jpg"),
-        getFilePath("resources/textures/planets/venus/venus_atmo.jpg"),
-        getFilePath("resources/textures/planets/earth/earth_surface.png"),
-        getFilePath("resources/textures/planets/earth/moon/moon_surface.png"),
-        getFilePath("resources/textures/planets/mars/mars_surface.jpg"),
-        getFilePath("resources/textures/planets/jupiter/jupiter_atmo.png"),
-        getFilePath("resources/textures/planets/jupiter/moons/io/io_surface.png"),
-        getFilePath("resources/textures/planets/jupiter/moons/europa/europa_surface.png"),
-        getFilePath("resources/textures/planets/jupiter/moons/ganymede/ganymede_surface.jpg"),
-        getFilePath("resources/textures/planets/jupiter/moons/callisto/callisto_surface.png"),
+    std::vector<Shader> planetShaders;
+    for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
+        planetShaders.push_back(shaderNames.at(getJSONValue(planetJSON[i], "shader")));
 
-        // metallic
-        getFilePath("resources/textures/planets/earth/earth_metallic.jpg"),
-
-        // roughness
-        getFilePath("resources/textures/planets/earth/earth_metallic.jpg"),
-
-        // height
-        getFilePath("resources/textures/planets/mercury/mercury_height.png"),
-        getFilePath("resources/textures/planets/venus/venus_height.png"),
-        getFilePath("resources/textures/planets/earth/earth_height.jpg"),
-        getFilePath("resources/textures/planets/earth/moon/moon_height.png"),
-        getFilePath("resources/textures/planets/earth/earth_height.jpg"),
-        getFilePath("resources/textures/planets/jupiter/moons/io/io_height.png"),
-
-        // normal
-        getFilePath("resources/textures/planets/mercury/mercury_normal.png"),
-        getFilePath("resources/textures/planets/venus/venus_normal.png"),
-        getFilePath("resources/textures/planets/earth/earth_normal.png"),
-        getFilePath("resources/textures/planets/earth/moon/moon_normal.png"),
-        getFilePath("resources/textures/planets/earth/earth_normal.png"),
-        getFilePath("resources/textures/planets/earth/earth_normal.png"),
-        getFilePath("resources/textures/planets/jupiter/moons/io/io_normal.png"),
-        getFilePath("resources/textures/planets/earth/earth_normal.png"),
-        getFilePath("resources/textures/planets/earth/earth_normal.png"),
-        getFilePath("resources/textures/planets/earth/earth_normal.png"),
-
-        // clouds
-        getFilePath("resources/textures/planets/earth/earth_clouds.png")
-    };
-
-    std::vector<std::string> planetTextureNames = {
-        "mercury_surface",
-        "venus_atmo",
-        "earth_surface",
-        "moon_surface",
-        "mars_surface",
-        "jupiter_atmo",
-        "io_surface",
-        "europa_surface",
-        "ganymede_surface",
-        "callisto_surface",
-        "earth_metallic",
-        "earth_metallic",
-        "mercury_height",
-        "venus_height",
-        "earth_height",
-        "moon_height",
-        "earth_height",
-        "io_height",
-        "mercury_normal",
-        "venus_normal",
-        "earth_normal",
-        "moon_normal",
-        "earth_normal",
-        "earth_normal",
-        "io_normal",
-        "earth_normal",
-        "earth_normal",
-        "earth_normal",
-        "earth_clouds"
-    };
-
-    std::vector<TextureState> textureLoad(planetTexturesPaths.size());
+    std::vector<std::vector<Texture>> textureLoad(planetTexturePaths.size(), std::vector<Texture>(planetTexturePaths[0].size(), Texture(0, 0, 0, 0)));
     std::vector<std::thread> texturesLoadingThreads;
-    std::vector<unsigned int> loadedTextures(planetTexturesPaths.size());
-
-    //std::cout << "Misc. time elapsed: " << glfwGetTime() - start << std::endl;
-    start = glfwGetTime();
+    std::vector<std::vector<unsigned int>> loadedTextures(planetTexturePaths.size(), std::vector<unsigned int>(planetTexturePaths[0].size(), 0));
 
     // start multiple threads to load textures faster
     // ----------------------------------------------
-    for (unsigned int i = 0; i < planetTexturesPaths.size(); i++)
+    for (unsigned int i = 0; i < planetTexturePaths.size(); i++)
     {
-        texturesLoadingThreads.emplace_back([i, &planetTexturesPaths, &textureLoad, &planetTextureNames]() {
+        texturesLoadingThreads.emplace_back([i, &planetTexturePaths, &textureLoad]()
+        {
+            // find file names
+            // ---------------
+            std::vector<std::string> textureFileNames;
+            for (unsigned int j = 0; j < planetTexturePaths[0].size(); j++)
+            {
+                if (planetTexturePaths[i][j] != "")
+                {
+                    std::string fileNameWithExtension = planetTexturePaths[i][j].substr(planetTexturePaths[i][j].find_last_of('/') + 1);
+                    textureFileNames.push_back(fileNameWithExtension.erase(fileNameWithExtension.find_first_of('.')));
+                }
+                else
+                {
+                    textureFileNames.push_back("");
+                }
+            }
+
             // save texture cache to use later
             // -------------------------------
-            saveTextureCache(planetTextureNames[i], planetTexturesPaths[i]);
+            for (unsigned int j = 0; j < planetTexturePaths[0].size(); j++)
+                saveTextureCache(textureFileNames[j], planetTexturePaths[i][j]);
 
-            // load cached texture
-            // -------------------
-            TextureCache tc = loadTextureCache(getFilePath("cache/TextureCache/") + planetTextureNames[i] + ".tca");
-            
-            // update vector
-            // -------------
-            textureLoad[i].image        = tc.data;
-            textureLoad[i].width        = tc.width;
-            textureLoad[i].height       = tc.height;
-            textureLoad[i].nrComponents = tc.nrComponents;
+            // load cached textures
+            // --------------------
+            for (unsigned int j = 0; j < planetTexturePaths[0].size(); j++)
+                textureLoad[i][j] = loadTextureCache(getFilePath("cache/TextureCache/") + textureFileNames[j] + ".tca");
         });
     }
 
-    for (auto &t : texturesLoadingThreads)
+    for (auto &t: texturesLoadingThreads)
         t.join();
 
     for (unsigned int i = 0; i < textureLoad.size(); i++)
-        loadedTextures[i] = genTexture(textureLoad[i].image, textureLoad[i].width, textureLoad[i].height, textureLoad[i].nrComponents);
+        for (unsigned int j = 0; j < textureLoad[0].size(); j++)
+            loadedTextures[i][j] = genTexture(textureLoad[i][j]);
 
-    float duration = glfwGetTime() - start;
-    //std::cout << "Time elapsed to load textures: " << duration << std::endl;
+    // load cloud textures
+    // -------------------
+    std::vector<CloudsJSON> cloudsJSON;
+    for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
+        cloudsJSON.push_back(parseCloudsJSON(planetJSONPaths[i].c_str()));
+
+    std::vector<Texture> cloudsTextureLoad;
+    std::vector<unsigned int> loadedCloudTextures;
+
+    for (unsigned int i = 0; i < cloudsJSON.size(); i++)
+    {
+        saveTextureCache(cloudsJSON[i].textureName, cloudsJSON[i].texturePath);
+
+        cloudsTextureLoad.push_back(loadTextureCache(getFilePath("cache/TextureCache/") + cloudsJSON[i].textureName + ".tca"));
+        loadedCloudTextures.push_back(genTexture(cloudsTextureLoad[i]));
+    }
 
     // Load UI textures
     // ----------------
@@ -893,22 +777,14 @@ int main(int argc, char* argv[]) {
 
     glm::dvec3 spawnPos = parseCelestialJSONData("resources/planets/earth.json").position / glm::dvec3(1000.0f);
     glm::dvec3 spawnVel = parseCelestialJSONData("resources/planets/earth.json").velocity / glm::dvec3(1000.0f);
-    std::vector<CelestialBody> bodies = {
-        CelestialBody(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), 695700000, 695508000, 695800000, 274.049, 0.0, 0.0, 1000000000.0), // Sun
-        parseCelestialJSONData("resources/planets/mercury.json"),
-        parseCelestialJSONData("resources/planets/venus.json"),
-        parseCelestialJSONData("resources/planets/earth.json"),
-        parseCelestialJSONData("resources/planets/moon.json"),
-        parseCelestialJSONData("resources/planets/mars.json"),
-        parseCelestialJSONData("resources/planets/jupiter.json"),
-        parseCelestialJSONData("resources/planets/io.json"),
-        parseCelestialJSONData("resources/planets/europa.json"),
-        parseCelestialJSONData("resources/planets/ganymede.json"),
-        parseCelestialJSONData("resources/planets/callisto.json"),
-        CelestialBody(glm::dvec3(0.0), glm::dvec3(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), // placeholder for player celestial data
-    };
 
-    Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y, spawnPos.z + bodies[3].equatorialRadius / 1000.0 + 10000.0f), spawnVel, 0.00000000266972, glm::vec3(5.0f));
+    std::vector<CelestialBody> bodies;
+    for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
+        bodies.push_back(parseCelestialJSONData(planetJSONPaths[i].c_str()));
+    
+    bodies.push_back(CelestialBody(glm::dvec3(0.0), glm::dvec3(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)); // placeholder for player celestial data
+
+    Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y, spawnPos.z + bodies[3].equatorialRadius / 1000.0 + 5000.0f), spawnVel, 0.00000000266972, glm::vec3(5.0f));
     bodies[11] = rocket;
 
     std::vector<std::string> bodyNames;
@@ -917,117 +793,17 @@ int main(int argc, char* argv[]) {
 
     bodyNames.push_back("Rocket");
 
-    std::vector<Shader> planetShaders = {
-        lightShader,
-        shaderTex,
-        shaderTex,
-        shaderTex,
-        shaderTex,
-        shaderTex,
-        shaderTex,
-        shaderTex,
-        shaderTex,
-        shaderTex,
-        shaderTex
-    };
+    std::vector<bool> patchesOptions;
+    for (unsigned int i = 0; i < planetJSON.size(); i++)
+        patchesOptions.push_back(stob(getJSONValue(planetJSON[i], "patchedRendering")));
 
-    std::vector<bool> patchesOptions = {
-        false,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true
-    };
+    std::vector<bool> collidable;
+    for (unsigned int i = 0; i < planetJSON.size(); i++)
+        collidable.push_back(stob(getJSONValue(planetJSON[i], "isCollidable")));
 
-    std::vector<unsigned int> planetDiffuseTextures = {
-        0,
-        loadedTextures[0],
-        loadedTextures[1],
-        loadedTextures[2],
-        loadedTextures[3],
-        loadedTextures[4],
-        loadedTextures[5],
-        loadedTextures[6],
-        loadedTextures[7],
-        loadedTextures[8],
-        loadedTextures[9],
-    };
-
-    std::vector<unsigned int> planetMetallicTextures = {
-        0,
-        0,
-        0,
-        loadedTextures[10],
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0
-    };
-
-    std::vector<unsigned int> planetRoughnessTextures = {
-        0,
-        0,
-        0,
-        loadedTextures[11],
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0
-    };
-
-    std::vector<unsigned int> planetHeightTextures = {
-        0,
-        loadedTextures[12],
-        loadedTextures[13],
-        loadedTextures[14],
-        loadedTextures[15],
-        loadedTextures[16],
-        0,
-        loadedTextures[17],
-        0,
-        0,
-        0
-    };
-
-    std::vector<unsigned int> planetNormalTextures = {
-        0,
-        loadedTextures[18],
-        loadedTextures[19],
-        loadedTextures[20],
-        loadedTextures[21],
-        loadedTextures[22],
-        loadedTextures[23],
-        loadedTextures[24],
-        loadedTextures[25],
-        loadedTextures[26],
-        loadedTextures[27],
-    };
-
-    std::vector<bool> collidable = {
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        false,
-        true,
-        true,
-        true,
-        true
-    };
+    std::vector<double> cloudHeights;
+    for (unsigned int i = 0; i < cloudsJSON.size(); i++)
+        cloudHeights.push_back(cloudsJSON[i].height);
 
     // initialize buttons
     // ------------------
@@ -1129,12 +905,6 @@ int main(int argc, char* argv[]) {
     bool lastViewSwitch = false;
 
     double lastYaw, lastPitch = 0.0;
-
-    
-
-    /*for (float y = 0.0f; y < 1.0f; y += 0.01f)
-        for (float x = 0.0f; x < 1.0f; x += 0.01f)
-            std::cout << "Gotten height (x: " << std::format("{:.2f}", x) << "; y: " << std::format("{:.2f}", y) << "): " << getRgbPixel(textureLoad[14].image, glm::vec2(x, y), glm::vec2(textureLoad[14].width, textureLoad[14].height)).x / 255.0f * 0.001387f * bodies[3].equatorialRadius / 1000.0f << " km" << std::endl;*/
 
     // render loop
     // -----------
@@ -1450,11 +1220,11 @@ int main(int argc, char* argv[]) {
 
                 planetShaders[i].use();
 
-                if (planetDiffuseTextures[i] != 0)   bindDiffuseTexture(planetDiffuseTextures[i]);
-                if (planetMetallicTextures[i] != 0)  bindMetallicTexture(planetMetallicTextures[i]);
-                if (planetRoughnessTextures[i] != 0) bindRoughnessTexture(planetRoughnessTextures[i]);
-                if (planetHeightTextures[i] != 0)    bindHeightTexture(planetHeightTextures[i]);
-                if (planetNormalTextures[i] != 0)    bindNormalTexture(planetNormalTextures[i]);
+                if (loadedTextures[i][0] != 0) bindDiffuseTexture(  loadedTextures[i][0]);
+                if (loadedTextures[i][1] != 0) bindMetallicTexture( loadedTextures[i][1]);
+                if (loadedTextures[i][2] != 0) bindRoughnessTexture(loadedTextures[i][2]);
+                if (loadedTextures[i][3] != 0) bindHeightTexture(   loadedTextures[i][3]);
+                if (loadedTextures[i][4] != 0) bindNormalTexture(   loadedTextures[i][4]);
 
                 planetShaders[i].setBool("flipHor", planetTextureSettings[i].flipHorizontally);
                 planetShaders[i].setBool("skipRM",  planetTextureSettings[i].skipRM);
@@ -1469,7 +1239,7 @@ int main(int argc, char* argv[]) {
                         //std::cout << hitSegment.x << ", " << hitSegment.y << "; " << numOfSegments[i] << std::endl;
 
                     glm::dvec3 collisionPosition;
-                    collisionPosition = renderSphereCollision(patchesOptions[i], numOfSegments[i], numOfSegments[i], hitSegment, planetScales[i], glm::normalize(bodies[i].position - bodies[numOfPlanets].position), bodies[numOfPlanets].position - bodies[i].position, textureLoad[14]);
+                    collisionPosition = renderSphereCollision(patchesOptions[i], numOfSegments[i], numOfSegments[i], hitSegment, planetScales[i], glm::normalize(bodies[i].position - bodies[numOfPlanets].position), bodies[numOfPlanets].position - bodies[i].position, textureLoad[3][3]);
 
                     if (glm::length(bodies[numOfPlanets].position - bodies[3].position) > glm::length(collisionPoint))
                     {
@@ -1479,7 +1249,9 @@ int main(int argc, char* argv[]) {
 
                     collisionPoint = collisionPosition;
                     collisionBody  = i;
-                } else {
+                }
+                else
+                {
                     renderSphere(patchesOptions[i], numOfSegments[i], numOfSegments[i]);
                 }
             }
@@ -1515,16 +1287,17 @@ int main(int argc, char* argv[]) {
 
             // render Earth clouds
             // -------------------
+            model = glm::dmat4(1.0);
             shaderTex.use();
 
-            bindDiffuseTexture(loadedTextures[28]);
+            bindDiffuseTexture(loadedCloudTextures[3]);
             bindMetallicTexture(0);
             bindRoughnessTexture(0);
             bindHeightTexture(0);
-            bindNormalTexture(planetNormalTextures[3]);
+            bindNormalTexture(loadedTextures[3][4]);
 
             double rotationAroundAxis = glm::radians(1.5 * bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
-            setupPlanetModel(model, bodies[3].position, glm::dvec3(bodies[3].averageRadius + 15000.0f), camera.Position, bodies[3].axialTilt, rotationAroundAxis);
+            setupPlanetModel(model, bodies[3].position, glm::dvec3(bodies[3].averageRadius + cloudHeights[3]), camera.Position, bodies[3].axialTilt, rotationAroundAxis);
 
             glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationAroundAxis), 0.0f, glm::sin(rotationAroundAxis)), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationAroundAxis), 0.0f, glm::cos(rotationAroundAxis)));                                                                                                                          // rotation matrix for Y axis
             glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(bodies[3].axialTilt)), -glm::sin(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(bodies[3].axialTilt)), glm::cos(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis
@@ -1532,7 +1305,7 @@ int main(int argc, char* argv[]) {
 
             shaderTex.setMat4("model", static_cast<glm::mat4>(model));
             shaderTex.setMat3("rotationMatrix", rotationMatrix);
-            
+                
             renderSphere(true, 128, 128);
 
             // calculate fuel consumption and update fuel left
@@ -1633,6 +1406,11 @@ int main(int argc, char* argv[]) {
                         renderArrow(bodies[numOfPlanets].position, (float)velocityBackward / 100.0f, (glm::vec3)-backward, 5.0f, cylinder, cone, lightShader, camera);
                 }
             }
+
+            /*glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+            glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);*/
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         hdrShader.use();
@@ -1965,35 +1743,38 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
-unsigned int genTexture(unsigned char *data, int width, int height, int nrComponents, bool gamma_correction, bool sixteenFloat)
+unsigned int genTexture(Texture texture, bool gamma_correction, bool sixteenFloat)
 {
+    if (texture == Texture(0, 0, 0, 0))
+        return 0;
+
     unsigned int textureID;
     glGenTextures(1, &textureID);
-    if (data)
+    if (texture.data)
     {
         GLenum format;
         if (gamma_correction) {
-            if (nrComponents == 3)
+            if (texture.nrComponents == 3)
                 format = GL_SRGB;
-            else if (nrComponents == 4)
+            else if (texture.nrComponents == 4)
                 format = GL_SRGB_ALPHA;
         } else {
-            if (nrComponents == 1)
+            if (texture.nrComponents == 1)
                 format = GL_RED;
-            else if (nrComponents == 3)
+            else if (texture.nrComponents == 3)
                 format = GL_RGB;
-            else if (nrComponents == 4)
+            else if (texture.nrComponents == 4)
                 format = GL_RGBA;
         }
 
         glBindTexture(GL_TEXTURE_2D, textureID);
         if (gamma_correction) {
             if (format == GL_SRGB_ALPHA)
-                glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+                glTexImage2D(GL_TEXTURE_2D, 0, format, texture.width, texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data);
             else
-                glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, sixteenFloat ? GL_RGB16F : GL_RGB, sixteenFloat ? GL_FLOAT : GL_UNSIGNED_BYTE, data);
+                glTexImage2D(GL_TEXTURE_2D, 0, format, texture.width, texture.height, 0, sixteenFloat ? GL_RGB16F : GL_RGB, sixteenFloat ? GL_FLOAT : GL_UNSIGNED_BYTE, texture.data);
         } else {
-            glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+            glTexImage2D(GL_TEXTURE_2D, 0, format, texture.width, texture.height, 0, format, GL_UNSIGNED_BYTE, texture.data);
         }
         glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -2002,11 +1783,11 @@ unsigned int genTexture(unsigned char *data, int width, int height, int nrCompon
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        stbi_image_free(data);
+        //stbi_image_free(texture.data);
     }
     else
     {
-        stbi_image_free(data);
+        //stbi_image_free(texture.data);
     }
 
     return textureID;
@@ -2249,7 +2030,7 @@ void renderSphere(bool patches, unsigned int X_SEGMENTS, unsigned int Y_SEGMENTS
         glDrawElements(GL_PATCHES, sphere.indexCount, GL_UNSIGNED_INT, 0);
 }
 
-glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS, unsigned int Y_SEGMENTS, glm::uvec2 hitSegment, glm::dvec3 scale, glm::dvec3 rayDirection, glm::dvec3 rayOrigin, TextureState heightTexture)
+glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS, unsigned int Y_SEGMENTS, glm::uvec2 hitSegment, glm::dvec3 scale, glm::dvec3 rayDirection, glm::dvec3 rayOrigin, Texture heightTexture)
 {
     PlanetKey key = {X_SEGMENTS, Y_SEGMENTS};
     bool collisionState = false;
@@ -2366,7 +2147,7 @@ glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS, unsigned
     glm::dvec3 triangle1Hit = rayTriangle(rayOrigin, rayDirection, ve0);
     glm::dvec3 triangle2Hit = rayTriangle(rayOrigin, rayDirection, ve1);
 
-    double height = getRgbPixel(heightTexture.image, glm::vec2(fmod(2.5f - sphere.texCoords[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y].x, 1.0f), 1.0f - sphere.texCoords[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y].y), glm::vec2(heightTexture.width, heightTexture.height)).x / 255.0f * 0.001387f * scale.z;
+    double height = getRgbPixel(heightTexture.data, glm::vec2(fmod(2.5f - sphere.texCoords[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y].x, 1.0f), 1.0f - sphere.texCoords[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y].y), glm::vec2(heightTexture.width, heightTexture.height)).x / 255.0f * 0.001387f * scale.z;
 
     //triangle1Hit += glm::normalize(triangle1Hit) * height;
     //triangle2Hit += glm::normalize(triangle2Hit) * height;
