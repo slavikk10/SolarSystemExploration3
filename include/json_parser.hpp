@@ -184,6 +184,7 @@ CelestialBody parseCelestialJSONData(const char* path)
 
     result.viewSwitchHeight = std::stod(getJSONValue(json, "viewSwitchHeight"));
 
+    calculateCelestialBodyMass(result);
     return result;
 }
 

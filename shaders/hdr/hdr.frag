@@ -1,3 +1,6 @@
+// Credits to Sebastian Lague (github.com/SebLague) for a great atmosphere tutorial!
+// 
+
 #version 410 core
 out vec4 FragColor;
 
@@ -7,25 +10,20 @@ in GEOMETRY_OUT {
     vec3 WorldPos;
 } frag_in;
 
-const float densityFalloff = 12.43;
-const float scatteringStrength = 250000.0;
+const uint numOfPlanets = 2;
+
+uniform float densityFalloff;
+uniform float scatteringStrength;
 
 uniform vec3 camPos;
 uniform vec3 lightPos;
 
-uniform vec3 planetWorldPos;
-uniform float planetRadius;
+uniform vec3 planetWorldPos[numOfPlanets];
+uniform float planetRadius[numOfPlanets];
 
-uniform float atmosphereHeight;
+uniform float atmosphereHeight[numOfPlanets];
 
-uniform vec3 wavelengths;
-
-float atmosphereRadius = planetRadius + atmosphereHeight;
-
-float scatterR = pow(1 / wavelengths.x, 4) * scatteringStrength;
-float scatterG = pow(1 / wavelengths.y, 4) * scatteringStrength;
-float scatterB = pow(1 / wavelengths.z, 4) * scatteringStrength;
-vec3 scatteringCoefficients = vec3(scatterR, scatterG, scatterB);
+uniform vec3 wavelengths[numOfPlanets];
 
 const int NUM_SAMPLES = 10;
 
@@ -53,74 +51,64 @@ vec2 raySphere(vec3 planetWorldPos, float atmosphereRadius, vec3 rayOrigin, vec3
     return vec2(100000000000000000.0, 0.0);
 }
 
-float density(vec3 samplePoint) {
-    float height = length(samplePoint - planetWorldPos) - planetRadius;
-    return exp(-(height / (atmosphereRadius - planetRadius)) * densityFalloff) * (1 - (height / (atmosphereRadius - planetRadius)));
+float density(vec3 samplePoint, uint i, float atmosphereRadius) {
+    float height = length(samplePoint - planetWorldPos[i]) - planetRadius[i];
+    return exp(-(height / (atmosphereRadius - planetRadius[i])) * densityFalloff) * (1 - (height / (atmosphereRadius - planetRadius[i])));
 }
 
-float opticalDepth(vec3 rayOrigin, vec3 rayDir, float rayLength) {
+float opticalDepth(vec3 rayOrigin, vec3 rayDir, float rayLength, uint id, float atmosphereRadius) {
     vec3 densitySamplePoint = rayOrigin;
     float stepSize = rayLength / (NUM_SAMPLES - 1);
     float opticalDepth = 0;
 
-    for (int i = 0; i < NUM_SAMPLES; i++) {
-        float density = density(densitySamplePoint);
+    for (uint i = 0; i < NUM_SAMPLES; i++) {
+        float density = density(densitySamplePoint, id, atmosphereRadius);
         opticalDepth += density * stepSize;
         densitySamplePoint += rayDir * stepSize;
     }
     return opticalDepth;
 }
 
-float opticalDepthBaked(vec3 rayOrigin, vec3 rayDir) {
-    float height   = length(rayOrigin - planetWorldPos) - planetRadius;
-    float height01 = clamp(height / (atmosphereRadius - planetRadius), 0.0, 1.0);
+float opticalDepthBaked(vec3 rayOrigin, vec3 rayDir, uint i, float atmosphereRadius) {
+    float height   = length(rayOrigin - planetWorldPos[i]) - planetRadius[i];
+    float height01 = clamp(height / (atmosphereRadius - planetRadius[i]), 0.0, 1.0);
 
-    float texCoordY = dot(normalize(rayOrigin - planetWorldPos), -rayDir) * 0.5 + 0.5;
+    float texCoordY = dot(normalize(rayOrigin - planetWorldPos[i]), -rayDir) * 0.5 + 0.5;
     return clamp(texture(opticalDepthTex, vec2(height01, texCoordY)).r, 0.0, 100000000000.0);
 }
 
-float opticalDepthBaked2(vec3 rayOrigin, vec3 rayDir, float rayLength) {
+float opticalDepthBaked2(vec3 rayOrigin, vec3 rayDir, float rayLength, uint i, float atmosphereRadius) {
 	vec3 endPoint = rayOrigin + rayDir * rayLength;
-	float d = dot(rayDir, normalize(rayOrigin - planetWorldPos));
+	float d = dot(rayDir, normalize(rayOrigin - planetWorldPos[i]));
 	float opticalDepth = 0.0;
 
 	const float blendStrength = 1.5;
 	float w = clamp(d * blendStrength + 0.5, 0.0, 1.0);
 				
-	float d1 = opticalDepthBaked(rayOrigin, rayDir) - opticalDepthBaked(endPoint, rayDir);
-	float d2 = opticalDepthBaked(endPoint, -rayDir) - opticalDepthBaked(rayOrigin, -rayDir);
+	float d1 = opticalDepthBaked(rayOrigin, rayDir, i, atmosphereRadius) - opticalDepthBaked(endPoint,   rayDir, i, atmosphereRadius);
+	float d2 = opticalDepthBaked(endPoint, -rayDir, i, atmosphereRadius) - opticalDepthBaked(rayOrigin, -rayDir, i, atmosphereRadius);
 
 	opticalDepth = mix(d2, d1, w);
 	return opticalDepth;
 }
 
-vec3 calculateLight(vec3 rayOrigin, vec3 rayDir, float rayLength, vec3 originalCol) {
+vec3 calculateLight(vec3 rayOrigin, vec3 rayDir, float rayLength, vec3 originalCol, vec3 scatteringCoefficients, uint id, float atmosphereRadius) {
     vec3 inScatterPoint = rayOrigin;
     float stepSize = rayLength / (NUM_SAMPLES - 1);
     vec3 inScatteredLight = vec3(0.0);
     float viewRayOpticalDepth = 0.0;
 
-    for (int i = 0; i < NUM_SAMPLES; i++) {
+    for (uint i = 0; i < NUM_SAMPLES; i++) {
         vec3 dirToLight = normalize(lightPos - inScatterPoint);
-        float sunRayLength = raySphere(planetWorldPos, atmosphereRadius, inScatterPoint, dirToLight).y;
-        float sunRayOpticalDepth = opticalDepthBaked(inScatterPoint + dirToLight * 0.8, dirToLight);
-        viewRayOpticalDepth = opticalDepthBaked2(rayOrigin, rayDir, stepSize * i);
+        float sunRayLength = raySphere(planetWorldPos[id], atmosphereRadius, inScatterPoint, dirToLight).y;
+        float sunRayOpticalDepth = opticalDepthBaked(inScatterPoint + dirToLight * 0.8, dirToLight, id, atmosphereRadius);
+        viewRayOpticalDepth = opticalDepthBaked2(rayOrigin, rayDir, stepSize * i, id, atmosphereRadius);
         vec3 transmittance = exp(-(sunRayOpticalDepth + viewRayOpticalDepth) * scatteringCoefficients);
-        float density = density(inScatterPoint);
+        float density = density(inScatterPoint, id, atmosphereRadius);
 
         inScatteredLight += density * transmittance * scatteringCoefficients * stepSize;
         inScatterPoint += rayDir * stepSize;
     }
-    /*inScatteredLight *= scatteringCoefficients * 1 * stepSize / planetRadius;
-
-    const float brightnessAdaptionStrength = 0.15;
-    const float reflectedLightOutScatterStrength = 3;
-    float brightnessAdaption = dot(inScatteredLight, vec3(1.0)) * brightnessAdaptionStrength;
-    float brightnessSum = viewRayOpticalDepth * 1 * reflectedLightOutScatterStrength + brightnessAdaption;
-    float reflectedLightStrength = exp(-brightnessSum);
-    float hdrStrength = clamp(dot(originalCol, vec3(1.0)) / 3 - 1, 0.0, 1.0);
-    reflectedLightStrength = mix(reflectedLightStrength, 1, hdrStrength);
-    vec3 reflectedLight = originalCol * reflectedLightStrength;*/
 
     vec3 finalColor = originalCol * exp(-viewRayOpticalDepth * scatteringCoefficients) + inScatteredLight;
     return finalColor;
@@ -132,18 +120,30 @@ void main() {
     
     vec3 viewDir = normalize(frag_in.viewVector);
 
-    float surfaceHitInfo = raySphere(planetWorldPos, planetRadius, vec3(0.0), viewDir).x;
-    float dstToSurface = min(linearDepth, surfaceHitInfo);
+    vec4 color = vec4(0.0);
+    for (uint i = 0; i < numOfPlanets; i++) {
+        float atmosphereRadius = planetRadius[i] + atmosphereHeight[i];
 
-    vec2 hitInfo = raySphere(planetWorldPos, atmosphereRadius, vec3(0.0), viewDir);
-    float dstToAtmosphere = hitInfo.x;
-    float dstThroughAtmosphere = min(hitInfo.y, dstToSurface - dstToAtmosphere);
+        float scatterR = pow(1 / wavelengths[i].x, 4) * scatteringStrength;
+        float scatterG = pow(1 / wavelengths[i].y, 4) * scatteringStrength;
+        float scatterB = pow(1 / wavelengths[i].z, 4) * scatteringStrength;
+        vec3 scatteringCoefficients = vec3(scatterR, scatterG, scatterB);
 
-    if (dstThroughAtmosphere > 0) {
-        vec3 pointInAtmosphere = vec3(0.0) + viewDir * dstToAtmosphere;
-        vec3 light = calculateLight(pointInAtmosphere, viewDir, dstThroughAtmosphere, originalCol.rgb);
-        FragColor = vec4(light, 1.0);
-    } else {
-        FragColor = originalCol;
+        float surfaceHitInfo = raySphere(planetWorldPos[i], planetRadius[i], vec3(0.0), viewDir).x;
+        float dstToSurface = min(linearDepth, surfaceHitInfo);
+
+        vec2 hitInfo = raySphere(planetWorldPos[i], atmosphereRadius, vec3(0.0), viewDir);
+        float dstToAtmosphere = hitInfo.x;
+        float dstThroughAtmosphere = min(hitInfo.y, dstToSurface - dstToAtmosphere);
+
+        if (dstThroughAtmosphere > 0) {
+            vec3 pointInAtmosphere = vec3(0.0) + viewDir * dstToAtmosphere;
+            vec3 light = calculateLight(pointInAtmosphere, viewDir, dstThroughAtmosphere, originalCol.rgb / numOfPlanets, scatteringCoefficients, i, atmosphereRadius);
+            color += vec4(light, 1.0);
+        } else {
+            color += originalCol / numOfPlanets;
+        }
     }
+
+    FragColor = color;
 }

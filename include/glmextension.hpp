@@ -2,6 +2,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <ostream>
+#include <concepts>
+
 namespace glm
 {
     bool approximately_equal_to(const glm::highp_mat4& m1, const glm::highp_mat4& m2)
@@ -16,5 +19,14 @@ namespace glm
             return true;
         else
             return false;
+    }
+
+    template <typename T>
+    concept V = std::same_as<T, glm::vec3> || std::same_as<T, glm::dvec3> || std::same_as<T, glm::ivec3> || std::same_as<T, glm::uvec3>;
+
+    std::ostream& operator<<(std::ostream& arg1, V auto arg2)
+    {
+        arg1 << arg2.x << ", " << arg2.y << ", " << arg2.z;
+        return arg1;
     }
 }

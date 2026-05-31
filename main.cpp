@@ -97,6 +97,7 @@ constexpr float sscale = 1.0f; // scale of the Solar System (1:1)
 const std::vector<std::string> faces           = {"right", "left", "top", "bottom", "front", "back"}; // cubemap faces
 const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000}; // timewarp values
 const std::vector<std::string> monthNames      = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+constexpr unsigned int numOfPlanets = 11;
 
 // date
 struct Date {
@@ -785,7 +786,7 @@ int main(int argc, char* argv[]) {
     bodies.push_back(CelestialBody(glm::dvec3(0.0), glm::dvec3(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)); // placeholder for player celestial data
 
     Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y, spawnPos.z + bodies[3].equatorialRadius / 1000.0 + 5000.0f), spawnVel, 0.00000000266972, glm::vec3(5.0f));
-    bodies[11] = rocket;
+    bodies[numOfPlanets] = rocket;
 
     std::vector<std::string> bodyNames;
     for (unsigned int i = 0; i < planetJSON.size(); i++)
@@ -814,8 +815,6 @@ int main(int argc, char* argv[]) {
 
     Button rtgESCButton(rtgCallback,                             glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + 50.0f), 0.3f, imageShader, rtg_button);
     Button rtmmESCButton(rtmmCallback,                           glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f), 0.3f, imageShader, rtmm_button);
-
-    const unsigned int numOfPlanets = 11;
 
     ThreadPool planetRenderThreads(numOfPlanets);
     std::atomic<int> threadsLeft = 0;
@@ -944,7 +943,7 @@ int main(int argc, char* argv[]) {
                 {
                     body.updateObject(bodies, deltaTime * timeMultiplier / 100);
                     
-                    if (j == 6)
+                    if (j == numOfPlanets)
                     {
                         rocket.position          = bodies[numOfPlanets].position;
                         rocket.velocity          = bodies[numOfPlanets].velocity;
@@ -1025,7 +1024,7 @@ int main(int argc, char* argv[]) {
         else
             camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) - orbitalCameraPosition;
 
-        TrajectorySimulator rocketTrajectory;
+        /*TrajectorySimulator rocketTrajectory;
         if (glm::length(bodies[numOfPlanets].position - bodies[4].position) > 66100000.0)
             rocketTrajectory = TrajectorySimulator(bodies[numOfPlanets], bodies[3], 3);
         else
@@ -1040,16 +1039,16 @@ int main(int argc, char* argv[]) {
                 std::lock_guard<std::mutex> lock_rom(orbitalElementsMutex);
                 rocketTrajectory.simulateTrajectory();
 
-                /*if (rocketTrajectory.moonSoi)
+                if (rocketTrajectory.moonSoi)
                 {
                     rocketTrajectoryMoon.moonSoi = true;
                     rocketTrajectoryMoon.simulateTrajectory(moonOrbital, true);
-                }*/
+                }
             }
 
             moonTrajectory.simulateTrajectory();
             //earthTrajectory.simulateTrajectory();
-        }
+        }*/
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1355,13 +1354,13 @@ int main(int argc, char* argv[]) {
             lineShader.use();
             lineShader.setMat4("projection", orthoProjection);
 
-            if (orbitView && !menuState.inMenu)
+            /*if (orbitView && !menuState.inMenu)
             {
                 rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 moonTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
 
                 //earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-            }
+            }*/
 
             glm::dvec3 relativeVelocity = bodies[numOfPlanets].velocity - bodies[3].velocity;
         
@@ -1406,19 +1405,23 @@ int main(int argc, char* argv[]) {
                         renderArrow(bodies[numOfPlanets].position, (float)velocityBackward / 100.0f, (glm::vec3)-backward, 5.0f, cylinder, cone, lightShader, camera);
                 }
             }
-
-            /*glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-            glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);*/
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         hdrShader.use();
 
-        hdrShader.setVec3("planetWorldPos", bodies[3].position - camera.Position);
-        hdrShader.setFloat("planetRadius", bodies[3].polarRadius/sscale);
-        hdrShader.setVec3("wavelengths", glm::vec3(650.0f, 570.0f, 475.0f));
-        hdrShader.setFloat("atmosphereHeight", 1000000.0f);
+        hdrShader.setVec3("planetWorldPos[0]", bodies[3].position - camera.Position);
+        hdrShader.setVec3("wavelengths[0]", glm::vec3(650.0f, 570.0f, 475.0f));
+
+        hdrShader.setVec3("planetWorldPos[1]", bodies[5].position - camera.Position);
+        hdrShader.setVec3("wavelengths[1]", glm::vec3(600.0f, 780.0f, 800.0f));
+
+        hdrShader.setFloat("planetRadius[0]", bodies[3].polarRadius/sscale);
+        hdrShader.setFloat("atmosphereHeight[0]", 1000000.0f);
+        hdrShader.setFloat("densityFalloff", 12.43f);
+        hdrShader.setFloat("scatteringStrength", 250000.0f);
+
+        hdrShader.setFloat("planetRadius[1]", bodies[5].polarRadius/sscale);
+        hdrShader.setFloat("atmosphereHeight[1]", 440000.0f);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, colorBuffer);
@@ -1426,6 +1429,7 @@ int main(int argc, char* argv[]) {
         glBindTexture(GL_TEXTURE_2D, depthBuffer);
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, optDepthColor);
+
         renderQuad();
 
         // enable blending
@@ -1474,7 +1478,7 @@ int main(int argc, char* argv[]) {
         // ------------------------------------------------------
         if (!menuState.inMenu && orbitView)
         {
-            if (glm::length(rocketTrajectory.apoapsis) > 0.0)
+            /*if (glm::length(rocketTrajectory.apoapsis) > 0.0)
             {
                 glm::vec2 a = glm::vec2(convert3Dto2D(rocketTrajectory.apoapsis - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(rocketTrajectory.apoapsis - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
                 std::string apoapsiss  = std::to_string(std::round((rocketTrajectory.apoapsisd  - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.apoapsisd   / 100.0)  / 10.0).find(".") + 2);
@@ -1491,7 +1495,7 @@ int main(int argc, char* argv[]) {
 
             glm::vec2 bp = glm::vec2(convert3Dto2D((bodies[numOfPlanets].position + transfer.burnDirection * 5.0) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
             RenderCenteredImage(imageShader, apoap_periapsi, bp.x, bp.y, 0.05f); // burn direсtion point
-
+            */
             if (glm::length(bodies[numOfPlanets].position - (transferWindow + bodies[3].position)) > 200000.0)
             {
                 glm::vec2 tw = glm::vec2(convert3Dto2D((transferWindow + bodies[3].position) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
@@ -1783,11 +1787,11 @@ unsigned int genTexture(Texture texture, bool gamma_correction, bool sixteenFloa
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        //stbi_image_free(texture.data);
+        stbi_image_free(texture.data);
     }
     else
     {
-        //stbi_image_free(texture.data);
+        stbi_image_free(texture.data);
     }
 
     return textureID;

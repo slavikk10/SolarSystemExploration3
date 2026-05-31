@@ -2,7 +2,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <iostream>
+#include <ostream>
 
 #include <constants.hpp>
 
@@ -34,11 +34,9 @@ public:
     glm::dvec3 acceleration = glm::dvec3(0.0);
     glm::dvec3 totalAcceleration = glm::dvec3(0.0);
 
-    CelestialBody()
-        : position(0.0), velocity(0.0), averageRadius(0), equatorialRadius(0), polarRadius(0), gravityAcceleration(0), axialTilt(0.0), rotationSpeed(0.0), viewSwitchHeight(0.0) {}
-        //, albedoTexPath(""), roughnessTexPath(""), metallicTexPath(""), heightTexPath(""), normalTexPath("")
+    CelestialBody() : position(0.0), velocity(0.0), averageRadius(0), equatorialRadius(0), polarRadius(0), gravityAcceleration(0), axialTilt(0.0), rotationSpeed(0.0), viewSwitchHeight(0.0) {}
 
-    CelestialBody(glm::dvec3 position, glm::dvec3 velocity, double averageRadius, double equatorialRadius, double polarRadius, double gravityAcceleration, double axialTilt, double rotationSpeed, double viewSwitchHeight)
+    CelestialBody(glm::dvec3 position, glm::dvec3 velocity, double averageRadius, double equatorialRadius, double polarRadius, double gravityAcceleration, double axialTilt, double rotationSpeed, double viewSwitchHeight) 
         : position(position*1000.0), velocity(velocity*1000.0), averageRadius(averageRadius), equatorialRadius(equatorialRadius), polarRadius(polarRadius), gravityAcceleration(gravityAcceleration), axialTilt(axialTilt), rotationSpeed(rotationSpeed), viewSwitchHeight(viewSwitchHeight)
     {
         this->mass = calculateMass();
@@ -80,6 +78,20 @@ public:
 
 private:
     double calculateMass() {
-        return this->gravityAcceleration * this->averageRadius * this->averageRadius / G;
+        return this->gravityAcceleration * pow(this->averageRadius, 2) / G;
     }
 };
+
+std::ostream& operator<<(std::ostream& arg1, const CelestialBody& arg2)
+{
+    arg1 << "Gravity: " << arg2.gravityAcceleration << std::endl;
+    arg1 << "Average radius: " << arg2.averageRadius << std::endl;
+    arg1 << "Mass: " << arg2.mass;
+
+    return arg1;
+}
+
+void calculateCelestialBodyMass(CelestialBody& cb)
+{
+    cb.mass = cb.gravityAcceleration * pow(cb.averageRadius, 2) / G;
+}
