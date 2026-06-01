@@ -60,6 +60,47 @@ void RenderCenteredImage(Shader &s, Image image, float x, float y, float scale)
     glDeleteVertexArrays(1, &imageVAO);
 }
 
+void RenderCenteredImage(Shader &s, Image image, glm::vec2 pos, float scale)
+{
+    unsigned int imageVBO, imageVAO;
+    glGenBuffers(1, &imageVBO);
+    glGenVertexArrays(1, &imageVAO);
+    glBindVertexArray(imageVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, imageVBO);
+    glBufferData(GL_ARRAY_BUFFER, 6 * 4 * sizeof(float), NULL, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    s.use();
+    glBindVertexArray(imageVAO);
+
+    float width  = image.Size.x * scale;
+    float height = image.Size.y * scale;
+
+    float vertices[6][4] = {
+        {pos.x - width / 2, pos.y + height / 2, 0.0f, 0.0f},
+        {pos.x - width / 2, pos.y - height / 2, 0.0f, 1.0f},
+        {pos.x + width / 2, pos.y - height / 2, 1.0f, 1.0f},
+
+        {pos.x - width / 2, pos.y + height / 2, 0.0f, 0.0f},
+        {pos.x + width / 2, pos.y - height / 2, 1.0f, 1.0f},
+        {pos.x + width / 2, pos.y + height / 2, 1.0f, 0.0f}
+    };
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, image.ImageID);
+    glBindBuffer(GL_ARRAY_BUFFER, imageVBO);
+    glBufferData(GL_ARRAY_BUFFER, 6 * 4 * sizeof(float), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glDeleteBuffers(1, &imageVBO);
+    glDeleteVertexArrays(1, &imageVAO);
+}
+
 struct Button 
 {
     std::function<void()> action;
@@ -69,8 +110,7 @@ struct Button
     Shader s;
     Image image;
 
-    inline Button(std::function<void()> func, glm::vec2 pos, float sc, Shader shader, Image img)
-        : action(func), position(pos), scale(sc), s(shader), image(img) {}
+    inline Button(std::function<void()> func, glm::vec2 pos, float sc, Shader shader, Image img) : action(func), position(pos), scale(sc), s(shader), image(img) {}
 
     void Render(glm::vec2 mouse, bool lmbPressed, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
     {
@@ -96,8 +136,7 @@ struct HoverButton
     Image image;
     Image hoverImage;
 
-    inline HoverButton(std::function<void()> func, glm::vec2 pos, float sc, Shader shader, Image img, Image himg)
-        : action(func), position(pos), scale(sc), s(shader), image(img), hoverImage(himg) {}
+    inline HoverButton(std::function<void()> func, glm::vec2 pos, float sc, Shader shader, Image img, Image himg) : action(func), position(pos), scale(sc), s(shader), image(img), hoverImage(himg) {}
 
     void Render(glm::vec2 mouse, bool lmbPressed, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
     {

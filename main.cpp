@@ -1024,7 +1024,7 @@ int main(int argc, char* argv[]) {
         else
             camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) - orbitalCameraPosition;
 
-        /*TrajectorySimulator rocketTrajectory;
+        TrajectorySimulator rocketTrajectory;
         if (glm::length(bodies[numOfPlanets].position - bodies[4].position) > 66100000.0)
             rocketTrajectory = TrajectorySimulator(bodies[numOfPlanets], bodies[3], 3);
         else
@@ -1039,16 +1039,16 @@ int main(int argc, char* argv[]) {
                 std::lock_guard<std::mutex> lock_rom(orbitalElementsMutex);
                 rocketTrajectory.simulateTrajectory();
 
-                if (rocketTrajectory.moonSoi)
+                /*if (rocketTrajectory.moonSoi)
                 {
                     rocketTrajectoryMoon.moonSoi = true;
                     rocketTrajectoryMoon.simulateTrajectory(moonOrbital, true);
-                }
+                }*/
             }
 
             moonTrajectory.simulateTrajectory();
             //earthTrajectory.simulateTrajectory();
-        }*/
+        }
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1234,17 +1234,9 @@ int main(int argc, char* argv[]) {
                 if (collidable[i] && collisionTestState[i])
                 {
                     glm::uvec2 hitSegment = checkForCollision(bodies[numOfPlanets].position, bodies[3].position, bodies[3].equatorialRadius + 10000.0, numOfSegments[i]);
-                    //if (i == 3)
-                        //std::cout << hitSegment.x << ", " << hitSegment.y << "; " << numOfSegments[i] << std::endl;
-
+                    
                     glm::dvec3 collisionPosition;
                     collisionPosition = renderSphereCollision(patchesOptions[i], numOfSegments[i], numOfSegments[i], hitSegment, planetScales[i], glm::normalize(bodies[i].position - bodies[numOfPlanets].position), bodies[numOfPlanets].position - bodies[i].position, textureLoad[3][3]);
-
-                    if (glm::length(bodies[numOfPlanets].position - bodies[3].position) > glm::length(collisionPoint))
-                    {
-                        collisionPoint = collisionPosition;
-                        collisionBody  = i;
-                    }
 
                     collisionPoint = collisionPosition;
                     collisionBody  = i;
@@ -1307,30 +1299,7 @@ int main(int argc, char* argv[]) {
                 
             renderSphere(true, 128, 128);
 
-            // calculate fuel consumption and update fuel left
-            // -----------------------------------------------
-            fuelConsumption = throttle/100 * 12890.0f;
-            if (enginesOn)
-            {
-                fuel -= fuelConsumption * deltaTime;
-                if (fuel <= 0.0f)
-                {
-                    fuel = 0.0f;
-                    enginesOn = false; 
-                    throttle = 0.0f;
-                }
-            }
-
             glDisable(GL_BLEND);
-
-            /*atmosphereShader.setVec3("planetWorldPos", (camera.Position - bodies[5].position) + orbitalCameraPosition);
-            atmosphereShader.setFloat("planetRadius", bodies[5].averageRadius/sscale);
-            atmosphereShader.setVec3("wavelengths", glm::vec3(600.0f, 780.0f, 800.0f));
-            atmosphereShader.setFloat("atmosphereHeight", 44000.0f);*/
-
-            glDepthMask(GL_TRUE);
-            glEnable(GL_DEPTH);
-            glDepthFunc(GL_LESS);
             
             shader.use();
 
@@ -1354,13 +1323,13 @@ int main(int argc, char* argv[]) {
             lineShader.use();
             lineShader.setMat4("projection", orthoProjection);
 
-            /*if (orbitView && !menuState.inMenu)
+            if (orbitView && !menuState.inMenu)
             {
                 rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 moonTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
 
                 //earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-            }*/
+            }
 
             glm::dvec3 relativeVelocity = bodies[numOfPlanets].velocity - bodies[3].velocity;
         
@@ -1432,19 +1401,37 @@ int main(int argc, char* argv[]) {
 
         renderQuad();
 
+        // calculate fuel consumption and update fuel left
+        // -----------------------------------------------
+        fuelConsumption = throttle/100 * 12890.0f;
+        if (enginesOn)
+        {
+            fuel -= fuelConsumption * deltaTime;
+            if (fuel <= 0.0f)
+            {
+                fuel = 0.0f;
+                enginesOn = false; 
+                throttle = 0.0f;
+            }
+        }
+
         // enable blending
         // ---------------
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+        // render pointers to bodies
+        // -------------------------
         if (!menuState.inMenu && orbitView)
         {
             for (unsigned int i = 0; i < bodyNames.size(); i++)
             {
                 if (glm::dot(glm::normalize(bodies[i].position - (glm::dvec3)camera.Position), (glm::dvec3)camera.Right) > 0.0) // check if the target is in front of the camera
                 {
-                    RenderCenteredImage(imageShader, objectNavImg, convert3Dto2D(bodies[i].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(bodies[i].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).y, 0.15f);
-                    RenderText(textShader, bodyNames[i], convert3Dto2D(bodies[i].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(bodies[i].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).y + 35, 0.4f, glm::vec3(1.0f), true);
+                    glm::vec2 bodyScreenPos = convert3Dto2D(bodies[i].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
+
+                    RenderCenteredImage(imageShader, objectNavImg, bodyScreenPos, 0.15f);
+                    RenderText(textShader, bodyNames[i], bodyScreenPos.x, bodyScreenPos.y + 35, 0.4f, glm::vec3(1.0f), true);
                 }
             }
         }
@@ -1566,7 +1553,7 @@ int main(int argc, char* argv[]) {
 
         glm::vec2 ecp = glm::vec2(convert3Dto2D((bodies[3].position + collisionPoint) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
         RenderCenteredImage(imageShader, apoap_periapsi, ecp.x, ecp.y, 0.05f);
-            
+
         // main menu
         // ---------
         if (menuState.inMenu && !menuState.options)
@@ -2151,7 +2138,7 @@ glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS, unsigned
     glm::dvec3 triangle1Hit = rayTriangle(rayOrigin, rayDirection, ve0);
     glm::dvec3 triangle2Hit = rayTriangle(rayOrigin, rayDirection, ve1);
 
-    double height = getRgbPixel(heightTexture.data, glm::vec2(fmod(2.5f - sphere.texCoords[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y].x, 1.0f), 1.0f - sphere.texCoords[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y].y), glm::vec2(heightTexture.width, heightTexture.height)).x / 255.0f * 0.001387f * scale.z;
+    //double height = getRgbPixel(heightTexture.data, glm::vec2(fmod(2.5f - sphere.texCoords[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y].x, 1.0f), 1.0f - sphere.texCoords[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y].y), glm::vec2(heightTexture.width, heightTexture.height)).x / 255.0f * 0.001387f * scale.z;
 
     //triangle1Hit += glm::normalize(triangle1Hit) * height;
     //triangle2Hit += glm::normalize(triangle2Hit) * height;

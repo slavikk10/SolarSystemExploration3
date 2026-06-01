@@ -8,7 +8,8 @@
 
 #pragma once
 
-class CelestialBody {
+class CelestialBody 
+{
 public:
     glm::dvec3 position;
     double gravityAcceleration;
@@ -40,12 +41,14 @@ public:
         : position(position*1000.0), velocity(velocity*1000.0), averageRadius(averageRadius), equatorialRadius(equatorialRadius), polarRadius(polarRadius), gravityAcceleration(gravityAcceleration), axialTilt(axialTilt), rotationSpeed(rotationSpeed), viewSwitchHeight(viewSwitchHeight)
     {
         this->mass = calculateMass();
-        this->mu   = G * this->mass;
+        this->mu   = calculateGravitationalParameter();
     }
 
-    glm::dvec3 calculateAcceleration(std::vector<CelestialBody> &bodies) {
+    glm::dvec3 calculateAcceleration(std::vector<CelestialBody> &bodies) 
+    {
         glm::dvec3 totalAccel = glm::dvec3(0.0);
-        for (CelestialBody &body : bodies) {
+        for (CelestialBody &body : bodies) 
+        {
             if (&body == this) continue;
 
             this->sqrDstVec.x = (body.position.x - this->position.x) * (body.position.x - this->position.x);
@@ -69,16 +72,29 @@ public:
         return totalAccel;
     }
 
-    void updateObject(std::vector<CelestialBody> &bodies, double deltaTime) {
+    void updateObject(std::vector<CelestialBody> &bodies, double deltaTime) 
+    {
         this->position += this->velocity * glm::dvec3(deltaTime) + this->totalAcceleration * glm::dvec3(deltaTime * deltaTime * 0.5);
         glm::dvec3 newAcceleration = calculateAcceleration(bodies);
         this->velocity += (this->totalAcceleration + newAcceleration) * (deltaTime * 0.5);
         this->totalAcceleration = newAcceleration;
     }
 
+    void fillData()
+    {
+        this->mass = calculateMass();
+        this->mu   = calculateGravitationalParameter();
+    }
+
 private:
-    double calculateMass() {
+    double calculateMass() 
+    {
         return this->gravityAcceleration * pow(this->averageRadius, 2) / G;
+    }
+
+    double calculateGravitationalParameter()
+    {
+        return G * this->mass;
     }
 };
 
@@ -89,9 +105,4 @@ std::ostream& operator<<(std::ostream& arg1, const CelestialBody& arg2)
     arg1 << "Mass: " << arg2.mass;
 
     return arg1;
-}
-
-void calculateCelestialBodyMass(CelestialBody& cb)
-{
-    cb.mass = cb.gravityAcceleration * pow(cb.averageRadius, 2) / G;
 }

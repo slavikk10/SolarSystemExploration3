@@ -82,7 +82,7 @@ public:
         else
             T = sqrt(-pow(a, 3) / system[1].mu) * ((eccentricity * sinh(Fl) - Fl) - (eccentricity * sinh(Fc) - Fc));
 
-        double simulatedTime = 0.0;        
+        double simulatedTime = 0.0;
 
         if (E < 0.0 && periapsisd > system[1].averageRadius && apoapsisd < soiRadiuses[rbi])
         {
@@ -102,12 +102,6 @@ public:
                 apoapsis  = -eNorm * apoapsisd  + system[1].position;
 
                 double time = (i / 2000.0) * T;
-
-                /*if (isRocket && glm::length(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) - findMeanPosition(time, moonOrbital, system[1].mu)) <= 66100000.0)
-                {
-                    orbit = false;
-                    break;
-                }*/
 
                 positions.push_back(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) + system[1].position);
             }
