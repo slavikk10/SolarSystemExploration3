@@ -1465,7 +1465,7 @@ int main(int argc, char* argv[]) {
         // ------------------------------------------------------
         if (!menuState.inMenu && orbitView)
         {
-            /*if (glm::length(rocketTrajectory.apoapsis) > 0.0)
+            if (glm::length(rocketTrajectory.apoapsis) > 0.0)
             {
                 glm::vec2 a = glm::vec2(convert3Dto2D(rocketTrajectory.apoapsis - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(rocketTrajectory.apoapsis - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
                 std::string apoapsiss  = std::to_string(std::round((rocketTrajectory.apoapsisd  - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.apoapsisd   / 100.0)  / 10.0).find(".") + 2);
@@ -1482,7 +1482,7 @@ int main(int argc, char* argv[]) {
 
             glm::vec2 bp = glm::vec2(convert3Dto2D((bodies[numOfPlanets].position + transfer.burnDirection * 5.0) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
             RenderCenteredImage(imageShader, apoap_periapsi, bp.x, bp.y, 0.05f); // burn direсtion point
-            */
+            
             if (glm::length(bodies[numOfPlanets].position - (transferWindow + bodies[3].position)) > 200000.0)
             {
                 glm::vec2 tw = glm::vec2(convert3Dto2D((transferWindow + bodies[3].position) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
