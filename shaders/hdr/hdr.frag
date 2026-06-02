@@ -2,6 +2,7 @@
 // 
 
 #version 410 core
+#define MAX_ARRAY_SIZE 8
 out vec4 FragColor;
 
 in GEOMETRY_OUT {
@@ -10,7 +11,7 @@ in GEOMETRY_OUT {
     vec3 WorldPos;
 } frag_in;
 
-const uint numOfPlanets = 2;
+uniform uint numOfPlanets = 2;
 
 uniform float densityFalloff;
 uniform float scatteringStrength;
@@ -18,12 +19,12 @@ uniform float scatteringStrength;
 uniform vec3 camPos;
 uniform vec3 lightPos;
 
-uniform vec3 planetWorldPos[numOfPlanets];
-uniform float planetRadius[numOfPlanets];
+uniform vec3 planetWorldPos[MAX_ARRAY_SIZE];
+uniform float planetRadius[MAX_ARRAY_SIZE];
 
-uniform float atmosphereHeight[numOfPlanets];
+uniform float atmosphereHeight[MAX_ARRAY_SIZE];
 
-uniform vec3 wavelengths[numOfPlanets];
+uniform vec3 wavelengths[MAX_ARRAY_SIZE];
 
 const int NUM_SAMPLES = 10;
 

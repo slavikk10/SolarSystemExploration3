@@ -45,6 +45,25 @@ struct CloudsJSON {
     CloudsJSON() {texturePath = ""; textureName = ""; height = 0.0;}
 };
 
+struct AtmosphereJSON {
+    bool breathable;
+    double height;
+
+    glm::vec3 wavelengths;
+
+    AtmosphereJSON() {breathable = false; height = 0.0; wavelengths = glm::vec3(0.0f);}
+
+    bool operator==(AtmosphereJSON compared)
+    {
+        return (breathable == compared.breathable) && (height == compared.height) && (wavelengths == compared.wavelengths);
+    }
+
+    bool operator!=(AtmosphereJSON compared)
+    {
+        return !((breathable == compared.breathable) && (height == compared.height) && (wavelengths == compared.wavelengths));
+    }
+};
+
 JSON loadJSON(const char* path)
 {
     std::string json;
@@ -229,6 +248,36 @@ CloudsJSON parseCloudsJSON(const char* path)
     else
     {
         result = CloudsJSON();
+    }
+
+    return result;
+}
+
+AtmosphereJSON parseAtmosphereJSON(const char* path)
+{
+    JSON json          = loadJSON(path);
+    bool hasAtmosphere = stob(getJSONValue(json, "hasAtmosphere"));
+
+    AtmosphereJSON result;
+    if (hasAtmosphere)
+    {
+        JSON atmosphereSettings = getJSONSub(json, "atmosphereSettings");
+        JSON wavelengthsJSON    = getJSONSub(atmosphereSettings, "wavelengths");
+
+        result.breathable =      stob(getJSONValue(atmosphereSettings, "breathable"));
+        result.height     = std::stod(getJSONValue(atmosphereSettings, "height"));
+
+        if (getJSONValue(wavelengthsJSON, "r") == "")
+        {
+            std::cerr << "Error: JSON parser: atmosphere parser: missing wavelengths dependency (error code: ERROR_JP_AP_MWD)\n";
+            return AtmosphereJSON();
+        }
+        
+        result.wavelengths = glm::vec3(std::stof(getJSONValue(wavelengthsJSON, "r")), std::stof(getJSONValue(wavelengthsJSON, "g")) , std::stof(getJSONValue(wavelengthsJSON, "b")));
+    }
+    else
+    {
+        result = AtmosphereJSON();
     }
 
     return result;

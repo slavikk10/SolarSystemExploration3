@@ -641,6 +641,21 @@ int main(int argc, char* argv[]) {
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
         planetShaders.push_back(shaderNames.at(getJSONValue(planetJSON[i], "shader")));
 
+    unsigned int numOfAtmospheres = 0;
+    std::vector<unsigned int> planetsWithAtmospheres;
+
+    std::vector<AtmosphereJSON> atmospheresSettings;
+    for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
+    {
+        atmospheresSettings.push_back(parseAtmosphereJSON(planetJSONPaths[i].c_str()));
+
+        if (atmospheresSettings[i] != AtmosphereJSON())
+        {
+            numOfAtmospheres++;
+            planetsWithAtmospheres.push_back(i);
+        }
+    }
+
     std::vector<std::vector<Texture>> textureLoad(planetTexturePaths.size(), std::vector<Texture>(planetTexturePaths[0].size(), Texture(0, 0, 0, 0)));
     std::vector<std::thread> texturesLoadingThreads;
     std::vector<std::vector<unsigned int>> loadedTextures(planetTexturePaths.size(), std::vector<unsigned int>(planetTexturePaths[0].size(), 0));
@@ -1272,34 +1287,6 @@ int main(int argc, char* argv[]) {
 
             // set depth func to GL_LESS back
             glDepthFunc(GL_LESS);
-
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-            // render Earth clouds
-            // -------------------
-            model = glm::dmat4(1.0);
-            shaderTex.use();
-
-            bindDiffuseTexture(loadedCloudTextures[3]);
-            bindMetallicTexture(0);
-            bindRoughnessTexture(0);
-            bindHeightTexture(0);
-            bindNormalTexture(loadedTextures[3][4]);
-
-            double rotationAroundAxis = glm::radians(1.5 * bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
-            setupPlanetModel(model, bodies[3].position, glm::dvec3(bodies[3].averageRadius + cloudHeights[3]), camera.Position, bodies[3].axialTilt, rotationAroundAxis);
-
-            glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationAroundAxis), 0.0f, glm::sin(rotationAroundAxis)), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationAroundAxis), 0.0f, glm::cos(rotationAroundAxis)));                                                                                                                          // rotation matrix for Y axis
-            glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(bodies[3].axialTilt)), -glm::sin(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(bodies[3].axialTilt)), glm::cos(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis
-            glm::mat3 rotationMatrix  = rotationMatrixY * rotationMatrixZ;
-
-            shaderTex.setMat4("model", static_cast<glm::mat4>(model));
-            shaderTex.setMat3("rotationMatrix", rotationMatrix);
-                
-            renderSphere(true, 128, 128);
-
-            glDisable(GL_BLEND);
             
             shader.use();
 
@@ -1378,19 +1365,19 @@ int main(int argc, char* argv[]) {
 
         hdrShader.use();
 
-        hdrShader.setVec3("planetWorldPos[0]", bodies[3].position - camera.Position);
-        hdrShader.setVec3("wavelengths[0]", glm::vec3(650.0f, 570.0f, 475.0f));
+        hdrShader.setInt("numOfPlanets", numOfAtmospheres);
 
-        hdrShader.setVec3("planetWorldPos[1]", bodies[5].position - camera.Position);
-        hdrShader.setVec3("wavelengths[1]", glm::vec3(600.0f, 780.0f, 800.0f));
+        for (unsigned int i = 0; i < numOfAtmospheres; i++)
+        {
+            hdrShader.setVec3("planetWorldPos[" + std::to_string(i) + "]", bodies[planetsWithAtmospheres[i]].position - camera.Position);
+            hdrShader.setVec3("wavelengths["    + std::to_string(i) + "]", atmospheresSettings[planetsWithAtmospheres[i]].wavelengths);
 
-        hdrShader.setFloat("planetRadius[0]", bodies[3].polarRadius/sscale);
-        hdrShader.setFloat("atmosphereHeight[0]", 1000000.0f);
+            hdrShader.setFloat("planetRadius["     + std::to_string(i) + "]", bodies[planetsWithAtmospheres[i]].polarRadius/sscale);
+            hdrShader.setFloat("atmosphereHeight[" + std::to_string(i) + "]", (float)atmospheresSettings[planetsWithAtmospheres[i]].height);
+        }
+
         hdrShader.setFloat("densityFalloff", 12.43f);
         hdrShader.setFloat("scatteringStrength", 250000.0f);
-
-        hdrShader.setFloat("planetRadius[1]", bodies[5].polarRadius/sscale);
-        hdrShader.setFloat("atmosphereHeight[1]", 440000.0f);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, colorBuffer);
@@ -1400,6 +1387,41 @@ int main(int argc, char* argv[]) {
         glBindTexture(GL_TEXTURE_2D, optDepthColor);
 
         renderQuad();
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+        // copy depth from fbo to default framebuffer
+        // ------------------------------------------
+        glBlitFramebuffer(0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+        // enable blending
+        // ---------------
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        // render Earth clouds
+        // -------------------
+        model = glm::dmat4(1.0);
+        shaderTex.use();
+
+        bindDiffuseTexture(loadedCloudTextures[3]);
+        bindMetallicTexture(0);
+        bindRoughnessTexture(0);
+        bindHeightTexture(0);
+        bindNormalTexture(loadedTextures[3][4]);
+
+        double rotationAroundAxis = glm::radians(10 * bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
+        setupPlanetModel(model, bodies[3].position, glm::dvec3(bodies[3].averageRadius + cloudHeights[3]), camera.Position, bodies[3].axialTilt, rotationAroundAxis);
+
+        glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationAroundAxis), 0.0f, glm::sin(rotationAroundAxis)), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationAroundAxis), 0.0f, glm::cos(rotationAroundAxis)));                                                                                                                          // rotation matrix for Y axis
+        glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(bodies[3].axialTilt)), -glm::sin(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(bodies[3].axialTilt)), glm::cos(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis
+        glm::mat3 rotationMatrix  = rotationMatrixY * rotationMatrixZ;
+
+        shaderTex.setMat4("model", static_cast<glm::mat4>(model));
+        shaderTex.setMat3("rotationMatrix", rotationMatrix);
+                
+        renderSphere(true, 128, 128);
 
         // calculate fuel consumption and update fuel left
         // -----------------------------------------------
@@ -1414,11 +1436,6 @@ int main(int argc, char* argv[]) {
                 throttle = 0.0f;
             }
         }
-
-        // enable blending
-        // ---------------
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         // render pointers to bodies
         // -------------------------
@@ -1482,7 +1499,7 @@ int main(int argc, char* argv[]) {
 
             glm::vec2 bp = glm::vec2(convert3Dto2D((bodies[numOfPlanets].position + transfer.burnDirection * 5.0) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
             RenderCenteredImage(imageShader, apoap_periapsi, bp.x, bp.y, 0.05f); // burn direсtion point
-            
+
             if (glm::length(bodies[numOfPlanets].position - (transferWindow + bodies[3].position)) > 200000.0)
             {
                 glm::vec2 tw = glm::vec2(convert3Dto2D((transferWindow + bodies[3].position) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
@@ -1551,8 +1568,8 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        glm::vec2 ecp = glm::vec2(convert3Dto2D((bodies[3].position + collisionPoint) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
-        RenderCenteredImage(imageShader, apoap_periapsi, ecp.x, ecp.y, 0.05f);
+        //glm::vec2 ecp = glm::vec2(convert3Dto2D((bodies[3].position + collisionPoint) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
+        //RenderCenteredImage(imageShader, apoap_periapsi, ecp.x, ecp.y, 0.05f);
 
         // main menu
         // ---------
