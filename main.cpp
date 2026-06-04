@@ -547,8 +547,9 @@ int main(int argc, char* argv[]) {
     glGenTextures(1, &colorBuffer);
     glBindTexture(GL_TEXTURE_2D, colorBuffer);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
 
     unsigned int depthBuffer;
     glGenTextures(1, &depthBuffer);
@@ -1278,6 +1279,7 @@ int main(int argc, char* argv[]) {
             skyboxShader.setInt("environmentMap", 0);
             skyboxShader.setMat4("view", view);
             skyboxShader.setMat4("projection", projection);
+            skyboxShader.setFloat("exposure", 0.1f);
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
@@ -1376,11 +1378,12 @@ int main(int argc, char* argv[]) {
             hdrShader.setFloat("atmosphereHeight[" + std::to_string(i) + "]", (float)atmospheresSettings[planetsWithAtmospheres[i]].height);
         }
 
-        hdrShader.setFloat("densityFalloff", 12.43f);
+        hdrShader.setFloat("densityFalloff", 11.64f);
         hdrShader.setFloat("scatteringStrength", 250000.0f);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, colorBuffer);
+        glGenerateMipmap(GL_TEXTURE_2D);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthBuffer);
         glActiveTexture(GL_TEXTURE2);

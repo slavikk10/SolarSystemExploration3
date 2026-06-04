@@ -32,6 +32,9 @@ uniform sampler2D depthTex;
 uniform sampler2D colorTex;
 uniform sampler2D opticalDepthTex;
 
+uniform uint width;
+uniform uint height;
+
 vec2 raySphere(vec3 planetWorldPos, float atmosphereRadius, vec3 rayOrigin, vec3 rayDir) {
     vec3 offset = rayOrigin - planetWorldPos;
     float a = 1.0;
@@ -145,6 +148,9 @@ void main() {
             color += originalCol / numOfPlanets;
         }
     }
+
+    vec3 averagedColor = textureLod(colorTex, vec2(0.0), 10).rgb;
+    float averageBrightness = dot(averagedColor, vec3(0.2126, 0.7152, 0.0722));
 
     FragColor = color;
 }

@@ -41,21 +41,19 @@ public:
         this->totalTorque = glm::vec3(0.0f);
 
         glm::vec3 cam = camera.OrbitalCameraPosition;
-        //cam.x = cam.x + cam.x * cam.y;
-        //cam.z = cam.z + cam.z * cam.y;
 
         glm::vec3 forward = glm::quat(this->rotationQuaternion) * glm::vec3(0.0f, 1.0f, 0.0f);
 
         // rocket rotation controls
         // ------------------------
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            this->totalTorque = 1000.0f * -glm::vec3(-cam.z, 0.0f, cam.x);
+            this->totalTorque = 1000.0f *  glm::normalize(glm::cross(-glm::normalize(camera.OrbitalCameraPosition), glm::vec3(0.0f, 1.0f, 0.0f)));
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            this->totalTorque = 1000.0f *  glm::vec3(-cam.z, 0.0f, cam.x);
+            this->totalTorque = 1000.0f * -glm::normalize(glm::cross(-glm::normalize(camera.OrbitalCameraPosition), glm::vec3(0.0f, 1.0f, 0.0f)));
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            this->totalTorque = 1000.0f * -glm::vec3( cam.x, 0.0f, cam.z);
+            this->totalTorque = 1000.0f * -glm::normalize(glm::cross(glm::normalize(glm::cross(-glm::normalize(camera.OrbitalCameraPosition), glm::vec3(0.0f, 1.0f, 0.0f))), forward));
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            this->totalTorque = 1000.0f *  glm::vec3( cam.x, 0.0f, cam.z);
+            this->totalTorque = 1000.0f *  glm::normalize(glm::cross(glm::normalize(glm::cross(-glm::normalize(camera.OrbitalCameraPosition), glm::vec3(0.0f, 1.0f, 0.0f))), forward));
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
             this->totalTorque = 1000.0f * -forward;
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
