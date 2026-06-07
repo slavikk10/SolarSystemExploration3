@@ -8,7 +8,8 @@
 
 #include <iostream>
 
-// Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
+// defines camera movement directions
+// ----------------------------------
 enum Camera_Movement {
     FORWARD,
     BACKWARD,
@@ -16,7 +17,8 @@ enum Camera_Movement {
     RIGHT
 };
 
-// Default camera values
+// default camera values
+// ---------------------
 const float YAW         = 0.0f;
 const float PITCH       = 0.0f;
 const float ROLL        = 0.0f;
@@ -24,7 +26,8 @@ const float SPEED       = 25.0f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM        = 20.0f;
 
-// An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
+// camera class
+// ------------
 class Camera
 {
 public:

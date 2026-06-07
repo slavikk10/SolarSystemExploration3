@@ -95,7 +95,7 @@ int timeMultiplierIndex = 0;
 // constants
 constexpr float sscale = 1.0f; // scale of the Solar System (1:1)
 const std::vector<std::string> faces           = {"right", "left", "top", "bottom", "front", "back"}; // cubemap faces
-const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000}; // timewarp values
+const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000}; // timewarp values
 const std::vector<std::string> monthNames      = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 constexpr unsigned int numOfPlanets = 11;
 
@@ -921,6 +921,8 @@ int main(int argc, char* argv[]) {
 
     double lastYaw, lastPitch = 0.0;
 
+    unsigned int boundBody;
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -1040,30 +1042,31 @@ int main(int argc, char* argv[]) {
         else
             camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) - orbitalCameraPosition;
 
-        TrajectorySimulator rocketTrajectory;
-        if (glm::length(bodies[numOfPlanets].position - bodies[4].position) > 66100000.0)
-            rocketTrajectory = TrajectorySimulator(bodies[numOfPlanets], bodies[3], 3);
-        else
-            rocketTrajectory = TrajectorySimulator(bodies[numOfPlanets], bodies[4], 4);
+        // find which planet/moon's SOI is the rocket located in
+        // -----------------------------------------------------
+        for (unsigned int i = 0; i < numOfPlanets; i++)
+            if (glm::length(bodies[numOfPlanets].position - bodies[i].position) < soiRadiuses[i])
+                boundBody = i;
 
+        // initialize trajectories
+        // -----------------------
+        TrajectorySimulator rocketTrajectory(bodies[numOfPlanets], bodies[boundBody], boundBody);
         TrajectorySimulator moonTrajectory(bodies[4], bodies[3], 3);
         TrajectorySimulator earthTrajectory(bodies[3], bodies[0], 0);
+        TrajectorySimulator mercuryTrajectory(bodies[1], bodies[0], 0);
+        TrajectorySimulator venusTrajectory(bodies[2], bodies[0], 0);
 
         if (orbitView && !menuState.inMenu)
         {
             {
                 std::lock_guard<std::mutex> lock_rom(orbitalElementsMutex);
                 rocketTrajectory.simulateTrajectory();
-
-                /*if (rocketTrajectory.moonSoi)
-                {
-                    rocketTrajectoryMoon.moonSoi = true;
-                    rocketTrajectoryMoon.simulateTrajectory(moonOrbital, true);
-                }*/
             }
 
             moonTrajectory.simulateTrajectory();
-            //earthTrajectory.simulateTrajectory();
+            earthTrajectory.simulateTrajectory();
+            mercuryTrajectory.simulateTrajectory();
+            venusTrajectory.simulateTrajectory();
         }
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1318,9 +1321,11 @@ int main(int argc, char* argv[]) {
                 moonTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
 
                 //earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                //mercuryTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                //venusTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
             }
 
-            glm::dvec3 relativeVelocity = bodies[numOfPlanets].velocity - bodies[3].velocity;
+            glm::dvec3 relativeVelocity = bodies[numOfPlanets].velocity - bodies[boundBody].velocity;
         
             double velocityScale = glm::length(relativeVelocity) / 200.0;
 
@@ -1566,8 +1571,8 @@ int main(int argc, char* argv[]) {
             // --------------------
             if (!isViewSwitchHeight)
             {
-                glm::vec2 vtp = convert3Dto2D((glm::normalize(bodies[numOfPlanets].velocity - bodies[3].velocity) * (2 * velocityScale + 7.5) + bodies[numOfPlanets].position) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                RenderText(textShader, std::format("{:.4f}", glm::length(bodies[numOfPlanets].velocity - bodies[3].velocity) / 1000.0) + " km/s", vtp.x, vtp.y, 0.4f, glm::vec3(1.0f), true);
+                glm::vec2 vtp = convert3Dto2D((glm::normalize(bodies[numOfPlanets].velocity - bodies[boundBody].velocity) * (2 * velocityScale + 7.5) + bodies[numOfPlanets].position) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                RenderText(textShader, std::format("{:.4f}", glm::length(bodies[numOfPlanets].velocity - bodies[boundBody].velocity) / 1000.0) + " km/s", vtp.x, vtp.y, 0.4f, glm::vec3(1.0f), true);
             }
         }
 
