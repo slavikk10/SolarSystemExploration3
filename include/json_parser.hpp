@@ -51,16 +51,18 @@ struct AtmosphereJSON {
 
     glm::vec3 wavelengths;
 
-    AtmosphereJSON() {breathable = false; height = 0.0; wavelengths = glm::vec3(0.0f);}
+    float densityFalloff, scatteringStrength;
+
+    AtmosphereJSON() {breathable = false; height = 0.0; wavelengths = glm::vec3(0.0f); densityFalloff = 0.0f; scatteringStrength = 0.0f;}
 
     bool operator==(AtmosphereJSON compared)
     {
-        return (breathable == compared.breathable) && (height == compared.height) && (wavelengths == compared.wavelengths);
+        return (breathable == compared.breathable) && (height == compared.height) && (wavelengths == compared.wavelengths) && (densityFalloff == compared.densityFalloff) && (scatteringStrength == compared.scatteringStrength);
     }
 
     bool operator!=(AtmosphereJSON compared)
     {
-        return !((breathable == compared.breathable) && (height == compared.height) && (wavelengths == compared.wavelengths));
+        return !((breathable == compared.breathable) && (height == compared.height) && (wavelengths == compared.wavelengths) && (densityFalloff == compared.densityFalloff) && (scatteringStrength == compared.scatteringStrength));
     }
 };
 
@@ -274,6 +276,9 @@ AtmosphereJSON parseAtmosphereJSON(const char* path)
         }
         
         result.wavelengths = glm::vec3(std::stof(getJSONValue(wavelengthsJSON, "r")), std::stof(getJSONValue(wavelengthsJSON, "g")) , std::stof(getJSONValue(wavelengthsJSON, "b")));
+
+        result.densityFalloff     = std::stod(getJSONValue(atmosphereSettings, "densityFalloff"));
+        result.scatteringStrength = std::stod(getJSONValue(atmosphereSettings, "scatteringStrength"));
     }
     else
     {

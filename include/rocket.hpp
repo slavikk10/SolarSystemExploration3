@@ -51,9 +51,9 @@ public:
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
             this->totalTorque = 1000.0f * -glm::normalize(glm::cross(-glm::normalize(camera.OrbitalCameraPosition), glm::vec3(0.0f, 1.0f, 0.0f)));
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            this->totalTorque = 1000.0f * -glm::normalize(glm::cross(glm::normalize(glm::cross(-glm::normalize(camera.OrbitalCameraPosition), glm::vec3(0.0f, 1.0f, 0.0f))), forward));
+            this->totalTorque = 1000.0f * -glm::normalize(glm::cross(glm::normalize(glm::cross(-glm::normalize(camera.OrbitalCameraPosition), glm::vec3(0.0f, 1.0f, 0.0f))), glm::vec3(forward.x, abs(forward.y), forward.z)));
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            this->totalTorque = 1000.0f *  glm::normalize(glm::cross(glm::normalize(glm::cross(-glm::normalize(camera.OrbitalCameraPosition), glm::vec3(0.0f, 1.0f, 0.0f))), forward));
+            this->totalTorque = 1000.0f *  glm::normalize(glm::cross(glm::normalize(glm::cross(-glm::normalize(camera.OrbitalCameraPosition), glm::vec3(0.0f, 1.0f, 0.0f))), glm::vec3(forward.x, abs(forward.y), forward.z)));
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
             this->totalTorque = 1000.0f * -forward;
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)

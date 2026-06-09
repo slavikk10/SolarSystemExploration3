@@ -13,8 +13,8 @@ in GEOMETRY_OUT {
 
 uniform uint numOfPlanets = 2;
 
-uniform float densityFalloff;
-uniform float scatteringStrength;
+uniform float densityFalloff[MAX_ARRAY_SIZE];
+uniform float scatteringStrength[MAX_ARRAY_SIZE];
 
 uniform vec3 camPos;
 uniform vec3 lightPos;
@@ -57,7 +57,7 @@ vec2 raySphere(vec3 planetWorldPos, float atmosphereRadius, vec3 rayOrigin, vec3
 
 float density(vec3 samplePoint, uint i, float atmosphereRadius) {
     float height = length(samplePoint - planetWorldPos[i]) - planetRadius[i];
-    return exp(-(height / (atmosphereRadius - planetRadius[i])) * densityFalloff) * (1 - (height / (atmosphereRadius - planetRadius[i])));
+    return exp(-(height / (atmosphereRadius - planetRadius[i])) * densityFalloff[i]) * (1 - (height / (atmosphereRadius - planetRadius[i])));
 }
 
 float opticalDepth(vec3 rayOrigin, vec3 rayDir, float rayLength, uint id, float atmosphereRadius) {
@@ -128,9 +128,9 @@ void main() {
     for (uint i = 0; i < numOfPlanets; i++) {
         float atmosphereRadius = planetRadius[i] + atmosphereHeight[i];
 
-        float scatterR = pow(1 / wavelengths[i].x, 4) * scatteringStrength;
-        float scatterG = pow(1 / wavelengths[i].y, 4) * scatteringStrength;
-        float scatterB = pow(1 / wavelengths[i].z, 4) * scatteringStrength;
+        float scatterR = pow(1 / wavelengths[i].x, 4) * scatteringStrength[i];
+        float scatterG = pow(1 / wavelengths[i].y, 4) * scatteringStrength[i];
+        float scatterB = pow(1 / wavelengths[i].z, 4) * scatteringStrength[i];
         vec3 scatteringCoefficients = vec3(scatterR, scatterG, scatterB);
 
         float surfaceHitInfo = raySphere(planetWorldPos[i], planetRadius[i], vec3(0.0), viewDir).x;

@@ -97,7 +97,7 @@ constexpr float sscale = 1.0f; // scale of the Solar System (1:1)
 const std::vector<std::string> faces           = {"right", "left", "top", "bottom", "front", "back"}; // cubemap faces
 const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000}; // timewarp values
 const std::vector<std::string> monthNames      = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-constexpr unsigned int numOfPlanets = 11;
+constexpr unsigned int numOfPlanets     = 11;
 
 // date
 struct Date {
@@ -923,6 +923,9 @@ int main(int argc, char* argv[]) {
 
     unsigned int boundBody;
 
+    glm::dvec3 menuCameraPosition = glm::dvec3(bodies[3].position.x/sscale + 1000000.0f, bodies[3].position.y/sscale + 1000000.0f, bodies[3].position.z/sscale + 50000000.0f);
+    unsigned int menuBody = 3;
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -1038,7 +1041,7 @@ int main(int argc, char* argv[]) {
         camera.OrbitalCameraPosition = orbitalCameraPosition / glm::dvec3(static_cast<double>(camera.Zoom));
 
         if (menuState.inMenu)
-            camera.Position = glm::dvec3(bodies[3].position.x/sscale + 1000000.0f, bodies[3].position.y/sscale + 1000000.0f, bodies[3].position.z/sscale + 50000000.0f);
+            camera.Position = menuCameraPosition;
         else
             camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) - orbitalCameraPosition;
 
@@ -1079,7 +1082,12 @@ int main(int argc, char* argv[]) {
 
             glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100000000000000000.0f); // 100 quintillion meters far plane (1e17, or 100 trillion (1e14) km)
             glm::mat4 orthoProjection = glm::ortho(0.0f, (float)SCR_WIDTH, 0.0f, (float)SCR_HEIGHT);
-            glm::mat4 view = camera.GetViewMatrix(bodies[numOfPlanets].position, (isViewSwitchHeight ? (orbitalCameraQuaternion * localQuaternion) : localQuaternion) * glm::dvec3(0.0, 1.0, 0.0));
+            glm::mat4 view;
+
+            if (!menuState.inMenu)
+                view = camera.GetViewMatrix(bodies[numOfPlanets].position, (isViewSwitchHeight ? (orbitalCameraQuaternion * localQuaternion) : localQuaternion) * glm::dvec3(0.0, 1.0, 0.0));
+            else
+                view = camera.GetViewMatrix(bodies[menuBody].position, (isViewSwitchHeight ? (orbitalCameraQuaternion * localQuaternion) : localQuaternion) * glm::dvec3(0.0, 1.0, 0.0));
 
             // setup shaders
             // -------------
@@ -1381,10 +1389,10 @@ int main(int argc, char* argv[]) {
 
             hdrShader.setFloat("planetRadius["     + std::to_string(i) + "]", bodies[planetsWithAtmospheres[i]].polarRadius/sscale);
             hdrShader.setFloat("atmosphereHeight[" + std::to_string(i) + "]", (float)atmospheresSettings[planetsWithAtmospheres[i]].height);
-        }
 
-        hdrShader.setFloat("densityFalloff", 11.64f);
-        hdrShader.setFloat("scatteringStrength", 250000.0f);
+            hdrShader.setFloat("densityFalloff["     + std::to_string(i) + "]", atmospheresSettings[planetsWithAtmospheres[i]].densityFalloff);
+            hdrShader.setFloat("scatteringStrength[" + std::to_string(i) + "]", atmospheresSettings[planetsWithAtmospheres[i]].scatteringStrength);
+        }
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, colorBuffer);
