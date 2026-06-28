@@ -1,3 +1,15 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:826cf6c133c4c518934a31570a2595c4049016a078f727d87b76e2a87b5841a7
-size 245
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+out VS_OUT {
+    vec3 localPos;
+} vert_out;
+
+uniform mat4 projection;
+uniform mat4 view;
+
+void main()
+{
+    vert_out.localPos = aPos;
+    gl_Position = projection * view * vec4(aPos, 1.0);
+}

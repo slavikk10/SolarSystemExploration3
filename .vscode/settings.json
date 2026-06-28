@@ -64,4 +64,8 @@
         "metal_command_buffer": "cpp"
     },
     "C_Cpp.default.compilerPath": "/usr/bin/clang++",
+    "cmake.environment": {
+        "CPATH": "/Library/Developer/CommandLineTools/usr/include",
+        "CPLUS_INCLUDE_PATH": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1"
+    }
 }

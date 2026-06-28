@@ -1,3 +1,22 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:8f3845bdef697752bda55b648ed26b983a55762383c2c2264fe8ab01769e3ace
-size 530
+#version 410 core
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 3) out;
+
+in VS_OUT {
+    vec2 TexCoords;  // input from vertex shader
+} gs_in[];
+
+out vec2 TexCoords; // output for fragment shader
+
+void main() {
+    gl_Position = gl_in[0].gl_Position;
+    TexCoords = gs_in[0].TexCoords;
+    EmitVertex();
+    gl_Position = gl_in[1].gl_Position;
+    TexCoords = gs_in[1].TexCoords;
+    EmitVertex();
+    gl_Position = gl_in[2].gl_Position;
+    TexCoords = gs_in[2].TexCoords;
+    EmitVertex();
+    EndPrimitive();
+}

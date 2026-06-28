@@ -1,3 +1,22 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:90f0d8f11521e685e8172ddefce3c9b9f1c7947c4877354646bd49218d0e29f8
-size 481
+#version 330 core
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 3) out;
+
+in VERTEX_OUT {
+    vec3 localPos;
+} geom_in[];
+
+out vec3 localPos;
+
+void main() {
+    gl_Position = gl_in[0].gl_Position;    
+    localPos = geom_in[0].localPos;
+    EmitVertex();
+    gl_Position = gl_in[1].gl_Position; 
+    localPos = geom_in[1].localPos;
+    EmitVertex();
+    gl_Position = gl_in[2].gl_Position; 
+    localPos = geom_in[2].localPos;
+    EmitVertex();
+    EndPrimitive();
+}

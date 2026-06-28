@@ -53,6 +53,8 @@ struct AtmosphereJSON {
 
     float densityFalloff, scatteringStrength;
 
+    std::string atmosphereTexturePath;
+
     AtmosphereJSON() {breathable = false; height = 0.0; wavelengths = glm::vec3(0.0f); densityFalloff = 0.0f; scatteringStrength = 0.0f;}
 
     bool operator==(AtmosphereJSON compared)
@@ -279,6 +281,11 @@ AtmosphereJSON parseAtmosphereJSON(const char* path)
 
         result.densityFalloff     = std::stod(getJSONValue(atmosphereSettings, "densityFalloff"));
         result.scatteringStrength = std::stod(getJSONValue(atmosphereSettings, "scatteringStrength"));
+
+        if (getJSONValue(atmosphereSettings, "hasAtmosphereTexture") == "true")
+            result.atmosphereTexturePath = getJSONValue(atmosphereSettings, "atmosphereTexturePath");
+        else
+            result.atmosphereTexturePath = "";
     }
     else
     {

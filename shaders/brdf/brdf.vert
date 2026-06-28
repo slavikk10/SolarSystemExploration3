@@ -1,3 +1,12 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:f09e325c46b714ecf5e7863546fd76256f6b97c0ee45558562e7ff58240a15ee
-size 231
+#version 410 core
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec2 aTexCoords;
+
+out VERTEX_OUT {
+    vec2 TexCoords;
+} vert_out;
+
+void main() {
+    vert_out.TexCoords = aTexCoords;
+	gl_Position = vec4(aPos, 1.0);
+}

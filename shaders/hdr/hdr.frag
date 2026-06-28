@@ -149,8 +149,8 @@ void main() {
         }
     }
 
-    vec3 averagedColor = textureLod(colorTex, vec2(0.0), 10).rgb;
-    float averageBrightness = dot(averagedColor, vec3(0.2126, 0.7152, 0.0722));
+    //vec3 averagedColor = textureLod(colorTex, vec2(0.0), 10).rgb;
+    //float averageBrightness = dot(averagedColor, vec3(0.2126, 0.7152, 0.0722));
 
     FragColor = color;
 }

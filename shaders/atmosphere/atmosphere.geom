@@ -1,3 +1,21 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:7dafc3472866481b749554a7bfe0a390af03e068e19e25e985ff23cc8f359ad9
-size 417
+#version 410 core
+layout (triangles) in;
+layout (triangle_strip, max_vertices=3) out;
+
+in VERTEX_OUT {
+    vec3 WorldPos;
+    vec4 vClipPos;
+} vert_out[];
+
+out vec3 WorldPos;
+out vec4 vClipPos;
+
+void main() {
+    for(int i = 0; i < 3; ++i) {
+        gl_Position = gl_in[i].gl_Position;
+        WorldPos = vert_out[i].WorldPos;
+        vClipPos = vert_out[i].vClipPos;
+        EmitVertex();
+    }
+    EndPrimitive();
+}

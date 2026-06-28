@@ -8,6 +8,7 @@
 
 #include <functionsupport.hpp>
 #include <constants.hpp>
+#include <glmextension.hpp>
 
 #pragma once
 
@@ -45,6 +46,23 @@ struct OrbitalObject
     Orbit orbit;
 };
 
+struct LambertOutput 
+{
+    glm::dvec3 requiredVelocity;
+    double velocity;
+
+    double A;
+    double z;
+    double y;
+    double f;
+    double g;
+
+    double r1l;
+    double r2l;
+    glm::dvec3 r1;
+    glm::dvec3 r2;
+};
+
 struct Transfer
 {
     double deltaVelocity;
@@ -53,6 +71,8 @@ struct Transfer
 
     glm::dvec3 burnDirection;
     glm::dvec3 velocityVector;
+
+    LambertOutput out;
 };
 
 ObjectState findObjectStateAtTime(double time, Orbit rocketOrbit, double timeOfPeriapsisPassage, double gravitationalParameter)
@@ -110,17 +130,17 @@ glm::dvec3 findMeanPosition(double time, OrbitalObject rocketOrbital, double gra
     return (a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane;
 }
 
-glm::dvec3 lambertSolver(OrbitalObject rocketOrbital, OrbitalObject moonOrbital, double departureTime, double timeOfFlight, double gravitationalParameter, glm::dvec3 rocketDeparturePosition)
+LambertOutput lambertSolver(OrbitalObject rocketOrbital, OrbitalObject moonOrbital, double departureTime, double timeOfFlight, double gravitationalParameter, glm::dvec3 rocketDeparturePosition)
 {
     double arrivalTime = departureTime + timeOfFlight;
 
     glm::dvec3 arrivalMoonState = findMeanPosition(arrivalTime, moonOrbital, gravitationalParameter);
-    arrivalMoonState += 66100000.0 * -glm::normalize(arrivalMoonState);
+    //arrivalMoonState += 616000000.0 * -glm::normalize(arrivalMoonState);
 
     glm::dvec3 r1 = rocketDeparturePosition;
     glm::dvec3 r2 = arrivalMoonState;
 
-    glm::dvec3 h = rocketOrbital.state.r * rocketOrbital.state.v;
+    glm::dvec3 h = glm::cross(rocketOrbital.state.r, rocketOrbital.state.v);
 
     double r1l = glm::length(r1);
     double r2l = glm::length(r2);
@@ -129,62 +149,76 @@ glm::dvec3 lambertSolver(OrbitalObject rocketOrbital, OrbitalObject moonOrbital,
     double A        = (h.y / abs(h.y)) * sqrt(r1l * r2l * (1 + cosTheta));
 
     if (A == 0.0)
-        return glm::dvec3(INFINITY);
+        return LambertOutput();//glm::dvec3(INFINITY);
 
     double z = 13.2;
-    double S = 0.0;
-    double C = 0.0;
-    for (unsigned int i = 0; i < 5; i++)
+    double S, C, T = 0.0;
+    while (abs(T - timeOfFlight) > 0.0001)
     {
         if (z > 0.0)
-            C = (1 - cos(sqrt(z))) / z;
+            C = (1.0 - cos(sqrt(z))) / z;
         else if (z < 0.0)
-            C = (cosh(sqrt(-z)) - 1) / -z;
+            C = (cosh(sqrt(-z)) - 1.0) / -z;
         else
-            C = 1/2;
+            C = 1.0 / 2.0;
 
         if (z > 0.0)
-            S = (sqrt(z) - sin(sqrt(z))) / pow(sqrt(z), 3);
+            S = (sqrt(z) - sin(sqrt(z))) / pow(sqrt(z), 3.0);
         else if (z < 0.0)
-            S = (sinh(sqrt(-z)) - sqrt(-z)) / pow(sqrt(-z), 3);
+            S = (sinh(sqrt(-z)) - sqrt(-z)) / pow(sqrt(-z), 3.0);
         else
-            S = 1/6;
+            S = 1.0 / 6.0;
 
-        double Cs = (1 - z * S - 2 * C) / (2 * z);
-        double Ss = (C - 3 * S)         / (2 * z);
-        double ys = A * (((S + z * Ss) * sqrt(C) - (z * S - 1) * Cs / (2 * sqrt(C))) / C);
+        double Cs = (1.0 - z * S - 2 * C) / (2 * z);
+        double Ss = (C - 3.0 * S)         / (2 * z);
+        double ys = A * (((S + z * Ss) * sqrt(C) - (z * S - 1) * Cs / (2.0 * sqrt(C))) / C);
 
-        double y = r1l + r2l + A * ((z * S - 1) / sqrt(C));
-        double T = (1 / sqrt(gravitationalParameter)) * (pow(y/C, 3/2) * S + A * sqrt(y));
+        double y = abs(r1l + r2l + A * ((z * S - 1.0) / sqrt(C)));
+        T = (1.0 / sqrt(gravitationalParameter)) * (pow(y/C, 3.0 / 2.0) * S + A * sqrt(abs(y)));
 
-        double temp1 = (3/2 * sqrt(y/C)) * ((ys * C - y * Cs) / pow(C, 2)) * S;
-        double temp2 = sqrt(pow(y/C, 3)) * Ss;
-        double temp3 = (A/2) * (ys/sqrt(y));
+        double temp1 = 3.0 / 2.0 * sqrt(abs(y)/C) * ((ys * C - y * Cs) / pow(C, 2.0)) * S;
+        double temp2 = sqrt(pow(abs(y)/C, 3)) * Ss;
+        double temp3 = (A / 2.0) * (ys/sqrt(abs(y)));
 
-        z -= (T - timeOfFlight) / ((1 / sqrt(gravitationalParameter)) * (temp1 + temp2 + temp3));
+        //std::cout << "temp " << temp1 << "; " << temp2 << "; " << temp3 << "; z " << z << "; y " << y << "; ys " << ys << "; C " << C << "; S " << S << "; Cs " << Cs << "; Ss " << Ss << std::endl;
+        z -= (T - timeOfFlight) / ((1.0 / sqrt(gravitationalParameter)) * (temp1 + temp2 + temp3));
     }
 
     if (z > 0.0)
-        C = (1 - cos(sqrt(z))) / z;
+        C = (1.0 - cos(sqrt(z))) / z;
     else if (z < 0.0)
-        C = (cosh(sqrt(-z)) - 1) / -z;
+        C = (cosh(sqrt(-z)) - 1.0) / -z;
     else
-        C = 1/2;
+        C = 1.0 / 2.0;
 
     if (z > 0.0)
-        S = (sqrt(z) - sin(sqrt(z))) / pow(sqrt(z), 3);
+        S = (sqrt(z) - sin(sqrt(z))) / pow(sqrt(z), 3.0);
     else if (z < 0.0)
-        S = (sinh(sqrt(-z)) - sqrt(-z)) / pow(sqrt(-z), 3);
+        S = (sinh(sqrt(-z)) - sqrt(-z)) / pow(sqrt(-z), 3.0);
     else
-        S = 1/6;
+        S = 1.0 / 6.0;
 
-    double ya = r1l + r2l + A * ((z * S - 1) / sqrt(C));
-    double f  = 1 - (ya / r1l);
-    double g  = A * sqrt(ya / gravitationalParameter);
-    double gd = 1 - (ya / r2l); // currently unused; for future purposes
+    double y = abs(r1l + r2l + A * ((z * S - 1.0) / sqrt(C)));
 
-    glm::dvec3 requiredVelocity = (r2 - f * r1) / g;
-    return requiredVelocity;
+    double f  = 1.0 - (y / r1l);
+    double g  = A * sqrt(y / gravitationalParameter);
+    double gd = 1.0 - (y / r2l); // currently unused; for future purposes
+
+    //std::cout << "ls " << f << "; " << g << "; " << ya << "; " << C << "; " << z << std::endl;
+
+    LambertOutput output;
+    output.requiredVelocity = (r2 - f * r1) / g;
+    output.velocity         = glm::length(output.requiredVelocity);
+    output.A = A;
+    output.z = z;
+    output.y = y;
+    output.f = f;
+    output.g = g;
+    output.r1l = r1l;
+    output.r2l = r2l;
+    output.r1 = r1;
+    output.r2 = r2;
+    return output;
 }
 
 OrbitalObject findOrbitalElements(glm::dvec3 rocketPosition, glm::dvec3 rocketVelocity, double gravitationalParameter)
@@ -199,6 +233,7 @@ OrbitalObject findOrbitalElements(glm::dvec3 rocketPosition, glm::dvec3 rocketVe
 
     double mechanicalEnergy = std::pow(rvm, 2) / 2 - gravitationalParameter / rpm;
     double semiMajorAxis    = -(gravitationalParameter / (2 * mechanicalEnergy));
+    double semiMinorAxis    = semiMajorAxis * sqrt(1 - pow(eccentricity, 2));
 
     double cosTrueAnomaly = glm::dot(eccentricityVector, rocketPosition) / (eccentricity * rpm);
     double trueAnomaly;
@@ -225,10 +260,12 @@ OrbitalObject findOrbitalElements(glm::dvec3 rocketPosition, glm::dvec3 rocketVe
 
     Orbit result1;
     result1.semiMajorAxis       = semiMajorAxis;
+    result1.semiMinorAxis       = semiMinorAxis;
     result1.eccentricity        = eccentricity;
     result1.inclination         = inclination;
     result1.raan                = raan;
     result1.argumentOfPeriapsis = argumentOfPeriapsis;
+    result1.meanMotion          = meanMotion;
 
     ObjectOrbitalState result2;
     result2.meanAnomaly            = meanAnomaly;
@@ -250,25 +287,32 @@ Transfer findTransferWindow(double x_min, double x_max, double y_min, double y_m
     double timeOfFlight;
     glm::dvec3 velVector;
 
+    LambertOutput finalo;
+
     std::vector<glm::dvec3> rocketDeparturePositions(x_max);
 
     for (double i = x_min; i < x_max; i += x_step)
         rocketDeparturePositions[i] = findMeanPosition(i, rocketOrbital, gravitationalParameter);
 
-    for (double i = y_min; i < y_max; i += y_step)
+    for (double i = y_min; i < 1.0/*y_max*/; i += 1.0)// y_step)
     {
         for (double j = x_min; j < x_max; j += x_step)
         {
-            glm::dvec3 velocityVector = lambertSolver(rocketOrbital, targetOrbital, j, i, gravitationalParameter, rocketDeparturePositions[j]);
+            //std::cout << "x: " << j << "; y: " << i << std::endl;
+            //std::cout << rocketDeparturePositions[j] << "; " << gravitationalParameter << std::endl;
+            LambertOutput temp = lambertSolver(rocketOrbital, targetOrbital, 3600 * j, 3600 * i, gravitationalParameter, rocketDeparturePositions[j]);
+            glm::dvec3 velocityVector = temp.requiredVelocity;//lambertSolver(rocketOrbital, targetOrbital, 3600 * j, 3600 * i, gravitationalParameter, rocketDeparturePositions[j]).requiredVelocity;
             double vel = glm::length(velocityVector - rocketOrbital.state.v);
+            //std::cout << vel << "; " << velocityVector << "; " << rocketOrbital.state.v << std::endl;
 
             if (vel < deltaVelocity)
             {
                 deltaVelocity = vel;
 
-                departureTime = j;
-                timeOfFlight  = i;
+                departureTime = 3600 * j;
+                timeOfFlight  = 3600 * i;
                 velVector     = velocityVector - rocketOrbital.state.v;
+                finalo = temp;
             }
         }
     }
@@ -279,6 +323,7 @@ Transfer findTransferWindow(double x_min, double x_max, double y_min, double y_m
     transfer.timeOfFlight   = timeOfFlight;
     transfer.velocityVector = velVector;
     transfer.burnDirection  = glm::normalize(velVector);
+    transfer.out = finalo;
 
     return transfer;
 }

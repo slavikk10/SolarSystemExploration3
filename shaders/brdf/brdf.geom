@@ -1,3 +1,18 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:1cca4ff0d497e1ece30198ea343c9ca0faec627dfafba980f7ecf69ed2de54f9
-size 346
+#version 410 core
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 3) out;
+
+in VERTEX_OUT {
+    vec2 TexCoords;
+} geom_in[];
+
+out vec2 TexCoords;
+
+void main() {
+    for(int i = 0; i < 3; ++i) {
+        gl_Position = gl_in[i].gl_Position;    
+        TexCoords = geom_in[i].TexCoords;
+        EmitVertex();
+    }
+    EndPrimitive();
+}

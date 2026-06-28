@@ -5,6 +5,8 @@
 #include <ostream>
 #include <concepts>
 
+#pragma once
+
 namespace glm
 {
     bool approximately_equal_to(const glm::highp_mat4& m1, const glm::highp_mat4& m2)

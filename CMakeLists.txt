@@ -10,8 +10,9 @@ if(MSVC)
 endif()
 
 if(APPLE)
-    execute_process(COMMAND xcrun --show-sdk-path OUTPUT_VARIABLE MACOSX_SDK_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
-    set(CMAKE_OSX_SYSROOT "${MACOSX_SDK_PATH}")
+    execute_process(COMMAND "xcrun --show-sdk-path" OUTPUT_VARIABLE MACOSX_SDK_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
+    #message("${MACOSX_SDK_PATH}")
+    set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk")#"${MACOSX_SDK_PATH}")
     set(CMAKE_OSX_ARCHITECTURES "arm64")
 endif()
 

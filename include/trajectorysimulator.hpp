@@ -87,9 +87,9 @@ public:
         if (E < 0.0 && periapsisd > system[1].averageRadius && apoapsisd < soiRadiuses[rbi])
         {
             orbit   = true;
-            for (unsigned int i = 0; i < 2000; ++i)
+            for (unsigned int i = 0; i < 1000; ++i)
             {
-                double M = 2.0 * PI * (i / 2000.0);
+                double M = 2.0 * PI * (i / 1000.0);
 
                 double E_anom = M;
                 for (unsigned int i = 0; i < 5; i++)
@@ -101,7 +101,7 @@ public:
                 periapsis =  eNorm * periapsisd + system[1].position;
                 apoapsis  = -eNorm * apoapsisd  + system[1].position;
 
-                double time = (i / 2000.0) * T;
+                double time = (i / 1000.0) * T;
 
                 positions.push_back(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) + system[1].position);
             }
