@@ -5,6 +5,8 @@
 #include <navigator.hpp>
 #include <constants.hpp>
 
+#pragma once
+
 std::vector<double> soiRadiuses = {
     4570000000000000,
     117000000,
@@ -51,7 +53,7 @@ public:
 
     TrajectorySimulator() {}
 
-    void simulateTrajectory(const OrbitalObject& moonOrbital=OrbitalObject(), bool isRocket=false)
+    void simulateTrajectory(unsigned int iterations=1000, const OrbitalObject& moonOrbital=OrbitalObject(), bool isRocket=false)
     {
         glm::dvec3 startPos  = system[0].position;
         glm::dvec3 startVel  = system[0].velocity;
@@ -87,24 +89,8 @@ public:
         if (E < 0.0 && periapsisd > system[1].averageRadius && apoapsisd < soiRadiuses[rbi])
         {
             orbit   = true;
-            for (unsigned int i = 0; i < 1000; ++i)
-            {
-                double M = 2.0 * PI * (i / 1000.0);
-
-                double E_anom = M;
-                for (unsigned int i = 0; i < 5; i++)
-                    E_anom += ((M - E_anom + eccentricity * sin(E_anom)) / (1 - eccentricity * cos(E_anom)));
-
-                glm::dvec3 eNorm        = glm::normalize(eVec);
-                glm::dvec3 orbitalPlane = glm::normalize(glm::cross(h, eNorm));
-
-                periapsis =  eNorm * periapsisd + system[1].position;
-                apoapsis  = -eNorm * apoapsisd  + system[1].position;
-
-                double time = (i / 1000.0) * T;
-
-                positions.push_back(((a * cos(E_anom) - a * eccentricity) * eNorm + b * sin(E_anom) * orbitalPlane) + system[1].position);
-            }
+            for (unsigned int i = 0; i < iterations; ++i)
+                positions.push_back(findMeanPosition((i / (double)iterations) * T, system[0].position, system[0].velocity, system[1].mu));
         }
         else
         {

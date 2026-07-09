@@ -432,6 +432,26 @@ int main(int argc, char* argv[]) {
     Model cylinder(   getFilePath("resources/models/cylinder.obj"));
     Model cone(       getFilePath("resources/models/cone.obj"));
 
+    // lambert test
+    ObjectState test1;
+    test1.r = glm::dvec3(-4.796874274219856E+10, 6.198119736398615E+09, 2.400786344713238E+10);
+    test1.v = glm::dvec3(3.034292332504135E+04, -6.669168311718483E+02, 4.221418261050133E+04);
+    
+    ObjectState test2;
+    test2.r = glm::dvec3(-1.001554703308044E+11, 6.310506534141319E+09, 3.869421814799229E+10);
+    test2.v = glm::dvec3(1.278336333396057E+04, 2.865359848750817E+02, 3.283062339720540E+04);
+
+    OrbitalObject test1oo = findOrbitalElements(test1, 1.32639302186009968640e+20);
+    OrbitalObject test2oo = findOrbitalElements(test2, 1.32639302186009968640e+20);
+
+    LambertOutput lout = lambertSolver(test1oo, test2oo, 0.0, 7776000.0, 1.32639302186009968640e+20, test1.r, false);
+    test1.v = lout.requiredVelocity;
+
+    test1oo = findOrbitalElements(test1, 1.32639302186009968640e+20);
+    std::cout << "sma " << test1oo.orbit.semiMajorAxis << std::endl;
+
+    std::cout << glm::length(findMeanPosition(7776000.0, test1, 1.32639302186009968640e+20) - findMeanPosition(7776000.0, test2, 1.32639302186009968640e+20)) << std::endl;
+
     // setup cube vertices (for skybox)
     // --------------------------------
     float skyboxVertices[] = {
@@ -792,8 +812,8 @@ int main(int argc, char* argv[]) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glm::dvec3 spawnPos = parseCelestialJSONData("resources/planets/mercury.json").position / glm::dvec3(1000.0f);
-    glm::dvec3 spawnVel = parseCelestialJSONData("resources/planets/mercury.json").velocity / glm::dvec3(1000.0f);
+    glm::dvec3 spawnPos = parseCelestialJSONData("resources/planets/earth.json").position / glm::dvec3(1000.0);
+    glm::dvec3 spawnVel = parseCelestialJSONData("resources/planets/earth.json").velocity / glm::dvec3(1000.0);
 
     std::vector<CelestialBody> bodies;
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
@@ -870,7 +890,7 @@ int main(int argc, char* argv[]) {
     OrbitalObject rocketOrbital;
     OrbitalObject moonOrbital;
     std::mutex orbitalElementsMutex;
-    moonOrbital   = findOrbitalElements(bodies[2].position, bodies[2].velocity, bodies[0].mu);
+    moonOrbital   = findOrbitalElements(bodies[5].position, bodies[5].velocity, bodies[0].mu);
 
     std::thread navigatorThread([&]() {
         while (!glfwWindowShouldClose(window))
@@ -889,10 +909,14 @@ int main(int argc, char* argv[]) {
                     Transfer moonTransfer = findTransferWindow(0.0, 8760.0, 720.0, 4320.0, 24.0, 24.0, rocketOrbital, moonOrbital, bodies[0].mu);
                     //std::cout << moonTransfer.departureTime << std::endl;
 
-                    if ((moonTransfer.departureTime <= 8760.0 * 3600.0) /*&& (moonTransfer.deltaVelocity < lastDeltaVelocity)*/ && (abs(lastDeltaVelocity - moonTransfer.deltaVelocity) > 1000.0) && !(enginesOn && throttle > 0.0))
+                    if (/*(moonTransfer.departureTime <= 8760.0 * 3600.0)*/ /*&& (moonTransfer.deltaVelocity < lastDeltaVelocity)*/ /*&&*/ /*(abs(lastDeltaVelocity - moonTransfer.deltaVelocity) > 1000.0) &&*/ !(enginesOn && throttle > 0.0))
                     {
                         transfer           = moonTransfer;
-                        transferWindow     = findMeanPosition(transfer.departureTime, rocketOrbital, bodies[0].mu);
+                        ObjectState rv;
+                        rv.r = bodies[numOfPlanets].position;
+                        rv.v = bodies[numOfPlanets].velocity;
+                        transferWindow     = rv.r;//findMeanPosition(0/*transfer.departureTime*/, rv, bodies[0].mu);
+                        //std::cout << bodies[numOfPlanets].position << "; " << transferWindow << "; " << glm::length(bodies[numOfPlanets].position - transferWindow) << std::endl;
                         //std::cout << transferWindow << std::endl;
                         //std::cout << transfer.out.A << "; " << transfer.out.z << "; " << transfer.out.y << "; " << transfer.out.f << "; " << transfer.out.g << "; " << transfer.out.r1l << "; " << transfer.out.r2l << "; " << transfer.out.r1 << "; " << transfer.out.r2 << "; " << glm::length(transfer.out.r1) << "; " << glm::length(transfer.out.r2) << std::endl;
 
@@ -930,7 +954,7 @@ int main(int argc, char* argv[]) {
     bool idk = false;
 
     unsigned int menuBody = 3;
-    glm::dvec3 menuCameraPosition = glm::dvec3(bodies[menuBody].position.x/sscale + 1000000.0f, bodies[menuBody].position.y/sscale + 1000000.0f, bodies[menuBody].position.z/sscale + 50000000.0f);
+    glm::dvec3 menuCameraPosition = glm::dvec3(bodies[menuBody].position.x/sscale + 1000000.0f, bodies[menuBody].position.y/sscale + 1000000.0f, bodies[menuBody].position.z/sscale + 50000000.0f);    
 
     // render loop
     // -----------
@@ -1068,11 +1092,7 @@ int main(int argc, char* argv[]) {
 
         if (orbitView && !menuState.inMenu)
         {
-            {
-                std::lock_guard<std::mutex> lock_rom(orbitalElementsMutex);
-                rocketTrajectory.simulateTrajectory();
-            }
-
+            rocketTrajectory.simulateTrajectory();
             moonTrajectory.simulateTrajectory();
             earthTrajectory.simulateTrajectory();
             mercuryTrajectory.simulateTrajectory();
@@ -1342,8 +1362,8 @@ int main(int argc, char* argv[]) {
                 rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 moonTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
 
-                //earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                //mercuryTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                mercuryTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 venusTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 marsTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
             }
@@ -1531,7 +1551,7 @@ int main(int argc, char* argv[]) {
             glm::vec2 bp = glm::vec2(convert3Dto2D((bodies[numOfPlanets].position + transfer.burnDirection * 5.0) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
             RenderCenteredImage(imageShader, apoap_periapsi, bp.x, bp.y, 0.05f); // burn direсtion point
 
-            if (glm::length(bodies[numOfPlanets].position - (transferWindow + bodies[0].position)) > 20000000.0)
+            if (false)//glm::length(bodies[numOfPlanets].position - (transferWindow + bodies[0].position)) > 20000000.0)
             {
                 glm::vec2 tw = glm::vec2(convert3Dto2D((transferWindow) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
                 RenderCenteredImage(imageShader, apoap_periapsi, tw.x, tw.y, 0.05f);
@@ -1548,16 +1568,14 @@ int main(int argc, char* argv[]) {
                     lastDeltaVelocityShow = true;
                 }
 
-                if (!idk)
+                if (!idk && glm::length(transfer.velocityVector) > 5000.0)
                 {
-                    bodies[numOfPlanets].velocity += transfer.velocityVector;
+                    //bodies[numOfPlanets].velocity += transfer.velocityVector;
                     OrbitalObject newRocketOrbital = findOrbitalElements(bodies[numOfPlanets].position, bodies[numOfPlanets].velocity, bodies[0].mu);
-                    std::cout << abs(glm::length(findMeanPosition(transfer.timeOfFlight, newRocketOrbital, bodies[0].mu)) - glm::length(findMeanPosition(transfer.timeOfFlight, moonOrbital, bodies[0].mu))) << "; " << glm::length(findMeanPosition(transfer.timeOfFlight, newRocketOrbital, bodies[0].mu)) << "; " << glm::length(findMeanPosition(transfer.timeOfFlight, moonOrbital, bodies[0].mu)) << "; " << transfer.timeOfFlight << "; " << rocketTrajectory.apoapsisd << std::endl;//newRocketOrbital.orbit.semiMajorAxis * (1.0 - newRocketOrbital.orbit.eccentricity) << "; " << newRocketOrbital.orbit.eccentricity << "; " << rocketOrbital.orbit.eccentricity << std::endl;
-                    std::cout << transfer.out.A << "; " << transfer.out.f << "; " << transfer.out.g << "; " << transfer.out.y << "; " << transfer.out.z << "; " << transfer.out.requiredVelocity << std::endl;
-                    std::cout << glm::length((transfer.out.f * transfer.out.r1 + transfer.out.g * transfer.out.requiredVelocity) - transfer.out.r2) << std::endl;
-                    std::cout << transfer.out.r2 << "; " << findMeanPosition(transfer.departureTime + transfer.timeOfFlight, moonOrbital, bodies[0].mu) << std::endl;
                 }
-                idk = true;
+
+                if (transfer.velocityVector != glm::dvec3(0.0))
+                    idk = true;
 
                 glm::vec2 tw = glm::vec2(convert3Dto2D(bodies[numOfPlanets].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
                 RenderText(textShader, std::to_string(glm::length(lastRocketVelocity + lastVelocityVector - bodies[numOfPlanets].velocity) / 1000.0) + " km/s", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
@@ -1623,7 +1641,7 @@ int main(int argc, char* argv[]) {
             quitButton.Render(   glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, SCR_WIDTH, SCR_HEIGHT);
         }
 
-        glDepthMask(GL_FALSE);
+        glDepthMask(FALSE);
 
         // escape menu
         // -----------

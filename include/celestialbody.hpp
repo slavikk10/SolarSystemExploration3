@@ -5,8 +5,17 @@
 #include <ostream>
 
 #include <constants.hpp>
+#include <glmextension.hpp>
 
 #pragma once
+
+struct AccelOut
+{
+    glm::dvec3 accel;
+    std::vector<glm::dvec3> accels;
+
+    AccelOut() {accel = glm::dvec3(0.0);}
+};
 
 class CelestialBody 
 {
@@ -19,11 +28,6 @@ public:
     double axialTilt;
     double rotationSpeed;
     double viewSwitchHeight;
-    std::string albedoTexPath;
-    std::string metallicTexPath;
-    std::string roughnessTexPath;
-    std::string heightTexPath;
-    std::string normalTexPath;
     double mass;
     double mu;
     double soi;
@@ -35,6 +39,8 @@ public:
     glm::dvec3 acceleration = glm::dvec3(0.0);
     glm::dvec3 totalAcceleration = glm::dvec3(0.0);
 
+    std::vector<glm::dvec3> accelerations;
+
     CelestialBody() : position(0.0), velocity(0.0), averageRadius(0), equatorialRadius(0), polarRadius(0), gravityAcceleration(0), axialTilt(0.0), rotationSpeed(0.0), viewSwitchHeight(0.0) {}
 
     CelestialBody(glm::dvec3 position, glm::dvec3 velocity, double averageRadius, double equatorialRadius, double polarRadius, double gravityAcceleration, double axialTilt, double rotationSpeed, double viewSwitchHeight) 
@@ -44,11 +50,12 @@ public:
         this->mu   = calculateGravitationalParameter();
     }
 
-    glm::dvec3 calculateAcceleration(std::vector<CelestialBody> &bodies) 
+    AccelOut calculateAcceleration(std::vector<CelestialBody> &bodies) 
     {
-        glm::dvec3 totalAccel = glm::dvec3(0.0);
+        AccelOut accelOut = AccelOut();
         for (CelestialBody &body : bodies) 
         {
+            if (&body == this) accelOut.accels.push_back(glm::dvec3(0.0));
             if (&body == this) continue;
 
             this->sqrDstVec.x = (body.position.x - this->position.x) * (body.position.x - this->position.x);
@@ -66,18 +73,24 @@ public:
             this->acceleration.y = this->forceDir.y * ((G * body.mass) / this->sqrDst);
             this->acceleration.z = this->forceDir.z * ((G * body.mass) / this->sqrDst);
 
-            totalAccel += this->acceleration;
+            accelOut.accels.push_back(this->acceleration);
+            accelOut.accel         += this->acceleration;
         }
 
-        return totalAccel;
+        return accelOut;
     }
 
     void updateObject(std::vector<CelestialBody> &bodies, double deltaTime) 
     {
+        AccelOut accelData = calculateAcceleration(bodies);
+
         this->position += this->velocity * glm::dvec3(deltaTime) + this->totalAcceleration * glm::dvec3(deltaTime * deltaTime * 0.5);
-        glm::dvec3 newAcceleration = calculateAcceleration(bodies);
+        glm::dvec3 newAcceleration = accelData.accel;
+
         this->velocity += (this->totalAcceleration + newAcceleration) * (deltaTime * 0.5);
         this->totalAcceleration = newAcceleration;
+        
+        this->accelerations = accelData.accels;
     }
 
     void fillData()
