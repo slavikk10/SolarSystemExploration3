@@ -50,40 +50,29 @@
 #include <thread>
 #include <atomic>
 
-#include <ft2build.h>
-#include <freetype/freetype.h>
-
 struct SphereCollision;
 
+void regenerate_buffers();
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_click_callback(GLFWwindow* window, int button, int action);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int genTexture(Texture texture, bool gamma_correction=false, bool sixteenFloat=false);
-Image loadImage(char const * path, bool gamma_correction);
+Image loadImage(char const * path, bool gamma_correction=false);
 unsigned int loadCubemap(std::string path, std::string filename_start_text, vector<std::string> faces, bool gamma_correction, bool sixteenFloat=false);
-glm::vec3 floatToVec3(float v[3]);
-glm::vec2 floatToVec2(float v[2]);
-glm::vec4 floatToVec4(float v[4]);
-void loadShaderUniforms(Shader shader);
-std::string toString(const char* v);
-char* stringToChar(std::string v);
-void addToArr(const char* arr[], char* v);
 void renderQuad();
 void renderSphere(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32);
 glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32, glm::uvec2 hitSegment=glm::uvec2(0), glm::dvec3 scale=glm::dvec3(0.0), glm::dvec3 rayDirection=glm::dvec3(0.0), glm::dvec3 rayOrigin=glm::dvec3(0.0), Texture heightTexture=Texture(0, 0, 0, 0));
-void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color, bool centered);
-void saveCubemap(unsigned int cubemap, const std::string& folder, const std::string& filename_start_text, unsigned int size);
 
 // settings
-unsigned int SCR_WIDTH;
-unsigned int SCR_HEIGHT;
+unsigned int SCR_WIDTH = 800;
+unsigned int SCR_HEIGHT = 600;
 
 // camera
 Camera camera(glm::vec3(8.241306702279538e+09, 3.218946189282089e+07, -1.526005896490690e+11)/10000.0f);
-float lastX = (float)SCR_WIDTH / 2.0;
-float lastY = (float)SCR_HEIGHT / 2.0;
+float lastX = (float)SCR_WIDTH / 2.0f;
+float lastY = (float)SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
 // timing
@@ -160,25 +149,8 @@ bool enginesOn = false;
 float fuelConsumption; // liters/s
 float fuel = 3000000.0f; // in liters
 
-struct Character {
-    unsigned char*     Texture;   // The actual glyph texture
-    unsigned int       TextureID; // ID handle of the glyph texture
-    glm::ivec2         Size;      // Size of glyph
-    glm::ivec2         Bearing;   // Offset from baseline to left/top of glyph
-    unsigned int       Advance;   // Offset to advance to next glyph
-    std::vector<float> TexCoords; // X texure coordinates of the glyph
-};
-
-std::map<char, Character> Characters;
-
-// text VBO and VAO
-unsigned int textVBO, textVAO;
-
 // image VBO and VAO
 unsigned int imageVBO, imageVAO;
-
-// line VBO and VAO
-//unsigned int lineVAO, lineVBO;
 
 // structs
 struct MouseInput
@@ -189,6 +161,10 @@ struct MouseInput
     bool lmbPressed = false;
     bool mmbPressed = false;
     bool rmbPressed = false;
+
+    bool lmbPressedLastFrame = false;
+    bool mmbPressedLastFrame = false;
+    bool rmbPressedLastFrame = false;
 };
 
 struct KeyInput
@@ -237,8 +213,10 @@ static std::map<PlanetKey, PlanetData> cPlanetCache;
 
 bool orbitView = false;
 
-unsigned int textAtlas;
-int maxBearing = 0, maxHMB = 0;
+unsigned int colorBuffer, depthBuffer;
+
+unsigned int windowModeLastFrame = 0;
+bool isWindowModeUpdated         = false;
 
 int main(int argc, char* argv[]) {
     float start = glfwGetTime();
@@ -259,12 +237,12 @@ int main(int argc, char* argv[]) {
     GLFWmonitor* primary = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(primary);
 
-    SCR_WIDTH  = (unsigned int)mode->width;
-    SCR_HEIGHT = (unsigned int)mode->height;
+    //SCR_WIDTH  = (unsigned int)mode->width;
+    //SCR_HEIGHT = (unsigned int)mode->height;
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Solar System Exploration 3", glfwGetPrimaryMonitor(), NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Solar System Exploration 3", primary, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -285,122 +263,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    // initialize freetype
-    FT_Library ft;
-    if (FT_Init_FreeType(&ft))
-    {
-        std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
-        return -1;
-    }
-
-    FT_Face face;
-    if (FT_New_Face(ft, getFilePath("resources/fonts/sans-serif.ttf").c_str(), 0, &face))
-    {
-        std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;  
-        return -1;
-    }
-
-    FT_Set_Pixel_Sizes(face, 0, 48);
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
-  
-    // load characters
-    // ---------------
-    unsigned int atlasWidth = 0, atlasHeight = 0;
-    for (unsigned char c = 0; c < 128; c++)
-    {
-        // load character glyph 
-        if (FT_Load_Char(face, c, FT_LOAD_RENDER))
-        {
-            std::cout << "ERROR::FREETYPE: Failed to load Glyph" << std::endl;
-            continue;
-        }
-
-        unsigned int bufferSize = face->glyph->bitmap.width * face->glyph->bitmap.rows;
-        unsigned char* bufferCopy = new unsigned char[bufferSize];
-        memcpy(bufferCopy, face->glyph->bitmap.buffer, bufferSize);
-
-        // generate texture
-        unsigned int texture;
-        glGenTextures(1, &texture);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(
-            GL_TEXTURE_2D,
-            0,
-            GL_RED,
-            face->glyph->bitmap.width,
-            face->glyph->bitmap.rows,
-            0,
-            GL_RED,
-            GL_UNSIGNED_BYTE,
-            bufferCopy
-        );
-
-        // set texture options
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        // now store character for later use
-        Character character = {
-            bufferCopy,
-            texture, 
-            glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
-            glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
-            static_cast<unsigned int>(face->glyph->advance.x)
-        };
-        Characters.insert(std::pair<char, Character>(c, character));
-
-        atlasWidth += face->glyph->bitmap.width + (face->glyph->advance.x >> 6);
-        atlasHeight = max(atlasHeight, face->glyph->bitmap.rows);
-    }
-
-    // find max character values
-    // -------------------------
-    for (unsigned char c = 0; c < 128; c++)
-    {
-        maxBearing = max(maxBearing, Characters[c].Bearing.y);
-        maxHMB     = max(maxHMB, Characters[c].Size.y - Characters[c].Bearing.y);
-    }
-
-    // configure text atlas height
-    atlasHeight = maxBearing + maxHMB;
-
-    // generate text atlas
-    // -------------------
-    glGenTextures(1, &textAtlas);
-    glBindTexture(GL_TEXTURE_2D, textAtlas);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, atlasWidth, atlasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    // fill the text atlas texture
-    // ---------------------------
-    unsigned int x_offset = 0;
-    for (unsigned char c = 0; c < 128; c++)
-    {
-        Character ch = Characters[c];
-
-        glTexSubImage2D(GL_TEXTURE_2D, 0, x_offset, atlasHeight - ch.Size.y, ch.Size.x, ch.Size.y, GL_RED, GL_UNSIGNED_BYTE, ch.Texture);
-
-        ch.TexCoords.push_back(x_offset / (float)atlasWidth);
-        ch.TexCoords.push_back((x_offset + ch.Size.x) / (float)atlasWidth);
-
-        Characters[c] = ch;
-
-        x_offset += ch.Size.x + (ch.Advance >> 6);
-    }
-
-    // save text atlas to game resources
-    // ---------------------------------
-    saveTexture(textAtlas, getFilePath("resources/textures/HDR"), "text_atlas", atlasWidth, atlasHeight, GL_RED, GL_UNSIGNED_BYTE, EXT_PNG);
-
-    // free up resources
-    // -----------------
-    FT_Done_Face(face);
-    FT_Done_FreeType(ft);
+    genTextAtlas();
 
     // configure global opengl state
     // -----------------------------
@@ -509,28 +372,6 @@ int main(int argc, char* argv[]) {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-    // text VAO and VBO
-    glGenBuffers(1, &textVBO);
-    glGenVertexArrays(1, &textVAO);
-    glBindVertexArray(textVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, textVBO);
-    glBufferData(GL_ARRAY_BUFFER, 6 * 4 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // line VAO and VBO
-    /*glGenBuffers(1, &lineVBO);
-    glGenVertexArrays(1, &lineVAO);
-    glBindVertexArray(lineVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-    glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(float), NULL, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);*/
-
     //std::cout << "Time elapsed to setup VBO/VAO: " << glfwGetTime() - start << std::endl;
     start = glfwGetTime();
     // generate depth map framebuffer
@@ -563,7 +404,6 @@ int main(int argc, char* argv[]) {
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-    unsigned int colorBuffer;
     glGenTextures(1, &colorBuffer);
     glBindTexture(GL_TEXTURE_2D, colorBuffer);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
@@ -571,7 +411,6 @@ int main(int argc, char* argv[]) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glGenerateMipmap(GL_TEXTURE_2D);
 
-    unsigned int depthBuffer;
     glGenTextures(1, &depthBuffer);
     glBindTexture(GL_TEXTURE_2D, depthBuffer);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
@@ -741,20 +580,23 @@ int main(int argc, char* argv[]) {
 
     // Load UI textures
     // ----------------
-    Image objectNavImg   = loadImage(getFilePath("resources/textures/UI/objectnav.png").c_str(),                    false);
-    Image apoap_periapsi = loadImage(getFilePath("resources/textures/UI/apo-per.png").c_str(),                      false);
-    Image mmtl           = loadImage(getFilePath("resources/textures/UI/main_menu/mmtl_sse3.png").c_str(),          false);
-    Image start_button   = loadImage(getFilePath("resources/textures/UI/main_menu/start_button.png").c_str(),       false);
-    Image options_button = loadImage(getFilePath("resources/textures/UI/main_menu/options_button.png").c_str(),     false);
-    Image quit_button    = loadImage(getFilePath("resources/textures/UI/main_menu/quit_button.png").c_str(),        false);
-    Image start_hover    = loadImage(getFilePath("resources/textures/UI/main_menu/start_hover.png").c_str(),        false);
-    Image options_hover  = loadImage(getFilePath("resources/textures/UI/main_menu/options_hover.png").c_str(),      false);
-    Image quit_hover     = loadImage(getFilePath("resources/textures/UI/main_menu/quit_hover.png").c_str(),         false);
-    Image options_panel  = loadImage(getFilePath("resources/textures/UI/main_menu/options_panel.png").c_str(),      false);
-    Image options_close  = loadImage(getFilePath("resources/textures/UI/main_menu/options_close.png").c_str(),      false);
-    Image black_overlap  = loadImage(getFilePath("resources/textures/UI/black_overlap.png").c_str(),                false);
-    Image rtg_button     = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_game.png").c_str(),      false);
-    Image rtmm_button    = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_main_menu.png").c_str(), false);
+    Image objectNavImg   = loadImage(getFilePath("resources/textures/UI/objectnav.png").c_str());
+    Image apoap_periapsi = loadImage(getFilePath("resources/textures/UI/apo-per.png").c_str());
+    Image mmtl           = loadImage(getFilePath("resources/textures/UI/main_menu/mmtl_sse3.png").c_str());
+    Image start_button   = loadImage(getFilePath("resources/textures/UI/main_menu/start_button.png").c_str());
+    Image options_button = loadImage(getFilePath("resources/textures/UI/main_menu/options_button.png").c_str());
+    Image quit_button    = loadImage(getFilePath("resources/textures/UI/main_menu/quit_button.png").c_str());
+    Image start_hover    = loadImage(getFilePath("resources/textures/UI/main_menu/start_hover.png").c_str());
+    Image options_hover  = loadImage(getFilePath("resources/textures/UI/main_menu/options_hover.png").c_str());
+    Image quit_hover     = loadImage(getFilePath("resources/textures/UI/main_menu/quit_hover.png").c_str());
+    Image options_panel  = loadImage(getFilePath("resources/textures/UI/main_menu/options_panel.png").c_str());
+    Image options_close  = loadImage(getFilePath("resources/textures/UI/main_menu/options_close.png").c_str());
+    Image black_overlap  = loadImage(getFilePath("resources/textures/UI/black_overlap.png").c_str());
+    Image rtg_button     = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_game.png").c_str());
+    Image rtmm_button    = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_main_menu.png").c_str());
+    Image drdown_item_bg = loadImage(getFilePath("resources/textures/UI/main_menu/options/dropdown_item_bg.png").c_str());
+    Image drdown_tri_dwn = loadImage(getFilePath("resources/textures/UI/main_menu/options/dropdown_triangle_down.png").c_str());
+    Image drdown_tri_up  = loadImage(getFilePath("resources/textures/UI/main_menu/options/dropdown_triangle_up.png").c_str());
 
     // configure irradiance map
     // ------------------------
@@ -849,8 +691,8 @@ int main(int argc, char* argv[]) {
     HoverButton quitButton([window]() { quitCallback(window); }, glm::vec2(300.0f, 340.0f), 0.2f, imageShader, quit_button,    quit_hover);
     Button optionsClose(optionsCloseCallback,                    glm::vec2(SCR_WIDTH - SCR_WIDTH / 20.0f, SCR_HEIGHT - SCR_HEIGHT / 10.0f), 0.2f, imageShader, options_close);
 
-    Button rtgESCButton(rtgCallback,                             glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + 50.0f), 0.3f, imageShader, rtg_button);
-    Button rtmmESCButton(rtmmCallback,                           glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f), 0.3f, imageShader, rtmm_button);
+    Button rtgESCButton  = Button(rtgCallback,                   glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + 50.0f), 0.3f, imageShader, rtg_button);
+    Button rtmmESCButton = Button(rtmmCallback,                  glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f), 0.3f, imageShader, rtmm_button);
 
     ThreadPool planetRenderThreads(numOfPlanets);
     std::atomic<int> threadsLeft = 0;
@@ -956,11 +798,26 @@ int main(int argc, char* argv[]) {
     unsigned int menuBody = 3;
     glm::dvec3 menuCameraPosition = glm::dvec3(bodies[menuBody].position.x/sscale + 1000000.0f, bodies[menuBody].position.y/sscale + 1000000.0f, bodies[menuBody].position.z/sscale + 50000000.0f);    
 
+    std::vector<std::string> DBT_m_o_wm = {"Windowed", "Fullscreen"};
+    Dropdown D_m_o_wm(DBT_m_o_wm, imageShader, textShader, drdown_item_bg, drdown_item_bg, drdown_tri_dwn, drdown_tri_up, glm::vec2(1500.0f, 850.0f), 0.1f, 0.4f);
+
+    glfwSetWindowMonitor(window, NULL, 0, 0, 800, 600, GLFW_DONT_CARE);
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
     {
         timestamp += 1;
+
+        // update buttons
+        // --------------
+        startButton   = HoverButton(startCallback,                        glm::vec2(0.15625f  * SCR_WIDTH, 0.463f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, start_button,   start_hover);
+        optionsButton = HoverButton(optionsCallback,                      glm::vec2(0.15625f  * SCR_WIDTH, 0.389f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, options_button, options_hover);
+        quitButton    = HoverButton([window]() { quitCallback(window); }, glm::vec2(0.15625f  * SCR_WIDTH, 0.315f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, quit_button,    quit_hover);
+        optionsClose  = Button(     optionsCloseCallback,                 glm::vec2(SCR_WIDTH - SCR_WIDTH / 20.0f,  SCR_HEIGHT - SCR_HEIGHT / 10.0f), SCR_HEIGHT / 5400.0f, imageShader, options_close);
+
+        rtgESCButton  = Button(rtgCallback,                               glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + SCR_HEIGHT / 21.6f), SCR_HEIGHT / 3600.0f, imageShader, rtg_button);
+        rtmmESCButton = Button(rtmmCallback,                              glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - SCR_HEIGHT / 21.6f), SCR_HEIGHT / 3600.0f, imageShader, rtmm_button);
 
         // input
         // -----
@@ -1488,6 +1345,8 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        glDisable(GL_DEPTH_TEST);
+
         // render pointers to bodies
         // -------------------------
         if (!menuState.inMenu && orbitView)
@@ -1527,7 +1386,13 @@ int main(int argc, char* argv[]) {
         }
 
         if (menuState.options)
-            RenderCenteredImage(imageShader, options_panel, SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f, 0.85f);
+        {
+            RenderCenteredImage(imageShader, options_panel, SCR_WIDTH / 2, SCR_HEIGHT / 2 - SCR_HEIGHT / 21.6f, SCR_HEIGHT / 1270.59f);
+            RenderText(textShader, "Window mode", glm::vec2(SCR_WIDTH / 6.4f, SCR_HEIGHT / 1.27f), SCR_HEIGHT / 2160.0f, glm::vec3(1.0f), true);
+
+            D_m_o_wm.position = glm::vec2(SCR_WIDTH / 1.28f, SCR_HEIGHT / 1.27f);
+            D_m_o_wm.render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
+        }
 
         // render apoapsis and periapsis and also transfer window
         // ------------------------------------------------------
@@ -1635,30 +1500,40 @@ int main(int argc, char* argv[]) {
         // ---------
         if (menuState.inMenu && !menuState.options)
         {
-            RenderCenteredImage(imageShader, mmtl, SCR_WIDTH / 4.5, SCR_HEIGHT - 250, 1.0f);
-            startButton.Render(  glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, SCR_WIDTH, SCR_HEIGHT);
-            optionsButton.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, SCR_WIDTH, SCR_HEIGHT);
-            quitButton.Render(   glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, SCR_WIDTH, SCR_HEIGHT);
+            RenderCenteredImage(imageShader, mmtl, SCR_WIDTH / 4.5, SCR_HEIGHT - SCR_HEIGHT / 4.32,  SCR_HEIGHT / 1080.0f);
+            startButton.Render(  glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
+            optionsButton.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
+            quitButton.Render(   glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
         }
-
-        glDepthMask(FALSE);
 
         // escape menu
         // -----------
         if (menuState.escMenu)
         {
             RenderCenteredImage(imageShader, black_overlap, SCR_WIDTH / 2, SCR_HEIGHT / 2, 1.0f);
-            rtgESCButton.Render( glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, SCR_WIDTH, SCR_HEIGHT);
-            rtmmESCButton.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, SCR_WIDTH, SCR_HEIGHT);
+            rtgESCButton.Render( glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
+            rtmmESCButton.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
         }
 
         glDisable(GL_BLEND);
-        glDepthMask(GL_TRUE);
+        glEnable(GL_DEPTH_TEST);
+
+        mouseInput.lmbPressedLastFrame = mouseInput.lmbPressed;
+        mouseInput.mmbPressedLastFrame = mouseInput.mmbPressed;
+        mouseInput.rmbPressedLastFrame = mouseInput.rmbPressed;
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        isWindowModeUpdated = D_m_o_wm.selected != windowModeLastFrame;
+        if (isWindowModeUpdated)
+        {
+            bool isFullscreen = D_m_o_wm.selected == 1;
+            glfwSetWindowMonitor(window, (isFullscreen ? primary : NULL), 0, 0, (isFullscreen ? mode->width : 800), (isFullscreen ? mode->height : 600), GLFW_DONT_CARE);
+        }
+        windowModeLastFrame = D_m_o_wm.selected;
 
         currentDate.increment(deltaTime * timeMultiplier);
     }
@@ -1684,7 +1559,10 @@ void processInput(GLFWwindow *window)
     {
         if (menuState.inMenu)
         {
-            glfwSetWindowShouldClose(window, true);
+            if (!menuState.options)
+                glfwSetWindowShouldClose(window, true);
+            else
+                menuState.options = false;
         }
         else
         {
@@ -1759,13 +1637,28 @@ void processInput(GLFWwindow *window)
     }
 }
 
+// regenerate buffers that use screen resolution after window resize
+// -----------------------------------------------------------------
+void regenerate_buffers(unsigned int &colorBuffer, unsigned int &depthBuffer)
+{
+    glBindTexture(GL_TEXTURE_2D, colorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+
+    glBindTexture(GL_TEXTURE_2D, depthBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+}
+
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    // make sure the viewport matches the new window dimensions; note that width and 
-    // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
+
+    SCR_WIDTH  = width;
+    SCR_HEIGHT = height;
+
+    regenerate_buffers(colorBuffer, depthBuffer);
+    std::cout << SCR_WIDTH << "; " << SCR_HEIGHT << std::endl;
 }
 
 // glfw: whenever the mouse moves, this callback is called
@@ -2252,64 +2145,4 @@ glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS, unsigned
         return triangle2Hit;
     else
         return triangle1Hit;
-}
-
-void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color, bool centered)
-{
-    s.use();
-    s.setVec3("textColor", color);
-    glActiveTexture(GL_TEXTURE0);
-    glBindVertexArray(textVAO);
-
-    glBindTexture(GL_TEXTURE_2D, textAtlas);
-
-    float totalWidth = 0;
-
-    std::string::const_iterator c2;
-    for (c2 = text.begin(); c2 != text.end(); c2++)
-        totalWidth += Characters[*c2].Size.x * scale;
-
-    if (centered)
-        x -= totalWidth / 2;
-
-    std::vector<float> totalVertices;
-
-    std::string::const_iterator c;
-    unsigned int i = 0;
-    for (c = text.begin(); c != text.end(); c++)
-    {
-        Character ch = Characters[*c];
-
-        float xpos = x + ch.Bearing.x * scale;
-        float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
-
-        float w = ch.Size.x * scale;
-        float h = ch.Size.y * scale + (maxHMB - (ch.Size.y - ch.Bearing.y)) * scale;
-
-        float s1 = ch.TexCoords[0];
-        float s2 = ch.TexCoords[1];
-
-        float vertices[6][4] = {
-            { xpos,     ypos + h,   s1, 0.0f },
-            { xpos,     ypos,       s1, 1.0f },
-            { xpos + w, ypos,       s2, 1.0f },
-
-            { xpos,     ypos + h,   s1, 0.0f },
-            { xpos + w, ypos,       s2, 1.0f },
-            { xpos + w, ypos + h,   s2, 0.0f }
-        };
-
-        for (unsigned int j = 0; j < 6; j++)
-            for (unsigned int k = 0; k < 4; k++)
-                totalVertices.push_back(vertices[j][k]);
-
-        x += (ch.Advance >> 6) * scale;
-        i++;
-    }
-
-    glBindBuffer(GL_ARRAY_BUFFER, textVBO);
-    glBufferData(GL_ARRAY_BUFFER, totalVertices.size() * sizeof(float), totalVertices.data(), GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glDrawArrays(GL_TRIANGLES, 0, 6 * text.size());
 }

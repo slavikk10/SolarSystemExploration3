@@ -10,6 +10,8 @@
 
 #include <iostream>
 
+#pragma once
+
 typedef unsigned int EXTenum;
 
 EXTenum EXT_HDR = 0;
