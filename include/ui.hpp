@@ -535,15 +535,17 @@ public:
         text_scale   = tsc;
 
         for (unsigned int i = 0; i < button_texts.size(); i++)
-            buttons.push_back(Button([this, i]() {button_clicked(i);}, glm::vec2(position.x, position.y - bi.Size.y * button_scale * (i + 1)), button_scale, image_shader, bi));
+            buttons.push_back(Button([this, i]() {button_clicked(i);}, glm::vec2(position.x, position.y - button_image.Size.y * button_scale * (i + 1)), button_scale, image_shader, button_image));
 
         dropdown_button = Button([this]() {dropdown_button_clicked();}, position, button_scale, image_shader, dropdown_image);
     }
 
     void render(glm::vec2 mouse, bool lmbPressed, bool lmbPressedLastFrame, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
     {
+        updateButtons();
+
         dropdown_button.Render(mouse, lmbPressed, lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
-        RenderText(text_shader, button_texts[selected], position.x, position.y - 7.0f, text_scale, glm::vec3(1.0f), true);
+        RenderText(text_shader, button_texts[selected], position.x, position.y - (70.0f * button_scale), text_scale, glm::vec3(1.0f), true);
 
         if (activated)
         {
@@ -551,7 +553,7 @@ public:
             for (auto &button : buttons)
             {
                 button.Render(mouse, lmbPressed, lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
-                RenderText(text_shader, button_texts[i], button.position.x, button.position.y - 7.0f, text_scale, glm::vec3(1.0f), true);
+                RenderText(text_shader, button_texts[i], button.position.x, button.position.y - (70.0f * button_scale), text_scale, glm::vec3(1.0f), true);
 
                 i++;
             }
@@ -569,4 +571,14 @@ private:
     {
         activated = !activated;
     };
+
+    void updateButtons()
+    {
+        buttons.clear();
+
+        for (unsigned int i = 0; i < button_texts.size(); i++)
+            buttons.push_back(Button([this, i]() {button_clicked(i);}, glm::vec2(position.x, position.y - button_image.Size.y * button_scale * (i + 1)), button_scale, image_shader, button_image));
+
+        dropdown_button = Button([this]() {dropdown_button_clicked();}, position, button_scale, image_shader, dropdown_image);
+    }
 };

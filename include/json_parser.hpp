@@ -15,6 +15,10 @@
 struct JSON {
     std::string contents;
     std::stringstream stream;
+    int error = 0;
+
+    JSON(int err) {error = err;}
+    JSON() {}
 };
 
 struct TextureSettings {
@@ -68,22 +72,30 @@ struct AtmosphereJSON {
     }
 };
 
-JSON loadJSON(const char* path)
+JSON loadJSON(const char* path, bool isRelative=true)
 {
     std::string json;
     std::ifstream jsonFile;
     std::stringstream jsonStream;
 
+    std::string fullPath = (isRelative ? getFilePath(path) : path);
+
+    if (!std::filesystem::exists(fullPath))
+    {
+        std::cerr << "JSON parser: given path does not exist. (" << path << ")\n";
+        return JSON(-1);
+    }
+
     jsonFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
     // load JSON file by given path
     try {
-        jsonFile.open(getFilePath(path).c_str());
+        jsonFile.open(isRelative ? getFilePath(path).c_str() : path);
         jsonStream << jsonFile.rdbuf();
         jsonFile.close();
         json = jsonStream.str();
     }
     catch(std::ifstream::failure e) {
-        std::cout << "Error reading JSON file at (relative) path: " << path << std::endl;
+        std::cout << "Error reading JSON file at" + std::string(isRelative ? " (relative) " : " ") + "path: " << path << std::endl;
     }
 
     JSON result;

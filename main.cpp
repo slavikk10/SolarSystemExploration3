@@ -31,6 +31,7 @@
 #include <texturecachemanager.hpp>
 #include <soundmanager.hpp>
 #include <renderfuncs.hpp>
+#include <savefilesmanager.hpp>
 
 #include <atomic>
 #include <cstdlib>
@@ -54,6 +55,7 @@ struct SphereCollision;
 
 void regenerate_buffers();
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void window_pos_callback(GLFWwindow* window, int xpos, int ypos);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_click_callback(GLFWwindow* window, int button, int action);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -65,9 +67,19 @@ void renderQuad();
 void renderSphere(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32);
 glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32, glm::uvec2 hitSegment=glm::uvec2(0), glm::dvec3 scale=glm::dvec3(0.0), glm::dvec3 rayDirection=glm::dvec3(0.0), glm::dvec3 rayOrigin=glm::dvec3(0.0), Texture heightTexture=Texture(0, 0, 0, 0));
 
-// settings
-unsigned int SCR_WIDTH = 800;
-unsigned int SCR_HEIGHT = 600;
+// screen resolution
+unsigned int SCR_WIDTH, SCR_HEIGHT;
+
+// last window resolution
+unsigned int WIN_WIDTH, WIN_HEIGHT;
+// last window position
+unsigned int WIN_X, WIN_Y;
+
+// max window size and coordinates
+int MAX_WIN_WIDTH, MAX_WIN_HEIGHT, WORK_AREA_X_POS, WORK_AREA_Y_POS;
+
+// monitor resolution
+unsigned int MONITOR_WIDTH, MONITOR_HEIGHT;
 
 // camera
 Camera camera(glm::vec3(8.241306702279538e+09, 3.218946189282089e+07, -1.526005896490690e+11)/10000.0f);
@@ -217,6 +229,7 @@ unsigned int colorBuffer, depthBuffer;
 
 unsigned int windowModeLastFrame = 0;
 bool isWindowModeUpdated         = false;
+bool isFullscreen                = false;
 
 int main(int argc, char* argv[]) {
     float start = glfwGetTime();
@@ -232,17 +245,64 @@ int main(int argc, char* argv[]) {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
+    bool windowOptionsFileDoesNotExist = false;
+
+    // load window_options.json file
+    // -----------------------------
+    JSON window_options = loadJSON((std::getenv("HOME") + std::string("/Library/Application Support/com.vyacheslavc.SolarSystemExploration3/window_options.json")).c_str(), false);
+
+    if (window_options.error == -1)
+        windowOptionsFileDoesNotExist = true;
+
+    std::string windowModeS = "";
+    if (!windowOptionsFileDoesNotExist)
+    {
+        windowModeS = getJSONValue(window_options, "windowMode");
+
+        WIN_WIDTH  = (unsigned int)std::stoi(getJSONValue(window_options, "windowWidth"));
+        WIN_HEIGHT = (unsigned int)std::stoi(getJSONValue(window_options, "windowHeight"));
+
+        WIN_X = (unsigned int)std::stoi(getJSONValue(window_options, "windowX"));
+        WIN_Y = (unsigned int)std::stoi(getJSONValue(window_options, "windowY"));
+    }
+
     // glfw: get primary monitor resolution
     // ------------------------------------
     GLFWmonitor* primary = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(primary);
 
-    //SCR_WIDTH  = (unsigned int)mode->width;
-    //SCR_HEIGHT = (unsigned int)mode->height;
+    MONITOR_WIDTH  = (unsigned int)mode->width;
+    MONITOR_HEIGHT = (unsigned int)mode->height;
+
+    if (windowModeS == "fullscreen")
+    {
+        isFullscreen = true;
+
+        SCR_WIDTH  = MONITOR_WIDTH;
+        SCR_HEIGHT = MONITOR_HEIGHT;
+    }
+    else if (windowModeS == "windowed")
+    {
+        SCR_WIDTH  = WIN_WIDTH;
+        SCR_HEIGHT = WIN_HEIGHT;
+    }
+    else
+    {
+        glfwGetMonitorWorkarea(primary, &WORK_AREA_X_POS, &WORK_AREA_Y_POS, &MAX_WIN_WIDTH, &MAX_WIN_HEIGHT);
+
+        WIN_WIDTH  = MAX_WIN_WIDTH;
+        WIN_HEIGHT = MAX_WIN_HEIGHT;
+
+        WIN_X = WORK_AREA_X_POS;
+        WIN_Y = WORK_AREA_Y_POS;
+
+        SCR_WIDTH  = WIN_WIDTH;
+        SCR_HEIGHT = WIN_HEIGHT;
+    }
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Solar System Exploration 3", primary, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Solar System Exploration 3", (isFullscreen ? primary : NULL), NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -254,6 +314,12 @@ int main(int argc, char* argv[]) {
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetMouseButtonCallback(window, (GLFWmousebuttonfun)mouse_click_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetWindowPosCallback(window, (GLFWwindowposfun)window_pos_callback);
+
+    // move window to saved coordinates if they exist
+    // ----------------------------------------------
+    if (!windowOptionsFileDoesNotExist)
+        glfwSetWindowPos(window, WIN_X, WIN_Y);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -294,26 +360,6 @@ int main(int argc, char* argv[]) {
     Model rocketModel(getFilePath("resources/models/simple_rocket.obj"));
     Model cylinder(   getFilePath("resources/models/cylinder.obj"));
     Model cone(       getFilePath("resources/models/cone.obj"));
-
-    // lambert test
-    ObjectState test1;
-    test1.r = glm::dvec3(-4.796874274219856E+10, 6.198119736398615E+09, 2.400786344713238E+10);
-    test1.v = glm::dvec3(3.034292332504135E+04, -6.669168311718483E+02, 4.221418261050133E+04);
-    
-    ObjectState test2;
-    test2.r = glm::dvec3(-1.001554703308044E+11, 6.310506534141319E+09, 3.869421814799229E+10);
-    test2.v = glm::dvec3(1.278336333396057E+04, 2.865359848750817E+02, 3.283062339720540E+04);
-
-    OrbitalObject test1oo = findOrbitalElements(test1, 1.32639302186009968640e+20);
-    OrbitalObject test2oo = findOrbitalElements(test2, 1.32639302186009968640e+20);
-
-    LambertOutput lout = lambertSolver(test1oo, test2oo, 0.0, 7776000.0, 1.32639302186009968640e+20, test1.r, false);
-    test1.v = lout.requiredVelocity;
-
-    test1oo = findOrbitalElements(test1, 1.32639302186009968640e+20);
-    std::cout << "sma " << test1oo.orbit.semiMajorAxis << std::endl;
-
-    std::cout << glm::length(findMeanPosition(7776000.0, test1, 1.32639302186009968640e+20) - findMeanPosition(7776000.0, test2, 1.32639302186009968640e+20)) << std::endl;
 
     // setup cube vertices (for skybox)
     // --------------------------------
@@ -801,7 +847,8 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> DBT_m_o_wm = {"Windowed", "Fullscreen"};
     Dropdown D_m_o_wm(DBT_m_o_wm, imageShader, textShader, drdown_item_bg, drdown_item_bg, drdown_tri_dwn, drdown_tri_up, glm::vec2(1500.0f, 850.0f), 0.1f, 0.4f);
 
-    glfwSetWindowMonitor(window, NULL, 0, 0, 800, 600, GLFW_DONT_CARE);
+    if (windowModeS == "fullscreen")
+        D_m_o_wm.selected = 1;
 
     // render loop
     // -----------
@@ -1390,7 +1437,10 @@ int main(int argc, char* argv[]) {
             RenderCenteredImage(imageShader, options_panel, SCR_WIDTH / 2, SCR_HEIGHT / 2 - SCR_HEIGHT / 21.6f, SCR_HEIGHT / 1270.59f);
             RenderText(textShader, "Window mode", glm::vec2(SCR_WIDTH / 6.4f, SCR_HEIGHT / 1.27f), SCR_HEIGHT / 2160.0f, glm::vec3(1.0f), true);
 
-            D_m_o_wm.position = glm::vec2(SCR_WIDTH / 1.28f, SCR_HEIGHT / 1.27f);
+            D_m_o_wm.position     = glm::vec2(SCR_WIDTH / 1.28f, SCR_HEIGHT / 1.27f);
+            D_m_o_wm.button_scale = SCR_HEIGHT / 10800.0f;
+            D_m_o_wm.text_scale   = SCR_HEIGHT / 2700.0f;
+
             D_m_o_wm.render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
         }
 
@@ -1401,14 +1451,14 @@ int main(int argc, char* argv[]) {
             if (glm::length(rocketTrajectory.apoapsis) > 0.0)
             {
                 glm::vec2 a = glm::vec2(convert3Dto2D(rocketTrajectory.apoapsis - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(rocketTrajectory.apoapsis - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
-                std::string apoapsiss  = std::to_string(std::round((rocketTrajectory.apoapsisd  - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.apoapsisd   / 100.0)  / 10.0).find(".") + 2);
+                std::string apoapsiss  = std::to_string(std::round((rocketTrajectory.apoapsisd  - bodies[boundBody].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.apoapsisd   / 100.0)  / 10.0).find(".") + 2);
 
                 RenderCenteredImage(imageShader, apoap_periapsi, a.x, a.y, 0.05f);
                 RenderText(textShader, apoapsiss  + " km", a.x, a.y + 50.0f, 0.4f, glm::vec3(1.0f), true);
             }
 
             glm::vec2 p = glm::vec2(convert3Dto2D(rocketTrajectory.periapsis - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(rocketTrajectory.periapsis - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).y);
-            std::string periapsiss = std::to_string(std::round((rocketTrajectory.periapsisd - bodies[3].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.periapsisd  / 100.0)  / 10.0).find(".") + 2);
+            std::string periapsiss = std::to_string(std::round((rocketTrajectory.periapsisd - bodies[boundBody].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.periapsisd  / 100.0)  / 10.0).find(".") + 2);
             
             RenderCenteredImage(imageShader, apoap_periapsi, p.x, p.y, 0.05f);
             RenderText(textShader, periapsiss + " km", p.x, p.y + 50.0f, 0.4f, glm::vec3(1.0f), true);
@@ -1530,8 +1580,9 @@ int main(int argc, char* argv[]) {
         isWindowModeUpdated = D_m_o_wm.selected != windowModeLastFrame;
         if (isWindowModeUpdated)
         {
-            bool isFullscreen = D_m_o_wm.selected == 1;
-            glfwSetWindowMonitor(window, (isFullscreen ? primary : NULL), 0, 0, (isFullscreen ? mode->width : 800), (isFullscreen ? mode->height : 600), GLFW_DONT_CARE);
+            isFullscreen = D_m_o_wm.selected == 1;
+            glfwSetWindowMonitor(window, (isFullscreen ? primary : NULL), WIN_X, WIN_Y, (isFullscreen ? mode->width : WIN_WIDTH), (isFullscreen ? mode->height : WIN_HEIGHT), GLFW_DONT_CARE);
+            createSaveFile("window_options", "{\n\t\"windowMode\": \"" + std::string(isFullscreen ? "fullscreen" : "windowed") + "\",\n\n\t\"windowWidth\": " + std::to_string(WIN_WIDTH) + ",\n\t\"windowHeight\": " + std::to_string(WIN_HEIGHT) + ",\n\n\t\"windowX\": " + std::to_string(WIN_X) + ",\n\t\"windowY\": " + std::to_string(WIN_Y) + "\n}", ".json");
         }
         windowModeLastFrame = D_m_o_wm.selected;
 
@@ -1657,8 +1708,24 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     SCR_WIDTH  = width;
     SCR_HEIGHT = height;
 
+    if (!(width == MONITOR_WIDTH && height == MONITOR_HEIGHT))
+    {
+        WIN_WIDTH  = width;
+        WIN_HEIGHT = height;
+    }
+
+    createSaveFile("window_options", "{\n\t\"windowMode\": \"" + std::string("windowed") + "\",\n\n\t\"windowWidth\": " + std::to_string(WIN_WIDTH) + ",\n\t\"windowHeight\": " + std::to_string(WIN_HEIGHT) + ",\n\n\t\"windowX\": " + std::to_string(WIN_X) + ",\n\t\"windowY\": " + std::to_string(WIN_Y) + "\n}", ".json");
     regenerate_buffers(colorBuffer, depthBuffer);
-    std::cout << SCR_WIDTH << "; " << SCR_HEIGHT << std::endl;
+}
+
+// glfw: whenever the window position is changed, this callback is called
+// ----------------------------------------------------------------------
+void window_pos_callback(GLFWwindow* window, int xpos, int ypos)
+{
+    WIN_X = xpos;
+    WIN_Y = ypos;
+
+    createSaveFile("window_options", "{\n\t\"windowMode\": \"" + std::string("windowed") + "\",\n\n\t\"windowWidth\": " + std::to_string(WIN_WIDTH) + ",\n\t\"windowHeight\": " + std::to_string(WIN_HEIGHT) + ",\n\n\t\"windowX\": " + std::to_string(WIN_X) + ",\n\t\"windowY\": " + std::to_string(WIN_Y) + "\n}", ".json");
 }
 
 // glfw: whenever the mouse moves, this callback is called
