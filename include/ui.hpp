@@ -263,6 +263,28 @@ struct Button
     }
 };
 
+struct TransparentButton
+{
+    std::function<void()> action;
+    glm::vec2 position;
+    unsigned int width, height;
+
+    inline TransparentButton() : action(), position(), width(), height() {}
+    inline TransparentButton(std::function<void()> func, glm::vec2 pos, unsigned int w, unsigned int h) : action(func), position(pos), width(w), height(h) {}
+
+    void checkForActivation(glm::vec2 mouse, bool lmbPressed, bool lmbPressedLastFrame)
+    {
+        if (mouse.x > (position.x - width / 2.0) && mouse.x < (position.x + width / 2.0)) // check if cursor is inside the button hitbox
+        {
+            if (mouse.y > (position.y - height / 2.0) && mouse.y < (position.y + width / 2.0))
+            {
+                if (lmbPressed && !lmbPressedLastFrame)
+                    action();
+            }
+        }
+    }
+};
+
 struct HoverButton
 {
     std::function<void()> action;

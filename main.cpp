@@ -67,6 +67,11 @@ void renderQuad();
 void renderSphere(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32);
 glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32, glm::uvec2 hitSegment=glm::uvec2(0), glm::dvec3 scale=glm::dvec3(0.0), glm::dvec3 rayDirection=glm::dvec3(0.0), glm::dvec3 rayOrigin=glm::dvec3(0.0), Texture heightTexture=Texture(0, 0, 0, 0));
 
+std::function<void(unsigned int&, unsigned int)> setTransferBody = [](unsigned int& bodyVar, unsigned int body)
+{
+    bodyVar = body;
+};
+
 // screen resolution
 unsigned int SCR_WIDTH, SCR_HEIGHT;
 
@@ -98,7 +103,8 @@ constexpr float sscale = 1.0f; // scale of the Solar System (1:1)
 const std::vector<std::string> faces           = {"right", "left", "top", "bottom", "front", "back"}; // cubemap faces
 const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000}; // timewarp values
 const std::vector<std::string> monthNames      = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-constexpr unsigned int numOfPlanets     = 11;
+constexpr unsigned int numOfPlanets            = 11;
+const std::vector<unsigned int> parentBody     = {0, 0, 0, 0, 3, 0, 0, 6, 6, 6, 6, 0};
 
 // date
 struct Date {
@@ -108,7 +114,7 @@ struct Date {
     unsigned int hour   = 0;
     unsigned int minute = 0;
     float        second = 0.0f;
-    std::string date = "00:00:00, Jun 1, 2026";
+    std::string date    = "00:00:00, Jun 1, 2026";
 
     void increment(float seconds)
     {
@@ -230,6 +236,8 @@ unsigned int colorBuffer, depthBuffer;
 unsigned int windowModeLastFrame = 0;
 bool isWindowModeUpdated         = false;
 bool isFullscreen                = false;
+
+unsigned int transferBody = -1;
 
 int main(int argc, char* argv[]) {
     float start = glfwGetTime();
@@ -778,16 +786,16 @@ int main(int argc, char* argv[]) {
     OrbitalObject rocketOrbital;
     OrbitalObject moonOrbital;
     std::mutex orbitalElementsMutex;
-    moonOrbital   = findOrbitalElements(bodies[5].position, bodies[5].velocity, bodies[0].mu);
 
     std::thread navigatorThread([&]() {
         while (!glfwWindowShouldClose(window))
         {
-            if (orbitView)
+            if (orbitView && transferBody != -1)
             {
                 {
                     std::lock_guard<std::mutex> lock_rom(orbitalElementsMutex);
                     rocketOrbital = findOrbitalElements(bodies[numOfPlanets].position, bodies[numOfPlanets].velocity, bodies[0].mu);
+                    moonOrbital   = findOrbitalElements(bodies[transferBody].position, bodies[transferBody].velocity, bodies[0].mu);
                 }
                 //std::cout << rocketOrbital.orbit.inclination << "; " << rocketOrbital.orbit.eccentricity << "; " << rocketOrbital.orbit.raan << "; " << rocketOrbital.orbit.semiMajorAxis << "; " << rocketOrbital.orbit.semiMinorAxis << "; " << rocketOrbital.orbit.meanMotion << "; " << rocketOrbital.orbitalState.meanAnomaly << "; " << rocketOrbital.orbitalState.trueAnomaly << "; " << rocketOrbital.orbitalState.timeOfPeriapsisPassage << "; " << rocketOrbital.state.r << "; " << rocketOrbital.state.v << std::endl;
                 //std::cout << moonOrbital.orbit.inclination << "; " << moonOrbital.orbit.eccentricity << "; " << moonOrbital.orbit.raan << "; " << moonOrbital.orbit.semiMajorAxis << "; " << moonOrbital.orbit.semiMinorAxis << "; " << moonOrbital.orbit.meanMotion << "; " << moonOrbital.orbitalState.meanAnomaly << "; " << moonOrbital.orbitalState.trueAnomaly << "; " << moonOrbital.orbitalState.timeOfPeriapsisPassage << "; " << moonOrbital.state.r << "; " << moonOrbital.state.v << std::endl;
@@ -1404,7 +1412,10 @@ int main(int argc, char* argv[]) {
                 {
                     glm::vec2 bodyScreenPos = convert3Dto2D(bodies[i].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
 
-                    RenderCenteredImage(imageShader, objectNavImg, bodyScreenPos, 0.15f);
+                    //RenderCenteredImage(imageShader, objectNavImg, bodyScreenPos, 0.15f);
+                    Button bp([i]() {setTransferBody(transferBody, i);}, bodyScreenPos, 0.15f, imageShader, objectNavImg);
+                    bp.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
+
                     RenderText(textShader, bodyNames[i], bodyScreenPos.x, bodyScreenPos.y + 35, 0.4f, glm::vec3(1.0f), true);
                 }
             }
@@ -1484,10 +1495,7 @@ int main(int argc, char* argv[]) {
                 }
 
                 if (!idk && glm::length(transfer.velocityVector) > 5000.0)
-                {
-                    //bodies[numOfPlanets].velocity += transfer.velocityVector;
                     OrbitalObject newRocketOrbital = findOrbitalElements(bodies[numOfPlanets].position, bodies[numOfPlanets].velocity, bodies[0].mu);
-                }
 
                 if (transfer.velocityVector != glm::dvec3(0.0))
                     idk = true;
