@@ -18,6 +18,9 @@ struct ObjectState
 {
     glm::dvec3 r;
     glm::dvec3 v;
+
+    ObjectState() {}
+    ObjectState(glm::dvec3 pos, glm::dvec3 vel) {r = pos; v = vel;}
 };
 
 struct ObjectOrbitalState

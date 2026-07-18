@@ -32,6 +32,7 @@
 #include <soundmanager.hpp>
 #include <renderfuncs.hpp>
 #include <savefilesmanager.hpp>
+#include <date.hpp>
 
 #include <atomic>
 #include <cstdlib>
@@ -102,57 +103,9 @@ int timeMultiplierIndex = 0;
 constexpr float sscale = 1.0f; // scale of the Solar System (1:1)
 const std::vector<std::string> faces           = {"right", "left", "top", "bottom", "front", "back"}; // cubemap faces
 const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000}; // timewarp values
-const std::vector<std::string> monthNames      = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 constexpr unsigned int numOfPlanets            = 11;
 const std::vector<unsigned int> parentBody     = {0, 0, 0, 0, 3, 0, 0, 6, 6, 6, 6, 0};
-
-// date
-struct Date {
-    unsigned int year   = 2026;
-    unsigned int month  = 6;
-    unsigned int day    = 1;
-    unsigned int hour   = 0;
-    unsigned int minute = 0;
-    float        second = 0.0f;
-    std::string date    = "00:00:00, Jun 1, 2026";
-
-    void increment(float seconds)
-    {
-        second += seconds;
-
-        if (second >= 60.0f)
-        {
-            minute += floor(second / 60.0f);
-            second = 0.0f;
-        }
-
-        if (minute >= 60)
-        {
-            hour += floor(minute / 60);
-            minute = 0;
-        }
-
-        if (hour >= 24)
-        {
-            day += floor(hour / 24);
-            hour = 0;
-        }
-
-        if (day >= 32)
-        {
-            month += floor(day / 32);
-            day = 1;
-        }
-
-        if (month >= 13)
-        {
-            year += floor(month / 13);
-            month = 1;
-        }
-
-        date = std::format("{:02}", hour) + ":" + std::format("{:02}", minute) + ":" + std::format("{:02}", floor(second)) + ", " + monthNames[month - 1] + " " + std::to_string(day) + ", " + std::to_string(year);
-    }
-};
+const std::vector<std::string> planetSFNames   = {"mercury", "venus", "earth", "moon", "mars", "jupiter", "io", "europa", "ganymede", "callisto"};
 
 Date currentDate;
 
@@ -708,17 +661,56 @@ int main(int argc, char* argv[]) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glm::dvec3 spawnPos = parseCelestialJSONData("resources/planets/earth.json").position / glm::dvec3(1000.0);
-    glm::dvec3 spawnVel = parseCelestialJSONData("resources/planets/earth.json").velocity / glm::dvec3(1000.0);
+    glm::dvec3 spawnPos;
+    glm::dvec3 spawnVel;
+
+    std::string rocketSaveFilePath = getAppDataPath() + "/save.txt";
+    PlayerSaveData playerSaveData;
+
+    if (!std::filesystem::exists(rocketSaveFilePath))
+    {
+        spawnPos = parseCelestialJSONData("resources/planets/earth.json").position;
+        spawnVel = parseCelestialJSONData("resources/planets/earth.json").velocity;
+    }
+    else
+    {
+        playerSaveData = readPlayerSaveFileBinary("save");
+
+        spawnPos = playerSaveData.state.r;
+        spawnVel = playerSaveData.state.v;
+
+        fuel = playerSaveData.fuelLeft;
+    }
+
+    spawnPos /= glm::dvec3(1000.0);
+    spawnVel /= glm::dvec3(1000.0);
 
     std::vector<CelestialBody> bodies;
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
         bodies.push_back(parseCelestialJSONData(planetJSONPaths[i].c_str()));
+
+    for (unsigned int i = 0; i < bodies.size(); i++)
+    {
+        if (std::filesystem::exists(getAppDataPath() +  "/" + planetSFNames[i] + ".txt"))
+        {
+            ObjectState bodyState = readPlanetSaveFileBinary(planetSFNames[i]);
+
+            bodies[i].position = bodyState.r;
+            bodies[i].velocity = bodyState.v;
+        }
+        else
+        {
+            continue;
+        }
+    }
     
     bodies.push_back(CelestialBody(glm::dvec3(0.0), glm::dvec3(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)); // placeholder for player celestial data
 
     Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y, spawnPos.z + 2000000.0), spawnVel, 0.00000000266972, glm::vec3(5.0f));
     bodies[numOfPlanets] = rocket;
+
+    if (!playerSaveData.isEmpty)
+        rocket.rotationQuaternion = playerSaveData.rotationMatrix;
 
     std::vector<std::string> bodyNames;
     for (unsigned int i = 0; i < planetJSON.size(); i++)
@@ -737,6 +729,10 @@ int main(int argc, char* argv[]) {
     std::vector<double> cloudHeights;
     for (unsigned int i = 0; i < cloudsJSON.size(); i++)
         cloudHeights.push_back(cloudsJSON[i].height);
+
+    // get world state from file
+    // -------------------------
+    currentDate = readWorldStateBinary("world_state");
 
     // initialize buttons
     // ------------------
@@ -857,6 +853,8 @@ int main(int argc, char* argv[]) {
 
     if (windowModeS == "fullscreen")
         D_m_o_wm.selected = 1;
+
+    float saveTimer = 0.0f;
 
     // render loop
     // -----------
@@ -1446,6 +1444,8 @@ int main(int argc, char* argv[]) {
         if (menuState.options)
         {
             RenderCenteredImage(imageShader, options_panel, SCR_WIDTH / 2, SCR_HEIGHT / 2 - SCR_HEIGHT / 21.6f, SCR_HEIGHT / 1270.59f);
+            optionsClose.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
+
             RenderText(textShader, "Window mode", glm::vec2(SCR_WIDTH / 6.4f, SCR_HEIGHT / 1.27f), SCR_HEIGHT / 2160.0f, glm::vec3(1.0f), true);
 
             D_m_o_wm.position     = glm::vec2(SCR_WIDTH / 1.28f, SCR_HEIGHT / 1.27f);
@@ -1594,11 +1594,40 @@ int main(int argc, char* argv[]) {
         }
         windowModeLastFrame = D_m_o_wm.selected;
 
-        currentDate.increment(deltaTime * timeMultiplier);
+        if ((abs(saveTimer - 5.0f) < 0.01f) || (saveTimer > 5.0f))
+        {
+            // create planet states
+            // --------------------
+            std::vector<ObjectState> planetStates;
+            for (unsigned int i = 0; i < numOfPlanets; i++)
+                planetStates.push_back(ObjectState(bodies[i].position, bodies[i].velocity));
+
+            // save planet states in binary
+            // ----------------------------
+            for (unsigned int i = 0; i < planetStates.size(); i++)
+                createSaveFileBinary(planetSFNames[i], planetStates[i]);
+            
+            // save player data
+            // ----------------
+            createSaveFileBinary("save", PlayerSaveData(ObjectState(bodies[numOfPlanets].position, bodies[numOfPlanets].velocity), fuel, glm::mat4_cast(rocket.rotationQuaternion)));
+
+            // save world state (time, etc.)
+            // -----------------------------
+            createSaveFileBinary("world_state", currentDate);
+
+            // reset save timer
+            // ----------------
+            saveTimer = 0.0f;
+        }
+
+        saveTimer += deltaTime;
+
+        if (!menuState.inMenu)
+            currentDate.increment(deltaTime * timeMultiplier);
     }
 
     // de-allocate all resources once they've outlived their purpose
-    // ------------------------------------------------------------------------
+    // -------------------------------------------------------------
     glDeleteVertexArrays(1, &skyboxVAO);
     glDeleteBuffers(1, &skyboxVBO);
 
@@ -1619,9 +1648,14 @@ void processInput(GLFWwindow *window)
         if (menuState.inMenu)
         {
             if (!menuState.options)
-                glfwSetWindowShouldClose(window, true);
+            {
+                if (!keyInput.keyESC_lastFrame)
+                    glfwSetWindowShouldClose(window, true);
+            }
             else
+            {
                 menuState.options = false;
+            }
         }
         else
         {
