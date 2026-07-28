@@ -21,6 +21,15 @@ struct PlayerSaveData
     PlayerSaveData(ObjectState s, float fl, glm::dmat4 rm) {state = s; fuelLeft = fl; rotationMatrix = rm; isEmpty = false;}
 };
 
+struct PlanetSaveData
+{
+    ObjectState state;
+    float rotation;
+
+    PlanetSaveData() {}
+    PlanetSaveData(ObjectState s, float r) {state = s; rotation = r;}
+};
+
 std::string getAppDataPath()
 {
     if (GLM_PLATFORM == GLM_PLATFORM_WINDOWS)
@@ -95,15 +104,15 @@ PlayerSaveData readPlayerSaveFileBinary(std::string name, std::string extension=
     return output;
 }
 
-ObjectState readPlanetSaveFileBinary(std::string name, std::string extension=".txt")
+PlanetSaveData readPlanetSaveFileBinary(std::string name, std::string extension=".txt")
 {
     std::filesystem::path p = std::filesystem::path(getAppDataPath());
     if (!std::filesystem::exists(p))
-        return ObjectState();
+        return PlanetSaveData();
 
     std::ifstream savefile(p / (name + extension), std::ios::in | std::ios::binary);
 
-    ObjectState output;
+    PlanetSaveData output;
     
     // read from savefile
     // ------------------

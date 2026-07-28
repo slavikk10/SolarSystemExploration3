@@ -689,18 +689,21 @@ int main(int argc, char* argv[]) {
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
         bodies.push_back(parseCelestialJSONData(planetJSONPaths[i].c_str()));
 
+    std::vector<float> planetRotations;
     for (unsigned int i = 0; i < bodies.size(); i++)
     {
-        if (std::filesystem::exists(getAppDataPath() +  "/" + planetSFNames[i] + ".txt"))
+        if (std::filesystem::exists(getAppDataPath() + "/" + planetSFNames[i] + ".txt"))
         {
-            ObjectState bodyState = readPlanetSaveFileBinary(planetSFNames[i]);
+            PlanetSaveData bodyData = readPlanetSaveFileBinary(planetSFNames[i]);
 
-            bodies[i].position = bodyState.r;
-            bodies[i].velocity = bodyState.v;
+            bodies[i].position = bodyData.state.r;
+            bodies[i].velocity = bodyData.state.v;
+
+            planetRotations.push_back(bodyData.rotation);
         }
         else
         {
-            continue;
+            planetRotations.push_back(0.0f);
         }
     }
     
@@ -1085,6 +1088,8 @@ int main(int argc, char* argv[]) {
             std::mutex planetScalesMutex;
             std::vector<bool> collisionTestState(numOfPlanets);
             std::mutex collisionTestStateMutex;
+            std::vector<float> rotationsAroundAxis(numOfPlanets);
+            std::mutex rotationsAroundAxisMutex;
 
             // looped planet initialization
             // ----------------------------
@@ -1108,7 +1113,13 @@ int main(int argc, char* argv[]) {
                         glm::dmat4 planet_model(1.0);
 
                         glm::dvec3 planetScale = glm::dvec3(bodies[i].equatorialRadius, bodies[i].polarRadius, bodies[i].equatorialRadius);
-                        float rotationAroundAxis = glm::radians(bodies[i].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
+                        float rotationAroundAxis = planetRotations[i] + glm::radians(bodies[i].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
+
+                        {
+                            std::lock_guard<std::mutex> lock_rax(rotationsAroundAxisMutex);
+                            rotationsAroundAxis[i] = rotationAroundAxis;
+                        }
+
                         setupPlanetModel(planet_model, bodies[i].position, planetScale, camera.Position, bodies[i].axialTilt, rotationAroundAxis);
 
                         {
@@ -1372,7 +1383,7 @@ int main(int argc, char* argv[]) {
         bindHeightTexture(0);
         bindNormalTexture(loadedTextures[3][4]);
 
-        double rotationAroundAxis = glm::radians(10 * bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
+        double rotationAroundAxis = glm::radians(10.0 * bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
         setupPlanetModel(model, bodies[3].position, glm::dvec3(bodies[3].averageRadius + cloudHeights[3]), camera.Position, bodies[3].axialTilt, rotationAroundAxis);
 
         glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationAroundAxis), 0.0f, glm::sin(rotationAroundAxis)), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationAroundAxis), 0.0f, glm::cos(rotationAroundAxis)));                                                                                                                          // rotation matrix for Y axis
@@ -1598,9 +1609,9 @@ int main(int argc, char* argv[]) {
         {
             // create planet states
             // --------------------
-            std::vector<ObjectState> planetStates;
+            std::vector<PlanetSaveData> planetStates;
             for (unsigned int i = 0; i < numOfPlanets; i++)
-                planetStates.push_back(ObjectState(bodies[i].position, bodies[i].velocity));
+                planetStates.push_back(PlanetSaveData(ObjectState(bodies[i].position, bodies[i].velocity), rotationsAroundAxis[i]));
 
             // save planet states in binary
             // ----------------------------
