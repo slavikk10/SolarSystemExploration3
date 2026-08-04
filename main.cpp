@@ -859,6 +859,11 @@ int main(int argc, char* argv[]) {
 
     float saveTimer = 0.0f;
 
+    // vector that holds the angle of rotation around axis of every planet
+    // -------------------------------------------------------------------
+    std::vector<float> rotationsAroundAxis = planetRotations;
+    std::mutex rotationsAroundAxisMutex;
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -1088,8 +1093,6 @@ int main(int argc, char* argv[]) {
             std::mutex planetScalesMutex;
             std::vector<bool> collisionTestState(numOfPlanets);
             std::mutex collisionTestStateMutex;
-            std::vector<float> rotationsAroundAxis(numOfPlanets);
-            std::mutex rotationsAroundAxisMutex;
 
             // looped planet initialization
             // ----------------------------
@@ -1113,22 +1116,22 @@ int main(int argc, char* argv[]) {
                         glm::dmat4 planet_model(1.0);
 
                         glm::dvec3 planetScale = glm::dvec3(bodies[i].equatorialRadius, bodies[i].polarRadius, bodies[i].equatorialRadius);
-                        float rotationAroundAxis = planetRotations[i] + glm::radians(bodies[i].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
+                        float newRotationAroundAxis = glm::radians(bodies[i].rotationSpeed * timeMultiplier);
 
                         {
                             std::lock_guard<std::mutex> lock_rax(rotationsAroundAxisMutex);
-                            rotationsAroundAxis[i] = rotationAroundAxis;
+                            rotationsAroundAxis[i] += newRotationAroundAxis * deltaTime;
                         }
 
-                        setupPlanetModel(planet_model, bodies[i].position, planetScale, camera.Position, bodies[i].axialTilt, rotationAroundAxis);
+                        setupPlanetModel(planet_model, bodies[i].position, planetScale, camera.Position, bodies[i].axialTilt, rotationsAroundAxis[i]);
 
                         {
                             std::lock_guard<std::mutex> lock_mmm(modelMatricesMutex);
                             modelMatrices[i] = planet_model;
                         }
 
-                        glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationAroundAxis), 0.0f, glm::sin(rotationAroundAxis)), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationAroundAxis), 0.0f, glm::cos(rotationAroundAxis)));                                                                                                                          // rotation matrix for Y axis
-                        glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(bodies[i].axialTilt)), -glm::sin(glm::radians(bodies[i].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(bodies[i].axialTilt)), glm::cos(glm::radians(bodies[i].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis
+                        glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationsAroundAxis[i]), 0.0f, glm::sin(rotationsAroundAxis[i])), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationsAroundAxis[i]), 0.0f, glm::cos(rotationsAroundAxis[i])));                                              // rotation matrix for Y axis (rotation around axis)
+                        glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(bodies[i].axialTilt)), -glm::sin(glm::radians(bodies[i].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(bodies[i].axialTilt)), glm::cos(glm::radians(bodies[i].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis (axial tilt)
                         glm::mat3 rotationMatrix = rotationMatrixY * rotationMatrixZ;
 
                         {
@@ -1383,11 +1386,10 @@ int main(int argc, char* argv[]) {
         bindHeightTexture(0);
         bindNormalTexture(loadedTextures[3][4]);
 
-        double rotationAroundAxis = glm::radians(10.0 * bodies[3].rotationSpeed * timeMultiplier) * static_cast<float>(glfwGetTime());
-        setupPlanetModel(model, bodies[3].position, glm::dvec3(bodies[3].averageRadius + cloudHeights[3]), camera.Position, bodies[3].axialTilt, rotationAroundAxis);
+        setupPlanetModel(model, bodies[3].position, glm::dvec3(bodies[3].averageRadius + cloudHeights[3]), camera.Position, bodies[3].axialTilt, rotationsAroundAxis[3] * 2.0f);
 
-        glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationAroundAxis), 0.0f, glm::sin(rotationAroundAxis)), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationAroundAxis), 0.0f, glm::cos(rotationAroundAxis)));                                                                                                                          // rotation matrix for Y axis
-        glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(bodies[3].axialTilt)), -glm::sin(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(bodies[3].axialTilt)), glm::cos(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis
+        glm::mat3 rotationMatrixY = glm::mat3(glm::vec3(glm::cos(rotationsAroundAxis[3] * 2.0f), 0.0f, glm::sin(rotationsAroundAxis[3] * 2.0f)), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-glm::sin(rotationsAroundAxis[3] * 2.0f), 0.0f, glm::cos(rotationsAroundAxis[3] * 2.0f)));                  // rotation matrix for Y axis (rotation around axis)
+        glm::mat3 rotationMatrixZ = glm::mat3(glm::vec3(glm::cos(glm::radians(bodies[3].axialTilt)), -glm::sin(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(glm::sin(glm::radians(bodies[3].axialTilt)), glm::cos(glm::radians(bodies[3].axialTilt)), 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));  // rotation matrix for Z axis (axial tilt)
         glm::mat3 rotationMatrix  = rotationMatrixY * rotationMatrixZ;
 
         shaderTex.setMat4("model", static_cast<glm::mat4>(model));
