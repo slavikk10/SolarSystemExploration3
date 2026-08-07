@@ -669,8 +669,8 @@ int main(int argc, char* argv[]) {
 
     if (!std::filesystem::exists(rocketSaveFilePath))
     {
-        spawnPos = parseCelestialJSONData("resources/planets/earth.json").position;
-        spawnVel = parseCelestialJSONData("resources/planets/earth.json").velocity;
+        spawnPos = parseCelestialJSONData("resources/planets/moon.json").position;
+        spawnVel = parseCelestialJSONData("resources/planets/moon.json").velocity;
     }
     else
     {
@@ -709,7 +709,7 @@ int main(int argc, char* argv[]) {
     
     bodies.push_back(CelestialBody(glm::dvec3(0.0), glm::dvec3(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)); // placeholder for player celestial data
 
-    Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y, spawnPos.z + 2000000.0), spawnVel, 0.00000000266972, glm::vec3(5.0f));
+    Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y, spawnPos.z + 10000.0), spawnVel, 0.00000000266972, glm::vec3(5.0f));
     bodies[numOfPlanets] = rocket;
 
     if (!playerSaveData.isEmpty)
@@ -722,6 +722,7 @@ int main(int argc, char* argv[]) {
     bodyNames.push_back("Rocket");
 
     std::vector<bool> patchesOptions;
+
     for (unsigned int i = 0; i < planetJSON.size(); i++)
         patchesOptions.push_back(stob(getJSONValue(planetJSON[i], "patchedRendering")));
 
@@ -1607,7 +1608,7 @@ int main(int argc, char* argv[]) {
         }
         windowModeLastFrame = D_m_o_wm.selected;
 
-        if ((abs(saveTimer - 5.0f) < 0.01f) || (saveTimer > 5.0f))
+        if (!menuState.inMenu && ((abs(saveTimer - 5.0f) < 0.01f) || (saveTimer > 5.0f) || glfwWindowShouldClose(window)))
         {
             // create planet states
             // --------------------
