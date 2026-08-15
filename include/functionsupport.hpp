@@ -169,10 +169,20 @@ std::string vec3ToString(glm::dvec3 vec)
     return x + ", " + y + ", " + z;
 }
 
-glm::vec3 getRgbPixel(unsigned char* texture, glm::vec2 texCoords, glm::vec2 size)
+glm::vec3 getRgbPixel(unsigned char* texture, glm::vec2 texCoords, glm::vec2 size, unsigned int nrComponents)
 {
     unsigned int index = ((1.0f - texCoords.y) * size.y) * size.x + (texCoords.x * size.x);
+    index *= nrComponents;
+
     return glm::vec3(texture[index], texture[index + 1], texture[index + 2]);
+}
+
+unsigned int getGrayscalePixel(unsigned char* texture, glm::vec2 texCoords, glm::vec2 size)
+{
+    unsigned int index = ((1.0f - texCoords.y) * size.y) * size.x + (texCoords.x * size.x);
+    std::cout << "index: " << index << ", width: " << size.x << ", height: " << size.y << ", tex coord x: " << texCoords.x << ", tex coord y: " << texCoords.y << ", address: " << static_cast<const void*>(texture) << ", data: " << (unsigned int)(*texture) << std::endl;
+    std::cout << "success read? " << (unsigned int)texture[index] << std::endl;
+    return (unsigned int)texture[index];
 }
 
 bool stob(std::string s)
