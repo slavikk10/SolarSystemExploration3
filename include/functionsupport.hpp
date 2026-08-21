@@ -179,8 +179,11 @@ glm::vec3 getRgbPixel(unsigned char* texture, glm::vec2 texCoords, glm::vec2 siz
 
 unsigned int getGrayscalePixel(unsigned char* texture, glm::vec2 texCoords, glm::vec2 size)
 {
+    std::cout << "started ggp\n";
     unsigned int index = ((1.0f - texCoords.y) * size.y) * size.x + (texCoords.x * size.x);
-    std::cout << "index: " << index << ", width: " << size.x << ", height: " << size.y << ", tex coord x: " << texCoords.x << ", tex coord y: " << texCoords.y << ", address: " << static_cast<const void*>(texture) << ", data: " << (unsigned int)(*texture) << std::endl;
+    std::cout << "index: " << index << ", width: " << size.x << ", height: " << size.y << ", tex coord x: " << texCoords.x << ", tex coord y: " << texCoords.y << std::endl;
+    std::cout << "address: " << static_cast<const void*>(texture) << std::endl;
+    std::cout << "data: " << (unsigned int)(*texture) << std::endl;
     std::cout << "success read? " << (unsigned int)texture[index] << std::endl;
     return (unsigned int)texture[index];
 }

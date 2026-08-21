@@ -567,9 +567,6 @@ int main(int argc, char* argv[]) {
     for (unsigned int i = 0; i < textureLoad.size(); i++)
         for (unsigned int j = 0; j < textureLoad[0].size(); j++)
             loadedTextures[i][j] = genTexture(textureLoad[i][j]);
-
-    std::cout << planetTexturePaths.size() << "; " << planetTexturePaths[0].size() << "; " << planetTexturePaths[1].size() << "; " << planetTexturePaths[2].size() << "; " << planetTexturePaths[3].size() << "; " << planetTexturePaths[4].size() << std::endl;
-    std::cout << textureLoad[4][0].width << "; " << textureLoad[4][1].width << "; " << textureLoad[4][2].width << "; " << textureLoad[4][3].width << "; " << textureLoad[4][4].width << std::endl;
     
     // load cloud textures
     // -------------------
@@ -672,8 +669,8 @@ int main(int argc, char* argv[]) {
 
     if (!std::filesystem::exists(rocketSaveFilePath))
     {
-        spawnPos = parseCelestialJSONData("resources/planets/moon.json").position;
-        spawnVel = parseCelestialJSONData("resources/planets/moon.json").velocity;
+        spawnPos = parseCelestialJSONData("resources/planets/earth.json").position;
+        spawnVel = parseCelestialJSONData("resources/planets/earth.json").velocity;
     }
     else
     {
@@ -693,11 +690,11 @@ int main(int argc, char* argv[]) {
         bodies.push_back(parseCelestialJSONData(planetJSONPaths[i].c_str()));
 
     std::vector<float> planetRotations;
-    for (unsigned int i = 0; i < bodies.size(); i++)
+    for (unsigned int i = 1; i < numOfPlanets; i++)
     {
-        if (std::filesystem::exists(getAppDataPath() + "/" + planetSFNames[i] + ".txt"))
+        if (std::filesystem::exists(getAppDataPath() + "/" + planetSFNames[i -1 ] + ".txt"))
         {
-            PlanetSaveData bodyData = readPlanetSaveFileBinary(planetSFNames[i]);
+            PlanetSaveData bodyData = readPlanetSaveFileBinary(planetSFNames[i - 1]);
 
             bodies[i].position = bodyData.state.r;
             bodies[i].velocity = bodyData.state.v;
@@ -866,7 +863,10 @@ int main(int argc, char* argv[]) {
     // vector that holds the angle of rotation around axis of every planet
     // -------------------------------------------------------------------
     std::vector<float> rotationsAroundAxis = planetRotations;
+    std::cout << rotationsAroundAxis.size() << std::endl;
     std::mutex rotationsAroundAxisMutex;
+
+    bool firstFrame = true;
 
     // render loop
     // -----------
@@ -902,7 +902,7 @@ int main(int argc, char* argv[]) {
         lastFrame = currentFrame;
 
         float fps = 1.0f / deltaTime;
-        std::cout << "-1\n";
+
         timeMultiplier = timewarpValues[timeMultiplierIndex];
 
         rocket.update(deltaTime);
@@ -939,7 +939,7 @@ int main(int argc, char* argv[]) {
         glm::dvec3 totalAccel = bodies[numOfPlanets].totalAcceleration + thrustAccel;
 
         bodies[numOfPlanets].velocity += (enginesOn ? (double)(throttle/100) : 0) * (totalAccel * ((double)deltaTime * timeMultiplier));
-        std::cout << "-2\n";
+
         // check whatever body we are close to
         bool isViewSwitchHeight = false;
         unsigned int viewSwitchBody;
@@ -985,7 +985,7 @@ int main(int argc, char* argv[]) {
 
             lastD = d;
         }
-        std::cout << "-3\n";
+
         lastYaw   = yaw;
         lastPitch = pitch;
 
@@ -1002,7 +1002,7 @@ int main(int argc, char* argv[]) {
         for (unsigned int i = 0; i < numOfPlanets; i++)
             if (glm::length(bodies[numOfPlanets].position - bodies[i].position) < soiRadiuses[i])
                 boundBody = i;
-        std::cout << "-4\n";
+
         // initialize trajectories
         // -----------------------
         TrajectorySimulator rocketTrajectory(bodies[numOfPlanets], bodies[boundBody], boundBody);
@@ -1021,7 +1021,7 @@ int main(int argc, char* argv[]) {
             venusTrajectory.simulateTrajectory();
             marsTrajectory.simulateTrajectory();
         }
-        std::cout << "-5\n";
+
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -1196,6 +1196,8 @@ int main(int argc, char* argv[]) {
             glm::dvec3 collisionPoint;
             unsigned int collisionBody;
 
+            bool collisionAnywhere = false;
+
             // looped planet rendering
             // -----------------------
             for (unsigned int i = 0; i < numOfPlanets; i++)
@@ -1217,34 +1219,33 @@ int main(int argc, char* argv[]) {
 
                 planetShaders[i].setMat3("rotationMatrix", rotationMatrices[i]);
 
-                if (collidable[i] && collisionTestState[i])
+                if (collidable[i] && collisionTestState[i] && !menuState.inMenu && !firstFrame)
                 {
                     glm::uvec2 hitSegment = checkForCollision(bodies[numOfPlanets].position, bodies[boundBody].position, bodies[boundBody].equatorialRadius, numOfSegments[i]);
-                    
-                    glm::dvec3 collisionPosition;
-                    collisionPosition = renderSphereCollision(patchesOptions[i], numOfSegments[i], numOfSegments[i], hitSegment, planetScales[i], glm::normalize(bodies[i].position - bodies[numOfPlanets].position), bodies[numOfPlanets].position - bodies[i].position, textureLoad[collisionBody][3]);
-                    std::cout << "2\n";
-                    collisionPoint = collisionPosition;
-                    collisionBody  = i;
-                    std::cout << "3\n";
+                    collisionBody = i;
+
+                    glm::dvec3 collisionPosition = renderSphereCollision(patchesOptions[i], numOfSegments[i], numOfSegments[i], hitSegment, planetScales[i], glm::normalize(bodies[i].position - bodies[numOfPlanets].position), bodies[numOfPlanets].position - bodies[i].position);//textureLoad[3][3]);
+                    collisionPoint               = collisionPosition;
+
+                    collisionAnywhere = true;
                 }
                 else
                 {
                     renderSphere(patchesOptions[i], numOfSegments[i], numOfSegments[i]);
                 }
             }
-            std::cout << "4\n";
-            if (glm::length(bodies[numOfPlanets].position - bodies[collisionBody].position) <= (glm::length(collisionPoint) + 100.0))
+
+            if (!menuState.inMenu && !firstFrame && collisionAnywhere)
             {
-                std::cout << "5\n";
-                if (glm::dot(bodies[numOfPlanets].velocity - bodies[collisionBody].velocity, glm::normalize(bodies[collisionBody].position - bodies[numOfPlanets].position)) > 0.0)
-                    bodies[numOfPlanets].velocity = bodies[collisionBody].velocity;
-                std::cout << "6\n";
-                if (glm::length(bodies[numOfPlanets].position - bodies[collisionBody].position) < glm::length(collisionPoint))
-                    bodies[numOfPlanets].position += (collisionPoint - (bodies[numOfPlanets].position - bodies[collisionBody].position));
-                std::cout << "7\n";
+                if (glm::length(bodies[numOfPlanets].position - bodies[collisionBody].position) <= (glm::length(collisionPoint) + 100.0))
+                {
+                    if (glm::dot(bodies[numOfPlanets].velocity - bodies[collisionBody].velocity, glm::normalize(bodies[collisionBody].position - bodies[numOfPlanets].position)) > 0.0)
+                        bodies[numOfPlanets].velocity = bodies[collisionBody].velocity;
+
+                    if (glm::length(bodies[numOfPlanets].position - bodies[collisionBody].position) < glm::length(collisionPoint))
+                        bodies[numOfPlanets].position += (collisionPoint - (bodies[numOfPlanets].position - bodies[collisionBody].position));
+                }
             }
-            std::cout << "8\n";
 
             // render skybox
             // set depth function to GL_LEQUAL so fragment passes if it is less or equal to previous value
@@ -1292,7 +1293,7 @@ int main(int argc, char* argv[]) {
             // -------------------
             lineShader.use();
             lineShader.setMat4("projection", orthoProjection);
-            std::cout << "9\n";
+
             if (orbitView && !menuState.inMenu)
             {
                 rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
@@ -1303,7 +1304,7 @@ int main(int argc, char* argv[]) {
                 venusTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 marsTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
             }
-            std::cout << "10\n";
+
             glm::dvec3 relativeVelocity = bodies[numOfPlanets].velocity - bodies[boundBody].velocity;
         
             double velocityScale = glm::length(relativeVelocity) / 200.0;
@@ -1349,7 +1350,7 @@ int main(int argc, char* argv[]) {
             }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        std::cout << "11\n";
+
         hdrShader.use();
 
         hdrShader.setInt("numOfPlanets", numOfAtmospheres);
@@ -1387,7 +1388,7 @@ int main(int argc, char* argv[]) {
         // ---------------
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        std::cout << "12\n";
+
         // render Earth clouds
         // -------------------
         model = glm::dmat4(1.0);
@@ -1425,7 +1426,7 @@ int main(int argc, char* argv[]) {
         }
 
         glDisable(GL_DEPTH_TEST);
-        std::cout << "13\n";
+
         // render pointers to bodies
         // -------------------------
         if (!menuState.inMenu && orbitView)
@@ -1466,7 +1467,7 @@ int main(int argc, char* argv[]) {
             RenderText(textShader, tm_s, SCR_WIDTH / 2, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
             RenderText(textShader, currentDate.date, 3*SCR_WIDTH/4, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
         }
-        std::cout << "14\n";
+
         if (menuState.options)
         {
             RenderCenteredImage(imageShader, options_panel, SCR_WIDTH / 2, SCR_HEIGHT / 2 - SCR_HEIGHT / 21.6f, SCR_HEIGHT / 1270.59f);
@@ -1576,7 +1577,7 @@ int main(int argc, char* argv[]) {
                 RenderText(textShader, std::format("{:.4f}", glm::length(bodies[numOfPlanets].velocity - bodies[boundBody].velocity) / 1000.0) + " km/s", vtp.x, vtp.y, 0.4f, glm::vec3(1.0f), true);
             }
         }
-        std::cout << "15\n";
+
         //glm::vec2 ecp = glm::vec2(convert3Dto2D((bodies[3].position + collisionPoint) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
         //RenderCenteredImage(imageShader, apoap_periapsi, ecp.x, ecp.y, 0.05f);
 
@@ -1601,7 +1602,7 @@ int main(int argc, char* argv[]) {
 
         glDisable(GL_BLEND);
         glEnable(GL_DEPTH_TEST);
-        std::cout << "16\n";
+
         mouseInput.lmbPressedLastFrame = mouseInput.lmbPressed;
         mouseInput.mmbPressedLastFrame = mouseInput.mmbPressed;
         mouseInput.rmbPressedLastFrame = mouseInput.rmbPressed;
@@ -1625,8 +1626,8 @@ int main(int argc, char* argv[]) {
             // create planet states
             // --------------------
             std::vector<PlanetSaveData> planetStates;
-            for (unsigned int i = 0; i < numOfPlanets; i++)
-                planetStates.push_back(PlanetSaveData(ObjectState(bodies[i].position, bodies[i].velocity), rotationsAroundAxis[i]));
+            for (unsigned int i = 1; i < numOfPlanets; i++)
+                planetStates.push_back(PlanetSaveData(ObjectState(bodies[i].position, bodies[i].velocity), rotationsAroundAxis[i - 1]));
 
             // save planet states in binary
             // ----------------------------
@@ -1645,11 +1646,13 @@ int main(int argc, char* argv[]) {
             // ----------------
             saveTimer = 0.0f;
         }
-        std::cout << "17\n";
+
         saveTimer += deltaTime;
 
         if (!menuState.inMenu)
             currentDate.increment(deltaTime * timeMultiplier);
+
+        firstFrame = false;
     }
 
     // de-allocate all resources once they've outlived their purpose
@@ -1929,7 +1932,7 @@ Image loadImage(char const * path, bool gamma_correction)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        stbi_image_free(data);
+        //stbi_image_free(data);
     }
     else
     {
@@ -2242,14 +2245,14 @@ glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS, unsigned
 
     glm::dvec3 triangle1Hit = rayTriangle(rayOrigin, rayDirection, ve0);
     glm::dvec3 triangle2Hit = rayTriangle(rayOrigin, rayDirection, ve1);
-
+    /*std::cout << "13\n";
     double height = getGrayscalePixel(heightTexture.data, glm::vec2(fmod(2.5f - sphere.texCoords[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y].x, 1.0f), 1.0f - sphere.texCoords[hitSegment.x * (X_SEGMENTS + 1) + hitSegment.y].y), glm::vec2(heightTexture.width, heightTexture.height)) / 255.0f * 0.001387f * scale.z;
-    std::cout << "finished\n";
+    std::cout << "14\n";
     if (glm::length(triangle1Hit) < 1e-5)
         triangle2Hit += glm::normalize(triangle2Hit) * height;
     else
         triangle1Hit += glm::normalize(triangle1Hit) * height;
-    std::cout << "1\n";//🫩✌️🥀
+    std::cout << "15\n";*/
     /*glm::dvec3 hitPosition = glm::dvec3(INFINITY);
     double lastt           = INFINITY;
     for (unsigned int x = 0; x < X_SEGMENTS; x++)

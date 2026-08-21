@@ -31,3 +31,6 @@ add_executable(sse3 main.cpp stb_image.cpp)
 target_include_directories(sse3 PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 target_link_libraries(sse3 PRIVATE glad OpenGL::GL glfw Freetype::Freetype assimp::assimp)
+
+target_compile_options(sse3 PRIVATE -fsanitize=address -g -O0)
+target_link_options(sse3 PRIVATE -fsanitize=address)
