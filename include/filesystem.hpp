@@ -21,7 +21,7 @@ inline std::string getFilePath(std::string_view path)
 #elifdef _WIN32
     GetModuleFileName(nullptr, execPath, &size);
 #elifdef __linux__
-    readlink("/proc/self/exe", execPath, &size);
+    readlink("/proc/self/exe", execPath, size);
 #endif
 
     std::filesystem::path executablePath = execPath;
@@ -40,9 +40,9 @@ inline std::string getRelativeFilePath(std::string fullPath)
 #elifdef _WIN32
     GetModuleFileName(nullptr, execPath, &size);
 #elifdef __linux__
-    readlink("/proc/self/exe", execPath, &size);
+    readlink("/proc/self/exe", execPath, size);
 #endif
 
     std::filesystem::path executablePath = execPath;
-    return std::filesystem::relative(fullPath, executablePath);
+    return std::filesystem::relative(fullPath, executablePath).string();
 }
