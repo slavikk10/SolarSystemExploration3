@@ -863,7 +863,6 @@ int main(int argc, char* argv[]) {
     // vector that holds the angle of rotation around axis of every planet
     // -------------------------------------------------------------------
     std::vector<float> rotationsAroundAxis = planetRotations;
-    std::cout << rotationsAroundAxis.size() << std::endl;
     std::mutex rotationsAroundAxisMutex;
 
     bool firstFrame = true;
