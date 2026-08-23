@@ -46,6 +46,11 @@ jobs:
           path: ${{github.workspace}}\vcpkg\installed
           key: vcpkg-pkgs-x64-windows-glfw3-freetype-assimp
 
+      - name: Add asan dll
+        run: |
+          ASAN=$(clang -print-file-name=clang_rt.asan_dynamic-x86_64.dll
+          cp "$ASAN" build/Release/
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
