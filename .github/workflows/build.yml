@@ -48,7 +48,7 @@ jobs:
 
       - name: Add asan dll
         run: |
-          ASAN=$(clang -print-file-name=clang_rt.asan_dynamic-x86_64.dll
+          ASAN=$(clang -print-file-name=clang_rt.asan_dynamic-x86_64.dll)
           cp "$ASAN" build/Release/
 
       - name: Upload artifact
