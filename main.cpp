@@ -210,7 +210,7 @@ int main(int argc, char* argv[]) {
 
     // load window_options.json file
     // -----------------------------
-    JSON window_options = loadJSON((std::getenv("HOME") + std::string("/Library/Application Support/com.vyacheslavc.SolarSystemExploration3/window_options.json")).c_str(), false);
+    JSON window_options = loadJSON(std::filesystem::path(std::filesystem::path(getAppDataPath()) / "window_options.json").string().c_str(), false);
 
     if (window_options.error == -1)
         windowOptionsFileDoesNotExist = true;
@@ -303,24 +303,24 @@ int main(int argc, char* argv[]) {
 
     // build and compile shaders
     // -------------------------
-    Shader shader(      getFilePath("shaders/pbr/pbr.vert").c_str(),                   getFilePath("shaders/pbr/pbr.frag").c_str(),                   getFilePath("shaders/pbr/pbr.tesc").c_str(),                   getFilePath("shaders/pbr/pbr.tese").c_str());
-    Shader shaderTex(   getFilePath("shaders/pbr_textured/pbr_textured.vert").c_str(), getFilePath("shaders/pbr_textured/pbr_textured.frag").c_str(), getFilePath("shaders/pbr_textured/pbr_textured.tesc").c_str(), getFilePath("shaders/pbr_textured/pbr_textured.tese").c_str());
-    Shader lightShader( getFilePath("shaders/light/light.vert").c_str(),               getFilePath("shaders/light/light.frag").c_str(),               getFilePath("shaders/light/light.geom").c_str());
-    Shader skyboxShader(getFilePath("shaders/skybox/skybox.vert").c_str(),             getFilePath("shaders/skybox/skybox.frag").c_str(),             getFilePath("shaders/skybox/skybox.geom").c_str());
-    Shader hdrShader(   getFilePath("shaders/hdr/hdr.vert").c_str(),                   getFilePath("shaders/hdr/hdr.frag").c_str(),                   getFilePath("shaders/hdr/hdr.geom").c_str());
+    Shader shader(      getFilePath("Resources/shaders/pbr/pbr.vert").c_str(),                   getFilePath("Resources/shaders/pbr/pbr.frag").c_str(),                   getFilePath("Resources/shaders/pbr/pbr.tesc").c_str(),                   getFilePath("Resources/shaders/pbr/pbr.tese").c_str());
+    Shader shaderTex(   getFilePath("Resources/shaders/pbr_textured/pbr_textured.vert").c_str(), getFilePath("Resources/shaders/pbr_textured/pbr_textured.frag").c_str(), getFilePath("Resources/shaders/pbr_textured/pbr_textured.tesc").c_str(), getFilePath("Resources/shaders/pbr_textured/pbr_textured.tese").c_str());
+    Shader lightShader( getFilePath("Resources/shaders/light/light.vert").c_str(),               getFilePath("Resources/shaders/light/light.frag").c_str(),               getFilePath("Resources/shaders/light/light.geom").c_str());
+    Shader skyboxShader(getFilePath("Resources/shaders/skybox/skybox.vert").c_str(),             getFilePath("Resources/shaders/skybox/skybox.frag").c_str(),             getFilePath("Resources/shaders/skybox/skybox.geom").c_str());
+    Shader hdrShader(   getFilePath("Resources/shaders/hdr/hdr.vert").c_str(),                   getFilePath("Resources/shaders/hdr/hdr.frag").c_str(),                   getFilePath("Resources/shaders/hdr/hdr.geom").c_str());
 
     // build and compile 2D shaders
     // ----------------------------
-    Shader textShader(    getFilePath("shaders/text/text.vert").c_str(),                   getFilePath("shaders/text/text.frag").c_str());
-    Shader imageShader(   getFilePath("shaders/image/image.vert").c_str(),                 getFilePath("shaders/image/image.frag").c_str());
-    Shader lineShader(    getFilePath("shaders/line/line.vert").c_str(),                   getFilePath("shaders/line/line.frag").c_str());
-    Shader optDepthShader(getFilePath("shaders/optical-depth/optical-depth.vert").c_str(), getFilePath("shaders/optical-depth/optical-depth.frag").c_str());
+    Shader textShader(    getFilePath("Resources/shaders/text/text.vert").c_str(),                   getFilePath("Resources/shaders/text/text.frag").c_str());
+    Shader imageShader(   getFilePath("Resources/shaders/image/image.vert").c_str(),                 getFilePath("Resources/shaders/image/image.frag").c_str());
+    Shader lineShader(    getFilePath("Resources/shaders/line/line.vert").c_str(),                   getFilePath("Resources/shaders/line/line.frag").c_str());
+    Shader optDepthShader(getFilePath("Resources/shaders/optical-depth/optical-depth.vert").c_str(), getFilePath("Resources/shaders/optical-depth/optical-depth.frag").c_str());
 
     // load models
     // -----------
-    Model rocketModel(getFilePath("resources/models/simple_rocket.obj"));
-    Model cylinder(   getFilePath("resources/models/cylinder.obj"));
-    Model cone(       getFilePath("resources/models/cone.obj"));
+    Model rocketModel(getFilePath("Resources/resources/models/simple_rocket.obj"));
+    Model cylinder(   getFilePath("Resources/resources/models/cylinder.obj"));
+    Model cone(       getFilePath("Resources/resources/models/cone.obj"));
 
     // setup cube vertices (for skybox)
     // --------------------------------
@@ -437,10 +437,10 @@ int main(int argc, char* argv[]) {
 
     // load PBR required textures
     // --------------------------
-    unsigned int envCubemap     = loadCubemap(getFilePath("resources/textures/PBR"), "env_", faces, false, false);
-    unsigned int irradianceMap  = loadCubemap("resources/textures/PBR", "irradiance_", faces, false, true);
-    unsigned int prefilterMap   = loadCubemap("resources/textures/PBR", "prefilter_", faces, false, true);
-    unsigned int brdfLUTTexture = loadTexture(getFilePath("resources/textures/PBR/brdf_lut.hdr").c_str(), false, true);
+    unsigned int envCubemap     = loadCubemap(getFilePath("Resources/resources/textures/PBR"), "env_", faces, false, false);
+    unsigned int irradianceMap  = loadCubemap(getFilePath("Resources/resources/textures/PBR"), "irradiance_", faces, false, true);
+    unsigned int prefilterMap   = loadCubemap(getFilePath("Resources/resources/textures/PBR"), "prefilter_", faces, false, true);
+    unsigned int brdfLUTTexture = loadTexture(getFilePath("Resources/resources/textures/PBR/brdf_lut.hdr").c_str(), false, true);
 
     //std::cout << "Time elapsed to load PBR textures: " << glfwGetTime() - start << std::endl;
     start = glfwGetTime();
@@ -473,17 +473,17 @@ int main(int argc, char* argv[]) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, optDepthColor, 0);
 
     std::vector<std::string> planetJSONPaths = {
-        "resources/planets/sun.json",
-        "resources/planets/mercury.json",
-        "resources/planets/venus.json",
-        "resources/planets/earth.json",
-        "resources/planets/moon.json",
-        "resources/planets/mars.json",
-        "resources/planets/jupiter.json",
-        "resources/planets/io.json",
-        "resources/planets/europa.json",
-        "resources/planets/ganymede.json",
-        "resources/planets/callisto.json",
+        "Resources/resources/planets/sun.json",
+        "Resources/resources/planets/mercury.json",
+        "Resources/resources/planets/venus.json",
+        "Resources/resources/planets/earth.json",
+        "Resources/resources/planets/moon.json",
+        "Resources/resources/planets/mars.json",
+        "Resources/resources/planets/jupiter.json",
+        "Resources/resources/planets/io.json",
+        "Resources/resources/planets/europa.json",
+        "Resources/resources/planets/ganymede.json",
+        "Resources/resources/planets/callisto.json",
     };
 
     std::unordered_map<std::string, Shader> shaderNames = {
@@ -498,7 +498,10 @@ int main(int argc, char* argv[]) {
 
     std::vector<std::vector<std::string>> planetTexturePaths;
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
+    {
         planetTexturePaths.push_back(parseTexturesJSON(planetJSONPaths[i].c_str()));
+        //std::cout << planetTexturePaths[i][0] << std::endl;
+    }
 
     std::vector<TextureSettings> planetTextureSettings;
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
@@ -557,7 +560,7 @@ int main(int argc, char* argv[]) {
             // load cached textures
             // --------------------
             for (unsigned int j = 0; j < planetTexturePaths[0].size(); j++)
-                textureLoad[i][j] = loadTextureCache(getFilePath("cache/TextureCache/") + textureFileNames[j] + ".tca");
+                textureLoad[i][j] = loadTextureCache(getFilePath("Resources/cache/TextureCache/") + textureFileNames[j] + ".tca");
         });
     }
 
@@ -581,29 +584,29 @@ int main(int argc, char* argv[]) {
     {
         saveTextureCache(cloudsJSON[i].textureName, cloudsJSON[i].texturePath);
 
-        cloudsTextureLoad.push_back(loadTextureCache(getFilePath("cache/TextureCache/") + cloudsJSON[i].textureName + ".tca"));
+        cloudsTextureLoad.push_back(loadTextureCache(getFilePath("Resources/cache/TextureCache/") + cloudsJSON[i].textureName + ".tca"));
         loadedCloudTextures.push_back(genTexture(cloudsTextureLoad[i]));
     }
 
     // Load UI textures
     // ----------------
-    Image objectNavImg   = loadImage(getFilePath("resources/textures/UI/objectnav.png").c_str());
-    Image apoap_periapsi = loadImage(getFilePath("resources/textures/UI/apo-per.png").c_str());
-    Image mmtl           = loadImage(getFilePath("resources/textures/UI/main_menu/mmtl_sse3.png").c_str());
-    Image start_button   = loadImage(getFilePath("resources/textures/UI/main_menu/start_button.png").c_str());
-    Image options_button = loadImage(getFilePath("resources/textures/UI/main_menu/options_button.png").c_str());
-    Image quit_button    = loadImage(getFilePath("resources/textures/UI/main_menu/quit_button.png").c_str());
-    Image start_hover    = loadImage(getFilePath("resources/textures/UI/main_menu/start_hover.png").c_str());
-    Image options_hover  = loadImage(getFilePath("resources/textures/UI/main_menu/options_hover.png").c_str());
-    Image quit_hover     = loadImage(getFilePath("resources/textures/UI/main_menu/quit_hover.png").c_str());
-    Image options_panel  = loadImage(getFilePath("resources/textures/UI/main_menu/options_panel.png").c_str());
-    Image options_close  = loadImage(getFilePath("resources/textures/UI/main_menu/options_close.png").c_str());
-    Image black_overlap  = loadImage(getFilePath("resources/textures/UI/black_overlap.png").c_str());
-    Image rtg_button     = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_game.png").c_str());
-    Image rtmm_button    = loadImage(getFilePath("resources/textures/UI/esc_menu/return_to_main_menu.png").c_str());
-    Image drdown_item_bg = loadImage(getFilePath("resources/textures/UI/main_menu/options/dropdown_item_bg.png").c_str());
-    Image drdown_tri_dwn = loadImage(getFilePath("resources/textures/UI/main_menu/options/dropdown_triangle_down.png").c_str());
-    Image drdown_tri_up  = loadImage(getFilePath("resources/textures/UI/main_menu/options/dropdown_triangle_up.png").c_str());
+    Image objectNavImg   = loadImage(getFilePath("Resources/resources/textures/UI/objectnav.png").c_str());
+    Image apoap_periapsi = loadImage(getFilePath("Resources/resources/textures/UI/apo-per.png").c_str());
+    Image mmtl           = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/mmtl_sse3.png").c_str());
+    Image start_button   = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/start_button.png").c_str());
+    Image options_button = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/options_button.png").c_str());
+    Image quit_button    = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/quit_button.png").c_str());
+    Image start_hover    = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/start_hover.png").c_str());
+    Image options_hover  = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/options_hover.png").c_str());
+    Image quit_hover     = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/quit_hover.png").c_str());
+    Image options_panel  = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/options_panel.png").c_str());
+    Image options_close  = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/options_close.png").c_str());
+    Image black_overlap  = loadImage(getFilePath("Resources/resources/textures/UI/black_overlap.png").c_str());
+    Image rtg_button     = loadImage(getFilePath("Resources/resources/textures/UI/esc_menu/return_to_game.png").c_str());
+    Image rtmm_button    = loadImage(getFilePath("Resources/resources/textures/UI/esc_menu/return_to_main_menu.png").c_str());
+    Image drdown_item_bg = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/options/dropdown_item_bg.png").c_str());
+    Image drdown_tri_dwn = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/options/dropdown_triangle_down.png").c_str());
+    Image drdown_tri_up  = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/options/dropdown_triangle_up.png").c_str());
 
     // configure irradiance map
     // ------------------------
@@ -669,8 +672,8 @@ int main(int argc, char* argv[]) {
 
     if (!std::filesystem::exists(rocketSaveFilePath))
     {
-        spawnPos = parseCelestialJSONData("resources/planets/earth.json").position;
-        spawnVel = parseCelestialJSONData("resources/planets/earth.json").velocity;
+        spawnPos = parseCelestialJSONData("Resources/resources/planets/earth.json").position;
+        spawnVel = parseCelestialJSONData("Resources/resources/planets/earth.json").velocity;
     }
     else
     {
@@ -765,7 +768,7 @@ int main(int argc, char* argv[]) {
         renderQuad();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    saveTexture(optDepthColor, getFilePath("resources/textures/HDR"), "optical_depth", 4096, 4096, GL_RED, GL_FLOAT, EXT_HDR);
+    saveTexture(optDepthColor, getFilePath("Resources/resources/textures/HDR"), "optical_depth", 4096, 4096, GL_RED, GL_FLOAT, EXT_HDR);
 
     glm::dmat4 prevRocketModel = glm::dmat4(1.0);
 

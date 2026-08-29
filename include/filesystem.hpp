@@ -27,6 +27,10 @@ inline std::string getFilePath(std::string_view path)
     std::filesystem::path executablePath = execPath;
 
     std::string fullPath = ((executablePath.parent_path().filename() == "build" ? executablePath.parent_path().parent_path() : executablePath.parent_path()) / path).string();
+
+    if (executablePath.parent_path().filename() == "MacOS")
+        fullPath = (executablePath.parent_path().parent_path() / path).string();
+
     return fullPath;
 }
 
