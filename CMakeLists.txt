@@ -36,6 +36,7 @@ add_executable(sse3 main.cpp stb_image.cpp)
 
 if (MSVC)
     target_compile_options(sse3 PRIVATE "$<$<CONFIG:Release>:/Zi>")
+    target_link_options(   sse3 PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
 endif()
 
 if (APPLE)
