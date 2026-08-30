@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(sse3 LANGUAGES C CXX)
-
 if (MSVC)
-    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "ProgramDatabase")
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Release>:ProgramDatabase>")
 endif()
+
+project(sse3 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
