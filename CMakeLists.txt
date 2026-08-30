@@ -34,6 +34,10 @@ target_include_directories(glad PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
 add_executable(sse3 main.cpp stb_image.cpp)
 
+if (MSVC)
+    target_compile_options(sse3 PRIVATE "$<$<CONFIG:Release>:/Zi>")
+endif()
+
 if (APPLE)
     set_target_properties(sse3 PROPERTIES MACOSX_BUNDLE true)
     set_target_properties(sse3 PROPERTIES BUILD_RPATH "@executable_path/../Frameworks" INSTALL_RPATH "@executable_path/../Frameworks")
