@@ -37,7 +37,7 @@ jobs:
             -DVCPKG_INSTALLED_DIR=${{github.workspace}}\vcpkg\installed
 
       - name: Build
-        run: cmake --build build --config Release -- /v:diag
+        run: cmake --build build --config Release --verbose
 
       - name: Save cache
         if: always()
