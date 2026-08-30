@@ -39,6 +39,11 @@ jobs:
       - name: Build
         run: cmake --build build --config Release --verbose
 
+      - name: Find PDB
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path . -Filter *.pdb -Recurse | Select-Object FullName
+
       - name: Save cache
         if: always()
         uses: actions/cache/save@v4
