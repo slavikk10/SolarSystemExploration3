@@ -8,17 +8,31 @@
 #pragma once
 
 std::vector<double> soiRadiuses = {
-    4570000000000000,
-    117000000,
-    616000000,
-    1470000000,
-    66100000,
-    578000000,
-    48000000000,
-    10200000,
-    9700000,
-    32200000,
-    52200000,
+    4570000000000000.0,
+    117000000.0,
+    616000000.0,
+    1470000000.0,
+    66100000.0,
+    578000000.0,
+    48000000000.0,
+    10200000.0,
+    9700000.0,
+    32200000.0,
+    52200000.0,
+};
+
+std::vector<unsigned int> planetRelativeBody = {
+    0,
+    0,
+    0,
+    0,
+    3,
+    0,
+    0,
+    6,
+    6,
+    6,
+    6
 };
 
 class TrajectorySimulator
@@ -38,7 +52,7 @@ public:
 
     TrajectorySimulator(const CelestialBody& body, const CelestialBody& relativeBody, unsigned int relativeBodyIndex)
     {
-        system = { body, relativeBody };
+        system = {body, relativeBody};
 
         system[0].velocity -= system[1].velocity;
         system[1].velocity = glm::dvec3(0.0);
@@ -88,13 +102,13 @@ public:
 
         if (E < 0.0 && periapsisd > system[1].averageRadius && apoapsisd < soiRadiuses[rbi])
         {
-            orbit   = true;
+            orbit = true;
             for (unsigned int i = 0; i < iterations; ++i)
-                positions.push_back(findMeanPosition((i / (double)iterations) * T, system[0].position, system[0].velocity, system[1].mu));
+                positions.push_back(system[1].position + keplerUniversal((i / (double)iterations) * T, system[0].position - system[1].position, system[0].velocity, system[1].mu));
         }
         else
         {
-            orbit   = false;
+            orbit = false;
             unsigned int i = 0;
             while ((glm::length(system[0].position - system[1].position) > system[1].averageRadius) && (glm::length(system[0].position - system[1].position) <= soiRadiuses[rbi]) && i < 1000)
             {

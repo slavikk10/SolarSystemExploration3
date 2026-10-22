@@ -32,7 +32,8 @@ endif()
 add_library(glad src/glad.c)
 target_include_directories(glad PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
-add_executable(sse3 main.cpp stb_image.cpp)
+add_executable(sse3 main.cpp stb_image.cpp
+    include/keymanager.hpp)
 
 if (MSVC)
     target_compile_options(sse3 PRIVATE "$<$<CONFIG:Release>:/Zi>")

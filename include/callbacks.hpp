@@ -12,7 +12,13 @@ struct MenuState
     bool escMenu = false;
 };
 
+struct GameState
+{
+    bool inTutorial = false;
+};
+
 MenuState menuState;
+GameState gameState;
 
 std::function<void()> startCallback = []()
 {
@@ -41,6 +47,7 @@ std::function<void()> rtgCallback = []()
 
 std::function<void()> rtmmCallback = []()
 {
-    menuState.inMenu  = true;
-    menuState.escMenu = false;
+    menuState.inMenu     = true;
+    menuState.escMenu    = false;
+    gameState.inTutorial = false;
 };

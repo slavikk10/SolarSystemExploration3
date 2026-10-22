@@ -517,6 +517,12 @@ void RenderText(Shader &s, std::string text, glm::vec2 pos, float scale, glm::ve
     glDrawArrays(GL_TRIANGLES, 0, 6 * text.size());
 }
 
+void renderLabeledButton(Image &bg, std::string text, float bg_scale, float text_scale, Shader &image_shader, Shader &text_shader, std::function<void()> action, glm::vec2 position, glm::vec3 text_color)
+{
+    RenderCenteredImage(image_shader, bg, position, bg_scale);
+    RenderText(text_shader, text, position, text_scale, text_color, true);
+}
+
 class Dropdown
 {
 public:

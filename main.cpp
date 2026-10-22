@@ -73,6 +73,15 @@ std::function<void(unsigned int&, unsigned int)> setTransferBody = [](unsigned i
     bodyVar = body;
 };
 
+std::function<void(CelestialBody& player, CelestialBody& earth)> tutorialCallback = [](CelestialBody& player, CelestialBody& earth)
+{
+    gameState.inTutorial = true;
+    menuState.inMenu     = false;
+
+    player.position = earth.position + glm::dvec3(0.0,    0.0, 10000000.0);
+    player.velocity = earth.velocity + glm::dvec3(6308.0, 0.0, 0.0);;
+};
+
 // screen resolution
 unsigned int SCR_WIDTH, SCR_HEIGHT;
 
@@ -88,7 +97,7 @@ int MAX_WIN_WIDTH, MAX_WIN_HEIGHT, WORK_AREA_X_POS, WORK_AREA_Y_POS;
 unsigned int MONITOR_WIDTH, MONITOR_HEIGHT;
 
 // camera
-Camera camera(glm::vec3(8.241306702279538e+09, 3.218946189282089e+07, -1.526005896490690e+11)/10000.0f);
+Camera camera(glm::vec3(8.241306702279538e+09, 3.218946189282089e+07, -1.526005896490690e+11) / 10000.0f);
 float lastX = (float)SCR_WIDTH / 2.0f;
 float lastY = (float)SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -117,11 +126,28 @@ glm::vec3 ndv;
 
 float throttle = 0.0f;
 bool enginesOn = false;
-float fuelConsumption; // liters/s
+float fuelConsumption;   // liters/s
 float fuel = 3000000.0f; // in liters
 
 // image VBO and VAO
 unsigned int imageVBO, imageVAO;
+
+unsigned int tutorialSlide = 0;
+const std::vector<std::vector<std::string>> tutorialTexts = {
+    {"Welcome to the SSE3 tutorial. Here, you will learn the controls, and gameplay mechanics.", "Follow the tutorial instructions to advance the tutorial, and press space here to go to the next slide"},
+    {"Firstly, take a look at everything. To do so, hold the right mouse button and drag it around", "(press space to go to next slide)"},
+    {"Use WASDQE to control the rocket. WASD rotates the rocket around space, QE rotates the rocket around its axis"},
+    {"Scroll with your mouse wheel to zoom in/out from the rocket", "(press space to go to next slide)"},
+    {"Press T to toggle the engine"},
+    {"Use R/F to manage throttle"},
+    {"Tired of waiting for the rocket to move? Use <> keys to manage the time multiplier.", "Its value is shown on the top of the game window"},
+    {"Press F1 to toggle a special menu. It shows the orbits of objects, helper texts, and more"},
+    {"Now time for the interesting stuff. Click at the Moon to focus onto it", "The text above the rocket should change. (press space to go to next slide)"},
+    {"The text above the rocket is the required transfer velocity", "In other words, it's the velocity you need to gain in order to", "get the appropriate transfer orbit. (press space to go to next slide)"},
+    {"If you zoom in enough, you can see a white circle near your rocket", "You need to rotate the rocket so it points towards that circle", "(press space to go to next slide)"},
+    {"Now thrust the rocket until the velocity text becomes around zero", "(press space to go to next slide)"},
+};
+const std::vector<std::vector<int>> tutAdvanceKeys = {{GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E}, {GLFW_KEY_SPACE}, {GLFW_KEY_T}, {GLFW_KEY_R}, {GLFW_KEY_PERIOD}, {GLFW_KEY_F1}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}};
 
 // structs
 struct MouseInput
@@ -148,6 +174,8 @@ struct KeyInput
     bool keyESC_lastFrame = false;
 
     bool keyF1_lastFrame = false;
+
+    bool keySpace_lastFrame = false;
 };
 
 MouseInput mouseInput;
@@ -193,7 +221,7 @@ bool isFullscreen                = false;
 unsigned int transferBody = -1;
 
 int main(int argc, char* argv[]) {
-    float start = glfwGetTime();
+    bool inTutorial = false;
 
     // glfw: initialize and configure
     // ------------------------------
@@ -298,7 +326,6 @@ int main(int argc, char* argv[]) {
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     glPatchParameteri(GL_PATCH_VERTICES, 3);
 
-    start = glfwGetTime();
     auto sstart = glfwGetTime();
 
     // build and compile shaders
@@ -380,7 +407,6 @@ int main(int argc, char* argv[]) {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
     //std::cout << "Time elapsed to setup VBO/VAO: " << glfwGetTime() - start << std::endl;
-    start = glfwGetTime();
     // generate depth map framebuffer
     /*unsigned int depthCubemapFBO;
     glGenFramebuffers(1, &depthCubemapFBO);
@@ -433,7 +459,6 @@ int main(int argc, char* argv[]) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer, 0);
 
     //std::cout << "Time elapsed to setup framebuffer: " << glfwGetTime() - start << std::endl;
-    start = glfwGetTime();
 
     // load PBR required textures
     // --------------------------
@@ -443,7 +468,6 @@ int main(int argc, char* argv[]) {
     unsigned int brdfLUTTexture = loadTexture(getFilePath("Resources/resources/textures/PBR/brdf_lut.hdr").c_str(), false, true);
 
     //std::cout << "Time elapsed to load PBR textures: " << glfwGetTime() - start << std::endl;
-    start = glfwGetTime();
 
     // configure environment cubemap
     // -----------------------------
@@ -594,6 +618,7 @@ int main(int argc, char* argv[]) {
     Image apoap_periapsi = loadImage(getFilePath("Resources/resources/textures/UI/apo-per.png").c_str());
     Image mmtl           = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/mmtl_sse3.png").c_str());
     Image start_button   = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/start_button.png").c_str());
+    Image tut_button     = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/tutorial_button.png").c_str());
     Image options_button = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/options_button.png").c_str());
     Image quit_button    = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/quit_button.png").c_str());
     Image start_hover    = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/start_hover.png").c_str());
@@ -695,7 +720,7 @@ int main(int argc, char* argv[]) {
     std::vector<float> planetRotations;
     for (unsigned int i = 1; i < numOfPlanets; i++)
     {
-        if (std::filesystem::exists(getAppDataPath() + "/" + planetSFNames[i -1 ] + ".txt"))
+        if (std::filesystem::exists(getAppDataPath() + "/" + planetSFNames[i - 1] + ".txt"))
         {
             PlanetSaveData bodyData = readPlanetSaveFileBinary(planetSFNames[i - 1]);
 
@@ -743,13 +768,14 @@ int main(int argc, char* argv[]) {
 
     // initialize buttons
     // ------------------
-    HoverButton startButton(startCallback,                       glm::vec2(300.0f, 500.0f), 0.2f, imageShader, start_button,   start_hover);
-    HoverButton optionsButton(optionsCallback,                   glm::vec2(300.0f, 420.0f), 0.2f, imageShader, options_button, options_hover);
-    HoverButton quitButton([window]() { quitCallback(window); }, glm::vec2(300.0f, 340.0f), 0.2f, imageShader, quit_button,    quit_hover);
-    Button optionsClose(optionsCloseCallback,                    glm::vec2(SCR_WIDTH - SCR_WIDTH / 20.0f, SCR_HEIGHT - SCR_HEIGHT / 10.0f), 0.2f, imageShader, options_close);
+    HoverButton startButton(startCallback,                                       glm::vec2(300.0f, 500.0f), 0.2f, imageShader, start_button,   start_hover);
+    HoverButton tutorialButton([&]() {tutorialCallback(bodies[11], bodies[3]);}, glm::vec2(300.0f, 420.0f), 0.2f, imageShader, tut_button,     tut_button);
+    HoverButton optionsButton(optionsCallback,                                   glm::vec2(300.0f, 340.0f), 0.2f, imageShader, options_button, options_hover);
+    HoverButton quitButton([window]() {quitCallback(window);},                   glm::vec2(300.0f, 260.0f), 0.2f, imageShader, quit_button,    quit_hover);
+    Button optionsClose(optionsCloseCallback,                                    glm::vec2(SCR_WIDTH - SCR_WIDTH / 20.0f, SCR_HEIGHT - SCR_HEIGHT / 10.0f), 0.2f, imageShader, options_close);
 
-    Button rtgESCButton  = Button(rtgCallback,                   glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + 50.0f), 0.3f, imageShader, rtg_button);
-    Button rtmmESCButton = Button(rtmmCallback,                  glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f), 0.3f, imageShader, rtmm_button);
+    Button rtgESCButton  = Button(rtgCallback,                                   glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + 50.0f), 0.3f, imageShader, rtg_button);
+    Button rtmmESCButton = Button(rtmmCallback,                                  glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f), 0.3f, imageShader, rtmm_button);
 
     ThreadPool planetRenderThreads(numOfPlanets);
     std::atomic<int> threadsLeft = 0;
@@ -783,6 +809,8 @@ int main(int argc, char* argv[]) {
 
     bool lastDeltaVelocityShow = false;
 
+    unsigned int boundBody = 0;
+
     Transfer transfer;
     glm::dvec3 transferWindow;
 
@@ -793,28 +821,25 @@ int main(int argc, char* argv[]) {
     std::thread navigatorThread([&]() {
         while (!glfwWindowShouldClose(window))
         {
-            if (orbitView && transferBody != -1)
+            if (!menuState.inMenu && orbitView && transferBody != -1)
             {
                 {
                     std::lock_guard<std::mutex> lock_rom(orbitalElementsMutex);
-                    rocketOrbital = findOrbitalElements(bodies[numOfPlanets].position, bodies[numOfPlanets].velocity, bodies[0].mu);
-                    moonOrbital   = findOrbitalElements(bodies[transferBody].position, bodies[transferBody].velocity, bodies[0].mu);
+                    rocketOrbital = findOrbitalElements(bodies[numOfPlanets].position - bodies[boundBody].position,                        bodies[numOfPlanets].velocity - bodies[boundBody].velocity,                        bodies[boundBody].mu);
+                    moonOrbital   = findOrbitalElements(bodies[transferBody].position - bodies[planetRelativeBody[transferBody]].position, bodies[transferBody].velocity - bodies[planetRelativeBody[transferBody]].velocity, bodies[planetRelativeBody[transferBody]].mu);
                 }
-                //std::cout << rocketOrbital.orbit.inclination << "; " << rocketOrbital.orbit.eccentricity << "; " << rocketOrbital.orbit.raan << "; " << rocketOrbital.orbit.semiMajorAxis << "; " << rocketOrbital.orbit.semiMinorAxis << "; " << rocketOrbital.orbit.meanMotion << "; " << rocketOrbital.orbitalState.meanAnomaly << "; " << rocketOrbital.orbitalState.trueAnomaly << "; " << rocketOrbital.orbitalState.timeOfPeriapsisPassage << "; " << rocketOrbital.state.r << "; " << rocketOrbital.state.v << std::endl;
-                //std::cout << moonOrbital.orbit.inclination << "; " << moonOrbital.orbit.eccentricity << "; " << moonOrbital.orbit.raan << "; " << moonOrbital.orbit.semiMajorAxis << "; " << moonOrbital.orbit.semiMinorAxis << "; " << moonOrbital.orbit.meanMotion << "; " << moonOrbital.orbitalState.meanAnomaly << "; " << moonOrbital.orbitalState.trueAnomaly << "; " << moonOrbital.orbitalState.timeOfPeriapsisPassage << "; " << moonOrbital.state.r << "; " << moonOrbital.state.v << std::endl;
 
                 //if ((((abs(rocketOrbital.orbit.semiMajorAxis - lastSemiMajorAxis) > 10000) || (abs(rocketOrbital.orbit.eccentricity - lastEccentricity) > 0.01) || (abs(rocketOrbital.orbit.inclination - lastInclination) > 0.1)) || (glfwGetTime() - lastTime) * timeMultiplier >= 10.0) && (rocketOrbital.orbit.semiMajorAxis * (1 - rocketOrbital.orbit.eccentricity) > bodies[3].averageRadius) && (pow(glm::length(rocketOrbital.state.v), 2) / 2.0 - bodies[3].mu / glm::length(rocketOrbital.state.r) < 0.0))
                 //{
-                    Transfer moonTransfer = findTransferWindow(0.0, 8760.0, 720.0, 4320.0, 24.0, 24.0, rocketOrbital, moonOrbital, bodies[0].mu);
-                    //std::cout << moonTransfer.departureTime << std::endl;
+                    Transfer moonTransfer = findTransferWindow(0.0, 720.0, 24.0, 168.0, 1.0, 1.0, rocketOrbital, moonOrbital, bodies[boundBody].mu);
 
                     if (/*(moonTransfer.departureTime <= 8760.0 * 3600.0)*/ /*&& (moonTransfer.deltaVelocity < lastDeltaVelocity)*/ /*&&*/ /*(abs(lastDeltaVelocity - moonTransfer.deltaVelocity) > 1000.0) &&*/ !(enginesOn && throttle > 0.0))
                     {
-                        transfer           = moonTransfer;
+                        transfer = moonTransfer;
                         ObjectState rv;
                         rv.r = bodies[numOfPlanets].position;
                         rv.v = bodies[numOfPlanets].velocity;
-                        transferWindow     = rv.r;//findMeanPosition(0/*transfer.departureTime*/, rv, bodies[0].mu);
+                        transferWindow = rv.r;//findMeanPosition(0/*transfer.departureTime*/, rv, bodies[0].mu);
                         //std::cout << bodies[numOfPlanets].position << "; " << transferWindow << "; " << glm::length(bodies[numOfPlanets].position - transferWindow) << std::endl;
                         //std::cout << transferWindow << std::endl;
                         //std::cout << transfer.out.A << "; " << transfer.out.z << "; " << transfer.out.y << "; " << transfer.out.f << "; " << transfer.out.g << "; " << transfer.out.r1l << "; " << transfer.out.r2l << "; " << transfer.out.r1 << "; " << transfer.out.r2 << "; " << glm::length(transfer.out.r1) << "; " << glm::length(transfer.out.r2) << std::endl;
@@ -849,7 +874,6 @@ int main(int argc, char* argv[]) {
 
     double lastYaw, lastPitch = 0.0;
 
-    unsigned int boundBody;
     bool idk = false;
 
     unsigned int menuBody = 3;
@@ -878,18 +902,19 @@ int main(int argc, char* argv[]) {
 
         // update buttons
         // --------------
-        startButton   = HoverButton(startCallback,                        glm::vec2(0.15625f  * SCR_WIDTH, 0.463f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, start_button,   start_hover);
-        optionsButton = HoverButton(optionsCallback,                      glm::vec2(0.15625f  * SCR_WIDTH, 0.389f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, options_button, options_hover);
-        quitButton    = HoverButton([window]() { quitCallback(window); }, glm::vec2(0.15625f  * SCR_WIDTH, 0.315f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, quit_button,    quit_hover);
-        optionsClose  = Button(     optionsCloseCallback,                 glm::vec2(SCR_WIDTH - SCR_WIDTH / 20.0f,  SCR_HEIGHT - SCR_HEIGHT / 10.0f), SCR_HEIGHT / 5400.0f, imageShader, options_close);
+        startButton    = HoverButton(startCallback,                                              glm::vec2(0.15625f  * SCR_WIDTH, 0.463f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, start_button,   start_hover);
+        tutorialButton = HoverButton([&]() {tutorialCallback(bodies[numOfPlanets], bodies[3]);}, glm::vec2(0.15625f  * SCR_WIDTH, 0.389f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, tut_button,     tut_button);
+        optionsButton  = HoverButton(optionsCallback,                                            glm::vec2(0.15625f  * SCR_WIDTH, 0.315f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, options_button, options_hover);
+        quitButton     = HoverButton([window]() {quitCallback(window);},                         glm::vec2(0.15625f  * SCR_WIDTH, 0.241f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, quit_button,    quit_hover);
+        optionsClose   = Button(     optionsCloseCallback,                                       glm::vec2(SCR_WIDTH - SCR_WIDTH / 20.0f,  SCR_HEIGHT - SCR_HEIGHT / 10.0f), SCR_HEIGHT / 5400.0f, imageShader, options_close);
 
-        rtgESCButton  = Button(rtgCallback,                               glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + SCR_HEIGHT / 21.6f), SCR_HEIGHT / 3600.0f, imageShader, rtg_button);
-        rtmmESCButton = Button(rtmmCallback,                              glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - SCR_HEIGHT / 21.6f), SCR_HEIGHT / 3600.0f, imageShader, rtmm_button);
+        rtgESCButton   = Button(rtgCallback,                                                     glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + SCR_HEIGHT / 21.6f), SCR_HEIGHT / 3600.0f, imageShader, rtg_button);
+        rtmmESCButton  = Button(rtmmCallback,                                                    glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - SCR_HEIGHT / 21.6f), SCR_HEIGHT / 3600.0f, imageShader, rtmm_button);
 
         // input
         // -----
         processInput(window);
-        rocket.processControls(window, camera);
+        rocket.processControls(window, camera, gameState.inTutorial, tutorialSlide);
 
         // get cursor position
         // -------------------
@@ -938,7 +963,7 @@ int main(int argc, char* argv[]) {
 
         // calculate thrust acceleration of the rocket and calculate total acceleration
         glm::dvec3 thrustAccel = glm::normalize(rocket.rotationQuaternion * glm::dvec3(0.0, 1.0, 0.0)) * 70.0;
-        glm::dvec3 totalAccel = bodies[numOfPlanets].totalAcceleration + thrustAccel;
+        glm::dvec3 totalAccel  = bodies[numOfPlanets].totalAcceleration + thrustAccel;
 
         bodies[numOfPlanets].velocity += (enginesOn ? (double)(throttle/100) : 0) * (totalAccel * ((double)deltaTime * timeMultiplier));
 
@@ -1007,12 +1032,12 @@ int main(int argc, char* argv[]) {
 
         // initialize trajectories
         // -----------------------
-        TrajectorySimulator rocketTrajectory(bodies[numOfPlanets], bodies[boundBody], boundBody);
-        TrajectorySimulator moonTrajectory(bodies[4], bodies[3], 3);
-        TrajectorySimulator earthTrajectory(bodies[3], bodies[0], 0);
+        TrajectorySimulator rocketTrajectory( bodies[numOfPlanets], bodies[boundBody], boundBody);
+        TrajectorySimulator moonTrajectory(   bodies[4], bodies[3], 3);
+        TrajectorySimulator earthTrajectory(  bodies[3], bodies[0], 0);
         TrajectorySimulator mercuryTrajectory(bodies[1], bodies[0], 0);
-        TrajectorySimulator venusTrajectory(bodies[2], bodies[0], 0);
-        TrajectorySimulator marsTrajectory(bodies[5], bodies[0], 0);
+        TrajectorySimulator venusTrajectory(  bodies[2], bodies[0], 0);
+        TrajectorySimulator marsTrajectory(   bodies[5], bodies[0], 0);
 
         if (orbitView && !menuState.inMenu)
         {
@@ -1298,13 +1323,13 @@ int main(int argc, char* argv[]) {
 
             if (orbitView && !menuState.inMenu)
             {
-                rocketTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                moonTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                rocketTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                moonTrajectory.renderTrajectory(   camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
 
-                earthTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                earthTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 mercuryTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                venusTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                marsTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                venusTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                marsTrajectory.renderTrajectory(   camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
             }
 
             glm::dvec3 relativeVelocity = bodies[numOfPlanets].velocity - bodies[boundBody].velocity;
@@ -1588,9 +1613,18 @@ int main(int argc, char* argv[]) {
         if (menuState.inMenu && !menuState.options)
         {
             RenderCenteredImage(imageShader, mmtl, SCR_WIDTH / 4.5, SCR_HEIGHT - SCR_HEIGHT / 4.32,  SCR_HEIGHT / 1080.0f);
-            startButton.Render(  glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
-            optionsButton.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
-            quitButton.Render(   glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
+            startButton.Render(   glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
+            tutorialButton.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
+            optionsButton.Render( glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
+            quitButton.Render(    glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
+        }
+
+        // tutorial text
+        // -------------
+        if (!menuState.inMenu && gameState.inTutorial)
+        {
+            for (unsigned int i = 0; i < tutorialTexts[tutorialSlide].size(); i++)
+                RenderText(textShader, tutorialTexts[tutorialSlide][i], glm::vec2(SCR_WIDTH / 2.0f, SCR_HEIGHT / 2.0f + SCR_HEIGHT / 3.0f - i * (SCR_HEIGHT / 25.0f)), 0.5f/*SCR_HEIGHT / 3840.0f*/, glm::vec3(1.0f), true);
         }
 
         // escape menu
@@ -1623,7 +1657,7 @@ int main(int argc, char* argv[]) {
         }
         windowModeLastFrame = D_m_o_wm.selected;
 
-        if (!menuState.inMenu && ((abs(saveTimer - 5.0f) < 0.01f) || (saveTimer > 5.0f) || glfwWindowShouldClose(window)))
+        if (!menuState.inMenu && ((abs(saveTimer - 5.0f) < 0.01f) || (saveTimer > 5.0f) || glfwWindowShouldClose(window)) && !gameState.inTutorial)
         {
             // create planet states
             // --------------------
@@ -1674,6 +1708,7 @@ int main(int argc, char* argv[]) {
 void processInput(GLFWwindow *window)
 {
     // close window if escape key is pressed, or open escape menu if in-game
+    // ---------------------------------------------------------------------
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
         if (menuState.inMenu)
@@ -1700,64 +1735,157 @@ void processInput(GLFWwindow *window)
         keyInput.keyESC_lastFrame = false;
     }
 
+    // tutorial slide advance logic
+    // ----------------------------
+    if (gameState.inTutorial)
+    {
+        for (unsigned int i = 0; i < tutAdvanceKeys[tutorialSlide].size(); i++)
+        {
+            if (glfwGetKey(window, tutAdvanceKeys[tutorialSlide][i]) == GLFW_PRESS)
+            {
+                if (!keyInput.keySpace_lastFrame)
+                    tutorialSlide++;
+
+                keyInput.keySpace_lastFrame = true;
+            }
+            else
+            {
+                keyInput.keySpace_lastFrame = false;
+            }
+        }
+    }
+
     // rocket controls
     // ---------------
-    if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
+    if (!gameState.inTutorial)
     {
-        if (!keyInput.keyT_lastFrame)
-            enginesOn = !enginesOn;
-        keyInput.keyT_lastFrame = true;
+        if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
+        {
+            if (!keyInput.keyT_lastFrame)
+                enginesOn = !enginesOn;
+            keyInput.keyT_lastFrame = true;
+        }
+        else
+        {
+            keyInput.keyT_lastFrame = false;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && throttle != 100.0f)
+        {
+            throttle += 50.0f * deltaTime;
+            if (throttle > 100.0f)
+                throttle = 100.0f;
+        }
+        if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && throttle != 0.0f)
+        {
+            throttle -= 50.0f * deltaTime;
+            if (throttle < 0.0f)
+                throttle = 0.0f;
+        }
     }
     else
     {
-        keyInput.keyT_lastFrame = false;
-    }
+        if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS && tutorialSlide >= 4)
+        {
+            if (!keyInput.keyT_lastFrame)
+                enginesOn = !enginesOn;
+            keyInput.keyT_lastFrame = true;
+        }
+        else
+        {
+            keyInput.keyT_lastFrame = false;
+        }
 
-    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && throttle != 100.0f)
-    {
-        throttle += 50.0f * deltaTime;
-        if (throttle > 100.0f)
-            throttle = 100.0f;
-    }
-    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && throttle != 0.0f)
-    {
-        throttle -= 50.0f * deltaTime;
-        if (throttle < 0.0f)
-            throttle = 0.0f;
+        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && throttle != 100.0f && tutorialSlide >= 5)
+        {
+            throttle += 50.0f * deltaTime;
+            if (throttle > 100.0f)
+                throttle = 100.0f;
+        }
+        if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && throttle != 0.0f && tutorialSlide >= 5)
+        {
+            throttle -= 50.0f * deltaTime;
+            if (throttle < 0.0f)
+                throttle = 0.0f;
+        }
     }
 
     // time control (speed up and slow down)
-    if (glfwGetKey(window, GLFW_KEY_PERIOD) == GLFW_PRESS)
+    // -------------------------------------
+    if (!gameState.inTutorial)
     {
-        if (!keyInput.keyGT_lastFrame && timeMultiplier != timewarpValues[timewarpValues.size() - 1])
-            timeMultiplierIndex += 1;
-        keyInput.keyGT_lastFrame = true;
+        if (glfwGetKey(window, GLFW_KEY_PERIOD) == GLFW_PRESS)
+        {
+            if (!keyInput.keyGT_lastFrame && timeMultiplier != timewarpValues[timewarpValues.size() - 1])
+                timeMultiplierIndex += 1;
+            keyInput.keyGT_lastFrame = true;
+        }
+        else
+        {
+            keyInput.keyGT_lastFrame = false;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_COMMA) == GLFW_PRESS)
+        {
+            if (!keyInput.keyLT_lastFrame && timeMultiplierIndex != 0)
+                timeMultiplierIndex -= 1;
+            keyInput.keyLT_lastFrame = true;
+        }
+        else
+        {
+            keyInput.keyLT_lastFrame = false;
+        }
     }
     else
     {
-        keyInput.keyGT_lastFrame = false;
+        if (glfwGetKey(window, GLFW_KEY_PERIOD) == GLFW_PRESS && tutorialSlide >= 6)
+        {
+            if (!keyInput.keyGT_lastFrame && timeMultiplier != timewarpValues[timewarpValues.size() - 1])
+                timeMultiplierIndex += 1;
+            keyInput.keyGT_lastFrame = true;
+        }
+        else
+        {
+            keyInput.keyGT_lastFrame = false;
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_COMMA) == GLFW_PRESS && tutorialSlide >= 6)
+        {
+            if (!keyInput.keyLT_lastFrame && timeMultiplierIndex != 0)
+                timeMultiplierIndex -= 1;
+            keyInput.keyLT_lastFrame = true;
+        }
+        else
+        {
+            keyInput.keyLT_lastFrame = false;
+        }
     }
 
-    if (glfwGetKey(window, GLFW_KEY_COMMA) == GLFW_PRESS)
+    if (!gameState.inTutorial)
     {
-        if (!keyInput.keyLT_lastFrame && timeMultiplierIndex != 0)
-            timeMultiplierIndex -= 1;
-        keyInput.keyLT_lastFrame = true;
+        if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
+        {
+            if (!keyInput.keyF1_lastFrame)
+                orbitView = !orbitView;
+            keyInput.keyF1_lastFrame = true;
+        }
+        else
+        {
+            keyInput.keyF1_lastFrame = false;
+        }
     }
     else
     {
-        keyInput.keyLT_lastFrame = false;
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
-    {
-        if (!keyInput.keyF1_lastFrame)
-            orbitView = !orbitView;
-        keyInput.keyF1_lastFrame = true;
-    }
-    else
-    {
-        keyInput.keyF1_lastFrame = false;
+        if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS && tutorialSlide >= 0)
+        {
+            if (!keyInput.keyF1_lastFrame)
+                orbitView = !orbitView;
+            keyInput.keyF1_lastFrame = true;
+        }
+        else
+        {
+            keyInput.keyF1_lastFrame = false;
+        }
     }
 }
 
