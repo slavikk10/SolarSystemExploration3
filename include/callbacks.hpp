@@ -1,6 +1,9 @@
 #include <functional>
 #include <GLFW/glfw3.h>
 
+#include <celestialbody.hpp>
+#include <savefilesmanager.hpp>
+
 #pragma once
 
 struct MenuState
@@ -20,9 +23,15 @@ struct GameState
 MenuState menuState;
 GameState gameState;
 
-std::function<void()> startCallback = []()
+std::function<void(CelestialBody& player, PlayerSaveData& save)> startCallback = [](CelestialBody& player, PlayerSaveData& save)
 {
     menuState.inMenu = false;
+
+    if (!save.isEmpty)
+    {
+        player.position = save.state.r;
+        player.velocity = save.state.v;
+    }
 };
 
 std::function<void()> optionsCallback = []()

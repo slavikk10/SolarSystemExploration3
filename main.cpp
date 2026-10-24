@@ -768,7 +768,7 @@ int main(int argc, char* argv[]) {
 
     // initialize buttons
     // ------------------
-    HoverButton startButton(startCallback,                                       glm::vec2(300.0f, 500.0f), 0.2f, imageShader, start_button,   start_hover);
+    HoverButton startButton([&]() {startCallback(bodies[numOfPlanets], playerSaveData);}, glm::vec2(0.15625f  * SCR_WIDTH, 0.463f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, start_button,   start_hover);;
     HoverButton tutorialButton([&]() {tutorialCallback(bodies[11], bodies[3]);}, glm::vec2(300.0f, 420.0f), 0.2f, imageShader, tut_button,     tut_button);
     HoverButton optionsButton(optionsCallback,                                   glm::vec2(300.0f, 340.0f), 0.2f, imageShader, options_button, options_hover);
     HoverButton quitButton([window]() {quitCallback(window);},                   glm::vec2(300.0f, 260.0f), 0.2f, imageShader, quit_button,    quit_hover);
@@ -839,7 +839,7 @@ int main(int argc, char* argv[]) {
                         ObjectState rv;
                         rv.r = bodies[numOfPlanets].position;
                         rv.v = bodies[numOfPlanets].velocity;
-                        transferWindow = rv.r;//findMeanPosition(0/*transfer.departureTime*/, rv, bodies[0].mu);
+                        transferWindow = rv.r;//findMeanPosition(0/*transfer.departureTime, rv, bodies[0].mu);
                         //std::cout << bodies[numOfPlanets].position << "; " << transferWindow << "; " << glm::length(bodies[numOfPlanets].position - transferWindow) << std::endl;
                         //std::cout << transferWindow << std::endl;
                         //std::cout << transfer.out.A << "; " << transfer.out.z << "; " << transfer.out.y << "; " << transfer.out.f << "; " << transfer.out.g << "; " << transfer.out.r1l << "; " << transfer.out.r2l << "; " << transfer.out.r1 << "; " << transfer.out.r2 << "; " << glm::length(transfer.out.r1) << "; " << glm::length(transfer.out.r2) << std::endl;
@@ -902,14 +902,14 @@ int main(int argc, char* argv[]) {
 
         // update buttons
         // --------------
-        startButton    = HoverButton(startCallback,                                              glm::vec2(0.15625f  * SCR_WIDTH, 0.463f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, start_button,   start_hover);
-        tutorialButton = HoverButton([&]() {tutorialCallback(bodies[numOfPlanets], bodies[3]);}, glm::vec2(0.15625f  * SCR_WIDTH, 0.389f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, tut_button,     tut_button);
-        optionsButton  = HoverButton(optionsCallback,                                            glm::vec2(0.15625f  * SCR_WIDTH, 0.315f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, options_button, options_hover);
-        quitButton     = HoverButton([window]() {quitCallback(window);},                         glm::vec2(0.15625f  * SCR_WIDTH, 0.241f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, quit_button,    quit_hover);
-        optionsClose   = Button(     optionsCloseCallback,                                       glm::vec2(SCR_WIDTH - SCR_WIDTH / 20.0f,  SCR_HEIGHT - SCR_HEIGHT / 10.0f), SCR_HEIGHT / 5400.0f, imageShader, options_close);
+        startButton    = HoverButton([&]() {startCallback(bodies[numOfPlanets], playerSaveData);}, glm::vec2(0.15625f  * SCR_WIDTH, 0.463f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, start_button,   start_hover);
+        tutorialButton = HoverButton([&]() {tutorialCallback(bodies[numOfPlanets], bodies[3]);},   glm::vec2(0.15625f  * SCR_WIDTH, 0.389f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, tut_button,     tut_button);
+        optionsButton  = HoverButton(optionsCallback,                                              glm::vec2(0.15625f  * SCR_WIDTH, 0.315f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, options_button, options_hover);
+        quitButton     = HoverButton([window]() {quitCallback(window);},                           glm::vec2(0.15625f  * SCR_WIDTH, 0.241f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, quit_button,    quit_hover);
+        optionsClose   = Button(     optionsCloseCallback,                                         glm::vec2(SCR_WIDTH - SCR_WIDTH / 20.0f,  SCR_HEIGHT - SCR_HEIGHT / 10.0f), SCR_HEIGHT / 5400.0f, imageShader, options_close);
 
-        rtgESCButton   = Button(rtgCallback,                                                     glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + SCR_HEIGHT / 21.6f), SCR_HEIGHT / 3600.0f, imageShader, rtg_button);
-        rtmmESCButton  = Button(rtmmCallback,                                                    glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - SCR_HEIGHT / 21.6f), SCR_HEIGHT / 3600.0f, imageShader, rtmm_button);
+        rtgESCButton   = Button(rtgCallback,                                                       glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + SCR_HEIGHT / 21.6f), SCR_HEIGHT / 3600.0f, imageShader, rtg_button);
+        rtmmESCButton  = Button(rtmmCallback,                                                      glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - SCR_HEIGHT / 21.6f), SCR_HEIGHT / 3600.0f, imageShader, rtmm_button);
 
         // input
         // -----

@@ -767,7 +767,7 @@ Transfer findTransferWindow(double x_min, double x_max, double y_min, double y_m
             }
         }
     }
-    std::cout << deltaVelocity << std::endl;
+    //std::cout << deltaVelocity << std::endl;
 
     Transfer transfer;
     transfer.deltaVelocity  = deltaVelocity;

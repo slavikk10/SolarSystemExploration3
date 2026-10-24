@@ -1,4 +1,4 @@
-// Credits to Sebastian Lague (github.com/SebLague) for a great atmosphere tutorial!
+// Credits to Sebastian Lague (github.com/SebLague) for a great atmosphere light scattering tutorial!
 // 
 
 #version 410 core

@@ -9,6 +9,8 @@
 #include <filesystem.hpp>
 #include <date.hpp>
 
+#pragma once
+
 struct PlayerSaveData
 {
     ObjectState state;
