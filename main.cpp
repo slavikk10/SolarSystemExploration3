@@ -112,6 +112,7 @@ int timeMultiplierIndex = 0;
 constexpr float sscale = 1.0f; // scale of the Solar System (1:1)
 const std::vector<std::string> faces           = {"right", "left", "top", "bottom", "front", "back"}; // cubemap faces
 const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000}; // timewarp values
+const std::vector<unsigned int> numOfSteps     = {1, 1, 1, 1, 1,  1,  1,  5,   5,   5,   10,   10,   10,   50,    50,    50,    100,    100,    100,    100,     100,     100,     100}; // number of steps depending on time multiplier
 constexpr unsigned int numOfPlanets            = 11;
 const std::vector<unsigned int> parentBody     = {0, 0, 0, 0, 3, 0, 0, 6, 6, 6, 6, 0};
 const std::vector<std::string> planetSFNames   = {"mercury", "venus", "earth", "moon", "mars", "jupiter", "io", "europa", "ganymede", "callisto"};
@@ -934,14 +935,14 @@ int main(int argc, char* argv[]) {
 
         rocket.update(deltaTime);
 
-        for (unsigned int i = 0; i < 100; i++)
+        for (unsigned int i = 0; i < numOfSteps[timeMultiplierIndex]; i++)
         {
             unsigned int j = 0;
             for (auto &body : bodies)
             {
                 if (!menuState.inMenu && !menuState.escMenu)
                 {
-                    body.updateObject(bodies, deltaTime * timeMultiplier / 100);
+                    body.updateObject(bodies, deltaTime * timeMultiplier / numOfSteps[timeMultiplierIndex]);
                     
                     if (j == numOfPlanets)
                     {
