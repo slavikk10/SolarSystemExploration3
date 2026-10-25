@@ -152,7 +152,7 @@ const std::vector<std::vector<std::string>> tutorialTexts = {
     {"That's it for now. You can explore the vast Solar System, fly around", "(until you run out of fuel) and do whatever you want. You can", "also land on planets, but it's yet not perfect. (press space to go to next slide)"},
     {"You can continue playing in this tutorial, but your progress won't be saved.", "If you want your progress to be saved, go by the Start button in the main menu"}
 };
-const std::vector<std::vector<int>> tutAdvanceKeys = {{GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E}, {GLFW_KEY_SPACE}, {GLFW_KEY_T}, {GLFW_KEY_R}, {GLFW_KEY_PERIOD}, {GLFW_KEY_F1}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}};
+const std::vector<std::vector<int>> tutAdvanceKeys = {{GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E}, {GLFW_KEY_SPACE}, {GLFW_KEY_T}, {GLFW_KEY_R}, {GLFW_KEY_PERIOD}, {GLFW_KEY_F1}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}};
 
 // structs
 struct MouseInput
@@ -1764,16 +1764,35 @@ void processInput(GLFWwindow *window)
     {
         for (unsigned int i = 0; i < tutAdvanceKeys[tutorialSlide].size(); i++)
         {
-            if (glfwGetKey(window, tutAdvanceKeys[tutorialSlide][i]) == GLFW_PRESS)
+            if (!(tutorialSlide == tutAdvanceKeys.size() - 1))
             {
-                if (!keyInput.keySpace_lastFrame)
-                    tutorialSlide++;
+                if (glfwGetKey(window, tutAdvanceKeys[tutorialSlide][i]) == GLFW_PRESS)
+                {
+                    if (!keyInput.keySpace_lastFrame)
+                        tutorialSlide++;
 
-                keyInput.keySpace_lastFrame = true;
+                    keyInput.keySpace_lastFrame = true;
+                }
+                else
+                {
+                    keyInput.keySpace_lastFrame = false;
+                }
             }
             else
             {
-                keyInput.keySpace_lastFrame = false;
+                // end tutorial
+                // ------------
+                if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+                {
+                    if (!keyInput.keySpace_lastFrame)
+                        gameState.inTutorial = false;
+
+                    keyInput.keySpace_lastFrame = true;
+                }
+                else
+                {
+                    keyInput.keySpace_lastFrame = false;
+                }
             }
         }
     }
