@@ -747,11 +747,11 @@ Transfer findTransferWindow(double x_min, double x_max, double y_min, double y_m
 
     for (double i = y_min; i < y_max; i += y_step)
     {
-        for (double j = x_min; j < 1.0/*x_max*/; j += 1.0)//x_step)
-        {
+        //for (double j = x_min; j < 1.0/*x_max*/; j += 1.0)//x_step)
+        //{
             //std::cout << "x: " << j << "; y: " << i << std::endl;
             //std::cout << rocketDeparturePositions[j] << "; " << gravitationalParameter << std::endl;
-            LambertOutput temp = lambertSolver(rocketOrbital, targetOrbital, 3600 * j, 3600 * i, gravitationalParameter, rocketDeparturePositions[0]);
+            LambertOutput temp = lambertSolver(rocketOrbital, targetOrbital, 0.0, 3600 * i, gravitationalParameter, rocketDeparturePositions[0]);
             glm::dvec3 velocityVector = temp.requiredVelocity;//lambertSolver(rocketOrbital, targetOrbital, 3600 * j, 3600 * i, gravitationalParameter, rocketDeparturePositions[j]).requiredVelocity;
             double vel = glm::length(velocityVector - rocketOrbital.state.v);
             //std::cout << vel << "; " << velocityVector << "; " << rocketOrbital.state.v << std::endl;
@@ -760,12 +760,12 @@ Transfer findTransferWindow(double x_min, double x_max, double y_min, double y_m
             {
                 deltaVelocity = vel;
 
-                departureTime = 3600 * j;
+                departureTime = 0.0;//3600 * j;
                 timeOfFlight  = 3600 * i;
                 velVector     = velocityVector - rocketOrbital.state.v;
                 finalo = temp;
             }
-        }
+        //}
     }
     //std::cout << deltaVelocity << std::endl;
 

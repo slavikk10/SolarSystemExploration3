@@ -147,8 +147,12 @@ const std::vector<std::vector<std::string>> tutorialTexts = {
     {"The text above the rocket is the required transfer velocity", "In other words, it's the velocity you need to gain in order to", "get the appropriate transfer orbit. (press space to go to next slide)"},
     {"If you zoom in enough, you can see a white circle near your rocket", "You need to rotate the rocket so it points towards that circle", "(press space to go to next slide)"},
     {"Now thrust the rocket until the velocity text becomes around zero", "(press space to go to next slide)"},
+    {"You now have the appropriate transfer orbit. If you don't want to wait like 4 days", "to get to the moon, you can use the time multiplier to speed things up.", "(press space to go to next slide)"},
+    {"You can also go to other planets like this, just be sure to notice that you", "need to leave Earth's SOI before doing this.", "(press space to go to next slide)"},
+    {"That's it for now. You can explore the vast Solar System, fly around", "(until you run out of fuel) and do whatever you want. You can", "also land on planets, but it's yet not perfect. (press space to go to next slide)"},
+    {"You can continue playing in this tutorial, but your progress won't be saved.", "If you want your progress to be saved, go by the Start button in the main menu"}
 };
-const std::vector<std::vector<int>> tutAdvanceKeys = {{GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E}, {GLFW_KEY_SPACE}, {GLFW_KEY_T}, {GLFW_KEY_R}, {GLFW_KEY_PERIOD}, {GLFW_KEY_F1}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}};
+const std::vector<std::vector<int>> tutAdvanceKeys = {{GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E}, {GLFW_KEY_SPACE}, {GLFW_KEY_T}, {GLFW_KEY_R}, {GLFW_KEY_PERIOD}, {GLFW_KEY_F1}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}, {GLFW_KEY_SPACE}};
 
 // structs
 struct MouseInput
@@ -832,7 +836,7 @@ int main(int argc, char* argv[]) {
 
                 //if ((((abs(rocketOrbital.orbit.semiMajorAxis - lastSemiMajorAxis) > 10000) || (abs(rocketOrbital.orbit.eccentricity - lastEccentricity) > 0.01) || (abs(rocketOrbital.orbit.inclination - lastInclination) > 0.1)) || (glfwGetTime() - lastTime) * timeMultiplier >= 10.0) && (rocketOrbital.orbit.semiMajorAxis * (1 - rocketOrbital.orbit.eccentricity) > bodies[3].averageRadius) && (pow(glm::length(rocketOrbital.state.v), 2) / 2.0 - bodies[3].mu / glm::length(rocketOrbital.state.r) < 0.0))
                 //{
-                    Transfer moonTransfer = findTransferWindow(0.0, 720.0, 24.0, 168.0, 1.0, 1.0, rocketOrbital, moonOrbital, bodies[boundBody].mu);
+                    Transfer moonTransfer = findTransferWindow(0.0, 720.0, 24.0, 96.0, 1.0, 1.0, rocketOrbital, moonOrbital, bodies[boundBody].mu);
 
                     if (/*(moonTransfer.departureTime <= 8760.0 * 3600.0)*/ /*&& (moonTransfer.deltaVelocity < lastDeltaVelocity)*/ /*&&*/ /*(abs(lastDeltaVelocity - moonTransfer.deltaVelocity) > 1000.0) &&*/ !(enginesOn && throttle > 0.0))
                     {
@@ -899,6 +903,13 @@ int main(int argc, char* argv[]) {
     // -----------
     while (!glfwWindowShouldClose(window))
     {
+        // debug
+        // -----
+        
+        std::cout << "bb.m: " << bodies[boundBody].mu << std::endl;
+
+
+        //
         timestamp += 1;
 
         // update buttons
@@ -1877,7 +1888,7 @@ void processInput(GLFWwindow *window)
     }
     else
     {
-        if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS && tutorialSlide >= 0)
+        if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS && tutorialSlide >= 8)
         {
             if (!keyInput.keyF1_lastFrame)
                 orbitView = !orbitView;
