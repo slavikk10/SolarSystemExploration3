@@ -24,6 +24,8 @@ struct JSON {
 struct TextureSettings {
     bool flipHorizontally;
     bool skipRM;
+
+    TextureSettings() {flipHorizontally = false; skipRM = false;}
 };
 
 struct CloudsJSON {
@@ -303,6 +305,16 @@ AtmosphereJSON parseAtmosphereJSON(const char* path)
     {
         result = AtmosphereJSON();
     }
+
+    return result;
+}
+
+bool oneOfTexturesDoesntExist(std::vector<std::string> texturePaths)
+{
+    bool result = false;
+    for (unsigned int i = 0; i < texturePaths.size(); i++)
+        if (!std::filesystem::exists(getFilePath(texturePaths[i])))
+            result = true;
 
     return result;
 }

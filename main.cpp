@@ -521,6 +521,10 @@ int main(int argc, char* argv[]) {
         {"light", lightShader}
     };
 
+    std::string missingTexturePath = "Resources/resources/textures/misc/missing_texture.jpeg";
+    Image missingTexture = loadImage(getFilePath(missingTexturePath).c_str());
+    std::vector<std::string> packOfMissingTextures = {missingTexturePath, missingTexturePath, missingTexturePath, missingTexturePath, missingTexturePath};
+
     std::vector<JSON> planetJSON;
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
         planetJSON.push_back(loadJSON(planetJSONPaths[i].c_str()));
@@ -528,13 +532,20 @@ int main(int argc, char* argv[]) {
     std::vector<std::vector<std::string>> planetTexturePaths;
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
     {
-        planetTexturePaths.push_back(parseTexturesJSON(planetJSONPaths[i].c_str()));
-        //std::cout << planetTexturePaths[i][0] << std::endl;
+        if (!oneOfTexturesDoesntExist(parseTexturesJSON(planetJSONPaths[i].c_str())))
+            planetTexturePaths.push_back(parseTexturesJSON(planetJSONPaths[i].c_str()));
+        else
+            planetTexturePaths.push_back(packOfMissingTextures);
     }
 
     std::vector<TextureSettings> planetTextureSettings;
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
-        planetTextureSettings.push_back(parseTextureSettingsJSON(planetJSONPaths[i].c_str()));
+    {
+        if (!oneOfTexturesDoesntExist(parseTexturesJSON(planetJSONPaths[i].c_str())))
+            planetTextureSettings.push_back(parseTextureSettingsJSON(planetJSONPaths[i].c_str()));
+        else
+            planetTextureSettings.push_back(TextureSettings());
+    }
 
     std::vector<Shader> planetShaders;
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
