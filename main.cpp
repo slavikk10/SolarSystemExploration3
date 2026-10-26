@@ -33,6 +33,7 @@
 #include <renderfuncs.hpp>
 #include <savefilesmanager.hpp>
 #include <date.hpp>
+#include <keymanager.hpp>
 
 #include <atomic>
 #include <cstdlib>
@@ -169,22 +170,7 @@ struct MouseInput
     bool rmbPressedLastFrame = false;
 };
 
-struct KeyInput
-{
-    bool keyT_lastFrame = false;
-
-    bool keyGT_lastFrame = false;
-    bool keyLT_lastFrame = false;
-
-    bool keyESC_lastFrame = false;
-
-    bool keyF1_lastFrame = false;
-
-    bool keySpace_lastFrame = false;
-};
-
 MouseInput mouseInput;
-KeyInput keyInput;
 
 struct PlanetKey 
 {
@@ -909,6 +895,10 @@ int main(int argc, char* argv[]) {
     std::mutex rotationsAroundAxisMutex;
 
     bool firstFrame = true;
+
+    // fill the keys pressed last frame vector with default values (false)
+    // -------------------------------------------------------------------
+    defaultKPLFfill();
 
     // render loop
     // -----------
@@ -1738,7 +1728,7 @@ void processInput(GLFWwindow *window)
         {
             if (!menuState.options)
             {
-                if (!keyInput.keyESC_lastFrame)
+                if (!keysPressedLastFrame[findIndexOfItem(keys, GLFW_KEY_ESCAPE)])
                     glfwSetWindowShouldClose(window, true);
             }
             else
@@ -1748,14 +1738,9 @@ void processInput(GLFWwindow *window)
         }
         else
         {
-            if (!keyInput.keyESC_lastFrame)
+            if (!keysPressedLastFrame[findIndexOfItem(keys, GLFW_KEY_ESCAPE)])
                 menuState.escMenu = !menuState.escMenu;
-            keyInput.keyESC_lastFrame = true;
         }
-    }
-    else
-    {
-        keyInput.keyESC_lastFrame = false;
     }
 
     // tutorial slide advance logic
@@ -1767,32 +1752,16 @@ void processInput(GLFWwindow *window)
             if (!(tutorialSlide == tutAdvanceKeys.size() - 1))
             {
                 if (glfwGetKey(window, tutAdvanceKeys[tutorialSlide][i]) == GLFW_PRESS)
-                {
-                    if (!keyInput.keySpace_lastFrame)
+                    if (!keysPressedLastFrame[findIndexOfItem(keys, GLFW_KEY_SPACE)])
                         tutorialSlide++;
-
-                    keyInput.keySpace_lastFrame = true;
-                }
-                else
-                {
-                    keyInput.keySpace_lastFrame = false;
-                }
             }
             else
             {
                 // end tutorial
                 // ------------
                 if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-                {
-                    if (!keyInput.keySpace_lastFrame)
+                    if (!keysPressedLastFrame[findIndexOfItem(keys, GLFW_KEY_SPACE)])
                         gameState.inTutorial = false;
-
-                    keyInput.keySpace_lastFrame = true;
-                }
-                else
-                {
-                    keyInput.keySpace_lastFrame = false;
-                }
             }
         }
     }
@@ -1802,15 +1771,8 @@ void processInput(GLFWwindow *window)
     if (!gameState.inTutorial)
     {
         if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
-        {
-            if (!keyInput.keyT_lastFrame)
+            if (!keysPressedLastFrame[findIndexOfItem(keys, GLFW_KEY_T)])
                 enginesOn = !enginesOn;
-            keyInput.keyT_lastFrame = true;
-        }
-        else
-        {
-            keyInput.keyT_lastFrame = false;
-        }
 
         if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && throttle != 100.0f)
         {
@@ -1828,15 +1790,8 @@ void processInput(GLFWwindow *window)
     else
     {
         if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS && tutorialSlide >= 4)
-        {
-            if (!keyInput.keyT_lastFrame)
+            if (!keysPressedLastFrame[findIndexOfItem(keys, GLFW_KEY_T)])
                 enginesOn = !enginesOn;
-            keyInput.keyT_lastFrame = true;
-        }
-        else
-        {
-            keyInput.keyT_lastFrame = false;
-        }
 
         if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && throttle != 100.0f && tutorialSlide >= 5)
         {
@@ -1857,78 +1812,38 @@ void processInput(GLFWwindow *window)
     if (!gameState.inTutorial)
     {
         if (glfwGetKey(window, GLFW_KEY_PERIOD) == GLFW_PRESS)
-        {
-            if (!keyInput.keyGT_lastFrame && timeMultiplier != timewarpValues[timewarpValues.size() - 1])
+            if (!keysPressedLastFrame[findIndexOfItem(keys, GLFW_KEY_PERIOD)] && timeMultiplier != timewarpValues[timewarpValues.size() - 1])
                 timeMultiplierIndex += 1;
-            keyInput.keyGT_lastFrame = true;
-        }
-        else
-        {
-            keyInput.keyGT_lastFrame = false;
-        }
 
         if (glfwGetKey(window, GLFW_KEY_COMMA) == GLFW_PRESS)
-        {
-            if (!keyInput.keyLT_lastFrame && timeMultiplierIndex != 0)
+            if (!keysPressedLastFrame[findIndexOfItem(keys, GLFW_KEY_COMMA)] && timeMultiplierIndex != 0)
                 timeMultiplierIndex -= 1;
-            keyInput.keyLT_lastFrame = true;
-        }
-        else
-        {
-            keyInput.keyLT_lastFrame = false;
-        }
     }
     else
     {
         if (glfwGetKey(window, GLFW_KEY_PERIOD) == GLFW_PRESS && tutorialSlide >= 6)
-        {
-            if (!keyInput.keyGT_lastFrame && timeMultiplier != timewarpValues[timewarpValues.size() - 1])
+            if (!keysPressedLastFrame[findIndexOfItem(keys, GLFW_KEY_PERIOD)] && timeMultiplier != timewarpValues[timewarpValues.size() - 1])
                 timeMultiplierIndex += 1;
-            keyInput.keyGT_lastFrame = true;
-        }
-        else
-        {
-            keyInput.keyGT_lastFrame = false;
-        }
 
         if (glfwGetKey(window, GLFW_KEY_COMMA) == GLFW_PRESS && tutorialSlide >= 6)
-        {
-            if (!keyInput.keyLT_lastFrame && timeMultiplierIndex != 0)
+            if (!keysPressedLastFrame[findIndexOfItem(keys, GLFW_KEY_COMMA)] && timeMultiplierIndex != 0)
                 timeMultiplierIndex -= 1;
-            keyInput.keyLT_lastFrame = true;
-        }
-        else
-        {
-            keyInput.keyLT_lastFrame = false;
-        }
     }
 
     if (!gameState.inTutorial)
     {
         if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS)
-        {
-            if (!keyInput.keyF1_lastFrame)
+            if (!keysPressedLastFrame[findIndexOfItem(keys, GLFW_KEY_F1)])
                 orbitView = !orbitView;
-            keyInput.keyF1_lastFrame = true;
-        }
-        else
-        {
-            keyInput.keyF1_lastFrame = false;
-        }
     }
     else
     {
         if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS && tutorialSlide >= 8)
-        {
-            if (!keyInput.keyF1_lastFrame)
+            if (!keysPressedLastFrame[findIndexOfItem(keys, GLFW_KEY_F1)])
                 orbitView = !orbitView;
-            keyInput.keyF1_lastFrame = true;
-        }
-        else
-        {
-            keyInput.keyF1_lastFrame = false;
-        }
     }
+
+    updateKeysPressedLastFrame(window);
 }
 
 // regenerate buffers that use screen resolution after window resize

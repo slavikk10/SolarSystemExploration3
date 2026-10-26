@@ -7,7 +7,7 @@
 
 #pragma once
 
-std::vector<double> soiRadiuses = {
+const std::vector<double> soiRadiuses = {
     4570000000000000.0,
     117000000.0,
     616000000.0,
@@ -21,7 +21,7 @@ std::vector<double> soiRadiuses = {
     52200000.0,
 };
 
-std::vector<unsigned int> planetRelativeBody = {
+const std::vector<unsigned int> planetRelativeBody = {
     0,
     0,
     0,
