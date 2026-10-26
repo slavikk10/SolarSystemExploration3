@@ -34,6 +34,7 @@
 #include <savefilesmanager.hpp>
 #include <date.hpp>
 #include <keymanager.hpp>
+#include <collisions.hpp>
 
 #include <atomic>
 #include <cstdlib>
@@ -67,7 +68,7 @@ Image loadImage(char const * path, bool gamma_correction=false);
 unsigned int loadCubemap(std::string path, std::string filename_start_text, vector<std::string> faces, bool gamma_correction, bool sixteenFloat=false);
 void renderQuad();
 void renderSphere(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32);
-glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32, glm::uvec2 hitSegment=glm::uvec2(0), glm::dvec3 scale=glm::dvec3(0.0), glm::dvec3 rayDirection=glm::dvec3(0.0), glm::dvec3 rayOrigin=glm::dvec3(0.0), Texture heightTexture=Texture(0, 0, 0, 0));
+glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS=32, unsigned int Y_SEGMENTS=32, glm::uvec2 hitSegment=glm::uvec2(0), glm::dvec3 scale=glm::dvec3(0.0), glm::dvec3 rayDirection=glm::dvec3(0.0), glm::dvec3 rayOrigin=glm::dvec3(0.0), Texture heightTexture=Texture(0, 0, 0, 0), unsigned int planetIndex=0);
 
 std::function<void(unsigned int&, unsigned int)> setTransferBody = [](unsigned int& bodyVar, unsigned int body)
 {
@@ -200,6 +201,7 @@ struct SphereCollision
 
 static std::map<PlanetKey, PlanetData> planetCache;
 static std::map<PlanetKey, PlanetData> cPlanetCache;
+std::vector<std::vector<glm::vec3>> planetVertices(11);
 
 bool orbitView = false;
 
@@ -904,13 +906,6 @@ int main(int argc, char* argv[]) {
     // -----------
     while (!glfwWindowShouldClose(window))
     {
-        // debug
-        // -----
-        
-        std::cout << "bb.m: " << bodies[boundBody].mu << std::endl;
-
-
-        //
         timestamp += 1;
 
         // update buttons
@@ -1264,7 +1259,7 @@ int main(int argc, char* argv[]) {
                     glm::uvec2 hitSegment = checkForCollision(bodies[numOfPlanets].position, bodies[boundBody].position, bodies[boundBody].equatorialRadius, numOfSegments[i]);
                     collisionBody = i;
 
-                    glm::dvec3 collisionPosition = renderSphereCollision(patchesOptions[i], numOfSegments[i], numOfSegments[i], hitSegment, planetScales[i], glm::normalize(bodies[i].position - bodies[numOfPlanets].position), bodies[numOfPlanets].position - bodies[i].position);//textureLoad[3][3]);
+                    glm::dvec3 collisionPosition = renderSphereCollision(patchesOptions[i], numOfSegments[i], numOfSegments[i], hitSegment, planetScales[i], glm::normalize(bodies[i].position - bodies[numOfPlanets].position), bodies[numOfPlanets].position - bodies[i].position, Texture(0, 0, 0, 0), i);//textureLoad[3][3]);
                     collisionPoint               = collisionPosition;
 
                     collisionAnywhere = true;
@@ -1284,6 +1279,21 @@ int main(int argc, char* argv[]) {
 
                     if (glm::length(bodies[numOfPlanets].position - bodies[collisionBody].position) < glm::length(collisionPoint))
                         bodies[numOfPlanets].position += (collisionPoint - (bodies[numOfPlanets].position - bodies[collisionBody].position));
+                }
+            }
+
+            // collision
+            // ---------
+            if (!firstFrame && !menuState.inMenu)
+            {
+                glm::dvec3 collisionPush = pushPlayerToSurface(bodies[numOfPlanets], bodies[3], planetVertices[3], numOfSegments[3], numOfSegments[3], bodies[3].equatorialRadius + 100.0);
+                if (collisionPush != glm::dvec3(0.0))
+                {
+                    bodies[numOfPlanets].position += collisionPush;
+                    camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) - orbitalCameraPosition;
+                    
+                    // reset player's velocity
+                    bodies[numOfPlanets].velocity = bodies[3].velocity;
                 }
             }
 
@@ -2216,7 +2226,7 @@ void renderSphere(bool patches, unsigned int X_SEGMENTS, unsigned int Y_SEGMENTS
         glDrawElements(GL_PATCHES, sphere.indexCount, GL_UNSIGNED_INT, 0);
 }
 
-glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS, unsigned int Y_SEGMENTS, glm::uvec2 hitSegment, glm::dvec3 scale, glm::dvec3 rayDirection, glm::dvec3 rayOrigin, Texture heightTexture)
+glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS, unsigned int Y_SEGMENTS, glm::uvec2 hitSegment, glm::dvec3 scale, glm::dvec3 rayDirection, glm::dvec3 rayOrigin, Texture heightTexture, unsigned int planetIndex)
 {
     PlanetKey key = {X_SEGMENTS, Y_SEGMENTS};
     bool collisionState = false;
@@ -2367,6 +2377,8 @@ glm::dvec3 renderSphereCollision(bool patches, unsigned int X_SEGMENTS, unsigned
     //return rayOrigin + raySphere(rayOrigin, glm::dvec3(0.0), scale.x + 15000.0, rayDirection).x * rayDirection;
 
     //return v0;
+
+    planetVertices[planetIndex] = sphere.positions;
 
     if (glm::length(triangle1Hit) < 1e-5)
         return triangle2Hit;
