@@ -1286,14 +1286,15 @@ int main(int argc, char* argv[]) {
             // ---------
             if (!firstFrame && !menuState.inMenu)
             {
-                glm::dvec3 collisionPush = pushPlayerToSurface(bodies[numOfPlanets], bodies[3], planetVertices[3], numOfSegments[3], numOfSegments[3], bodies[3].equatorialRadius + 100.0);
+                glm::dvec3 collisionPush = pushPlayerToSurface(bodies[numOfPlanets], bodies[collisionBody], planetVertices[collisionBody], numOfSegments[collisionBody], numOfSegments[collisionBody], bodies[collisionBody].equatorialRadius + 10.0);
                 if (collisionPush != glm::dvec3(0.0))
                 {
                     bodies[numOfPlanets].position += collisionPush;
                     camera.Position = glm::dvec3(bodies[numOfPlanets].position.x/sscale, bodies[numOfPlanets].position.y/sscale, bodies[numOfPlanets].position.z/sscale) - orbitalCameraPosition;
                     
                     // reset player's velocity
-                    bodies[numOfPlanets].velocity = bodies[3].velocity;
+                    glm::dvec3 relativeVelocity = bodies[numOfPlanets].velocity - bodies[collisionBody].velocity;
+                    bodies[numOfPlanets].velocity = (relativeVelocity - max(0.0, glm::dot(relativeVelocity, glm::normalize(bodies[collisionBody].position - bodies[numOfPlanets].position))) * glm::normalize(bodies[collisionBody].position - bodies[numOfPlanets].position)) + bodies[collisionBody].velocity;
                 }
             }
 
