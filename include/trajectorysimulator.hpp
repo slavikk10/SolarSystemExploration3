@@ -143,9 +143,9 @@ public:
         shader.setVec3("color", color);
 
         for (unsigned int i = 0; i < positions.size() - 1; i++)
-            RenderLine(positions[i] - camera.Position, positions[i + 1] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT, color);
+            RenderLine(positions[i] - camera.Position, positions[i + 1] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT, color, shader);
 
         if (orbit)
-            RenderLine(positions[positions.size() - 1] - camera.Position, positions[0] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT, color);
+            RenderLine(positions[positions.size() - 1] - camera.Position, positions[0] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT, color, shader);
     }
 };

@@ -1345,6 +1345,8 @@ int main(int argc, char* argv[]) {
 
             // render trajectories
             // -------------------
+            glEnable(GL_DEPTH_TEST);
+            glDepthMask(GL_TRUE);
             lineShader.use();
             lineShader.setMat4("projection", orthoProjection);
 

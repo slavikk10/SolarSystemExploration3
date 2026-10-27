@@ -337,7 +337,7 @@ glm::vec2 convert3Dto2D(glm::vec3 position, const glm::mat4 &view, const glm::ma
 }
 
 static unsigned int lineVAO = 0, lineVBO = 0;
-void RenderLine(glm::dvec3 pos1, glm::dvec3 pos2, const glm::mat4& view, const glm::mat4& projection, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, glm::vec3 color)
+void RenderLine(glm::dvec3 pos1, glm::dvec3 pos2, const glm::mat4& view, const glm::mat4& projection, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, glm::vec3 color, Shader shader)
 {
     if (lineVAO == 0)
     {
@@ -360,6 +360,9 @@ void RenderLine(glm::dvec3 pos1, glm::dvec3 pos2, const glm::mat4& view, const g
     std::vector<glm::vec2> data;
     data.push_back(convert3Dto2D(pos1, view, projection, SCR_WIDTH, SCR_HEIGHT));
     data.push_back(convert3Dto2D(pos2, view, projection, SCR_WIDTH, SCR_HEIGHT));
+
+    shader.use();
+    shader.setVec3("WorldPos", (pos1 + pos2) / 2.0);
 
     glBindVertexArray(lineVAO);
     glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
