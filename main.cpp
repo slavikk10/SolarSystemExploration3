@@ -1350,13 +1350,13 @@ int main(int argc, char* argv[]) {
 
             if (orbitView && !menuState.inMenu)
             {
-                rocketTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                moonTrajectory.renderTrajectory(   camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                rocketTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 1.0f, 1.0f), lineShader);
+                moonTrajectory.renderTrajectory(   camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.5f, 0.5f, 0.5f), lineShader);
 
-                earthTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                mercuryTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                venusTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                marsTrajectory.renderTrajectory(   camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                earthTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.0f, 0.0f, 1.0f), lineShader);
+                mercuryTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.5f, 0.5f, 0.5f), lineShader);
+                venusTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 1.0f, 0.0f), lineShader);
+                marsTrajectory.renderTrajectory(   camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 0.0f, 0.0f), lineShader);
             }
 
             // render velocity arrows

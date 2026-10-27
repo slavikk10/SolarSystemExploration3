@@ -134,12 +134,15 @@ public:
         }
     }
 
-    void renderTrajectory(const Camera& camera, const glm::mat4& view, const glm::mat4& projection, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
+    void renderTrajectory(const Camera& camera, const glm::mat4& view, const glm::mat4& projection, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, glm::vec3 color, Shader shader)
     {
+        shader.use();
+        shader.setVec3("color", color);
+
         for (unsigned int i = 0; i < positions.size() - 1; i++)
-            RenderLine(positions[i] - camera.Position, positions[i + 1] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
+            RenderLine(positions[i] - camera.Position, positions[i + 1] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT, color);
 
         if (orbit)
-            RenderLine(positions[positions.size() - 1] - camera.Position, positions[0] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
+            RenderLine(positions[positions.size() - 1] - camera.Position, positions[0] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT, color);
     }
 };

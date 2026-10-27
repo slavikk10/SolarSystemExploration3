@@ -337,7 +337,7 @@ glm::vec2 convert3Dto2D(glm::vec3 position, const glm::mat4 &view, const glm::ma
 }
 
 static unsigned int lineVAO = 0, lineVBO = 0;
-void RenderLine(glm::dvec3 pos1, glm::dvec3 pos2, const glm::mat4& view, const glm::mat4& projection, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
+void RenderLine(glm::dvec3 pos1, glm::dvec3 pos2, const glm::mat4& view, const glm::mat4& projection, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT, glm::vec3 color)
 {
     if (lineVAO == 0)
     {
@@ -363,7 +363,7 @@ void RenderLine(glm::dvec3 pos1, glm::dvec3 pos2, const glm::mat4& view, const g
 
     glBindVertexArray(lineVAO);
     glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-    glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(float), &data[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(data), &data[0], GL_STATIC_DRAW);
 
     glBindVertexArray(lineVAO);
     glDrawArrays(GL_LINES, 0, 2);
