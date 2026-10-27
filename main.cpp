@@ -1359,6 +1359,8 @@ int main(int argc, char* argv[]) {
                 marsTrajectory.renderTrajectory(   camera, view, projection, SCR_WIDTH, SCR_HEIGHT);
             }
 
+            // render velocity arrows
+            // ----------------------
             glm::dvec3 relativeVelocity = bodies[numOfPlanets].velocity - bodies[boundBody].velocity;
         
             double velocityScale = glm::length(relativeVelocity) / 200.0;
@@ -1379,7 +1381,7 @@ int main(int argc, char* argv[]) {
             double velocityLeftFromPlanet = round(glm::dot(relativeVelocity, leftFromPlanet) * 10.0) / 10.0;
             double velocityBackward       = round(glm::dot(relativeVelocity, backward)       * 10.0) / 10.0;
 
-            if (!menuState.inMenu && orbitView)
+            if (!menuState.inMenu && orbitView && camera.Zoom <= 1000.0f)
             {
                 if (!isViewSwitchHeight)
                     renderArrow(bodies[numOfPlanets].position, (float)velocityScale, (glm::vec3)glm::normalize(-relativeVelocity), 5.0f, cylinder, cone, lightShader, camera);
@@ -1590,7 +1592,7 @@ int main(int argc, char* argv[]) {
 
             // render velocities relative to planet
             // ------------------------------------
-            if (isViewSwitchHeight)
+            if (isViewSwitchHeight && camera.Zoom <= 1000.0f)
             {
                 glm::dvec3 relativeVelocity = bodies[numOfPlanets].velocity - bodies[viewSwitchBody].velocity;
 
@@ -1628,7 +1630,7 @@ int main(int argc, char* argv[]) {
 
             // render velocity text
             // --------------------
-            if (!isViewSwitchHeight)
+            if (!isViewSwitchHeight && camera.Zoom <= 1000.0f)
             {
                 glm::vec2 vtp = convert3Dto2D((glm::normalize(bodies[numOfPlanets].velocity - bodies[boundBody].velocity) * (2 * velocityScale + 7.5) + bodies[numOfPlanets].position) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
                 RenderText(textShader, std::format("{:.4f}", glm::length(bodies[numOfPlanets].velocity - bodies[boundBody].velocity) / 1000.0) + " km/s", vtp.x, vtp.y, 0.4f, glm::vec3(1.0f), true);
