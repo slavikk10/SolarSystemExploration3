@@ -105,6 +105,9 @@ public:
             orbit = true;
             for (unsigned int i = 0; i < iterations; i++)
                 positions.push_back(system[1].position + findMeanPosition((i / (double)iterations) * T, system[0].position - system[1].position, system[0].velocity, system[1].mu));
+
+            apoapsis  = apoapsisd  * -glm::normalize(eVec);
+            periapsis = periapsisd *  glm::normalize(eVec);
         }
         else
         {
