@@ -1347,6 +1347,7 @@ int main(int argc, char* argv[]) {
             // -------------------
             glEnable(GL_DEPTH_TEST);
             glDepthMask(GL_TRUE);
+            
             lineShader.use();
             lineShader.setMat4("projection", orthoProjection);
 
@@ -1354,7 +1355,6 @@ int main(int argc, char* argv[]) {
             {
                 rocketTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 1.0f, 1.0f), lineShader);
                 moonTrajectory.renderTrajectory(   camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.5f, 0.5f, 0.5f), lineShader);
-
                 earthTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.0f, 0.0f, 1.0f), lineShader);
                 mercuryTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.5f, 0.5f, 0.5f), lineShader);
                 venusTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 1.0f, 0.0f), lineShader);

@@ -12,7 +12,7 @@
 
 #pragma once
 
-const double epsilon = 0.00001;
+constexpr double epsilon = 0.00001;
 
 struct ObjectState
 {
@@ -293,42 +293,43 @@ glm::dvec3 keplerUniversal(double time, ObjectState rv, double gravitationalPara
 
     double r0l = glm::length(r0);
     double v0l = glm::length(v0);
+    double vr0 = glm::dot(r0, v0) / r0l;
 
     double a = (2.0 / r0l) - (pow(v0l, 2.0) / gravitationalParameter);
 
     double X  = sqrt(gravitationalParameter) * time * a;
-    double Xp = 0.0;
+    double Xp = X;
 
-    double C, S, r;
-    while (abs(X - Xp) > epsilon)
+    double C, S, F, Fd;
+    for (unsigned int i = 0; i < 20; i++) // if something goes wrong and the X never converges then stop at 20 iterations to prevent infinite loop
     {
-        double p = a * pow(X, 2);
+        double z = a * pow(X, 2.0);
 
-        if (p > epsilon)
-            C = (1.0 - cos(sqrt(p))) / p;
-        else if (p < -epsilon)
-            C = (cosh(sqrt(-p)) - 1.0) / -p;
+        if (z > epsilon)
+            C = (1.0 - cos(sqrt(z))) / z;
+        else if (z < -epsilon)
+            C = (cosh(sqrt(-z)) - 1.0) / -z;
         else
             C = 1.0 / 2.0;
 
-        if (p > epsilon)
-            S = (sqrt(p) - sin(sqrt(p))) / pow(sqrt(p), 3.0);
-        else if (p < -epsilon)
-            S = (sinh(sqrt(-p)) - sqrt(-p)) / pow(sqrt(-p), 3.0);
+        if (z > epsilon)
+            S = (sqrt(z) - sin(sqrt(z))) / pow(sqrt(z), 3.0);
+        else if (z < -epsilon)
+            S = (sinh(sqrt(-z)) - sqrt(-z)) / pow(sqrt(-z), 3.0);
         else
             S = 1.0 / 6.0;
 
-        double r_1 = pow(X, 2.0) * C;
-        double r_2 = (glm::dot(r0, v0) / sqrt(gravitationalParameter)) * X * (1.0 - p * S);
-        r          = r_1 + r_2 + r0l * (1.0 - p * C);
+        double temp1 = (r0l * vr0) / sqrt(gravitationalParameter);
+        double temp2 = (1.0 - a * r0l);
+        F  = temp1 * pow(X, 2.0) * C   + temp2 * pow(X, 3.0) * S + r0l * X - sqrt(gravitationalParameter) * time;
+        Fd = temp1 * X * (1.0 - z * S) + temp2 * pow(X, 2.0) * C + r0l;
 
-        double temp1 = sqrt(gravitationalParameter) * time;
-        double temp2 = pow(X, 3.0) * S;
-        double temp3 = (glm::dot(r0, v0) / sqrt(gravitationalParameter)) * pow(X, 2.0) * C;
-        double temp4 = r0l * X * (1.0 - p * S);
+        X = Xp - (F / Fd);
+
+        if (abs(X - Xp) <= epsilon)
+            break;
 
         Xp = X;
-        X  = Xp + (temp1 - temp2 - temp3 - temp4) / r;
     }
 
     double p = a * pow(X, 2);
@@ -347,15 +348,16 @@ glm::dvec3 keplerUniversal(double time, ObjectState rv, double gravitationalPara
     else
         S = 1.0 / 6.0;
 
-    double r_1 = pow(X, 2.0) * C;
-    double r_2 = (glm::dot(r0, v0) / sqrt(gravitationalParameter)) * X * (1.0 - p * S);
-    r          = r_1 + r_2 + r0l * (1.0 - p * C);
+    double temp1 = (r0l * vr0) / sqrt(gravitationalParameter);
+    double temp2 = (1.0 - a * r0l);
+    F  = temp1 * pow(X, 2.0) * C   + temp2 * pow(X, 3.0) * S + r0l * X - sqrt(gravitationalParameter) * time;
+    Fd = temp1 * X * (1.0 - p * S) + temp2 * pow(X, 2.0) * C + r0l;
 
     double f = 1.0 - (pow(X, 2.0) * C) / r0l;
     double g = time - (pow(X, 3.0) * S) / sqrt(gravitationalParameter);
 
-    double fd = (sqrt(gravitationalParameter) / (r * r0l)) * X * (p * S - 1.0);
-    double gd = 1.0 - (pow(X, 2.0) * C) / r;
+    //double fd = (sqrt(gravitationalParameter) / (r * r0l)) * X * (p * S - 1.0);
+    //double gd = 1.0 - (pow(X, 2.0) * C) / r;
 
     return f * r0 + g * v0;
 }
@@ -367,42 +369,43 @@ glm::dvec3 keplerUniversal(double time, OrbitalObject orbital, double gravitatio
 
     double r0l = glm::length(r0);
     double v0l = glm::length(v0);
+    double vr0 = glm::dot(r0, v0) / r0l;
 
     double a = (2.0 / r0l) - (pow(v0l, 2.0) / gravitationalParameter);
 
     double X  = sqrt(gravitationalParameter) * time * a;
-    double Xp = 0.0;
+    double Xp = X;
 
-    double C, S, r;
-    while (abs(X - Xp) > epsilon)
+    double C, S, F, Fd;
+    for (unsigned int i = 0; i < 20; i++) // if something goes wrong and the X never converges then stop at 20 iterations to prevent infinite loop
     {
-        double p = a * pow(X, 2);
+        double z = a * pow(X, 2.0);
 
-        if (p > epsilon)
-            C = (1.0 - cos(sqrt(p))) / p;
-        else if (p < -epsilon)
-            C = (cosh(sqrt(-p)) - 1.0) / -p;
+        if (z > epsilon)
+            C = (1.0 - cos(sqrt(z))) / z;
+        else if (z < -epsilon)
+            C = (cosh(sqrt(-z)) - 1.0) / -z;
         else
             C = 1.0 / 2.0;
 
-        if (p > epsilon)
-            S = (sqrt(p) - sin(sqrt(p))) / pow(sqrt(p), 3.0);
-        else if (p < -epsilon)
-            S = (sinh(sqrt(-p)) - sqrt(-p)) / pow(sqrt(-p), 3.0);
+        if (z > epsilon)
+            S = (sqrt(z) - sin(sqrt(z))) / pow(sqrt(z), 3.0);
+        else if (z < -epsilon)
+            S = (sinh(sqrt(-z)) - sqrt(-z)) / pow(sqrt(-z), 3.0);
         else
             S = 1.0 / 6.0;
 
-        double r_1 = pow(X, 2.0) * C;
-        double r_2 = (glm::dot(r0, v0) / sqrt(gravitationalParameter)) * X * (1.0 - p * S);
-        r          = r_1 + r_2 + r0l * (1.0 - p * C);
+        double temp1 = (r0l * vr0) / sqrt(gravitationalParameter);
+        double temp2 = (1.0 - a * r0l);
+        F  = temp1 * pow(X, 2.0) * C   + temp2 * pow(X, 3.0) * S + r0l * X - sqrt(gravitationalParameter) * time;
+        Fd = temp1 * X * (1.0 - z * S) + temp2 * pow(X, 2.0) * C + r0l;
 
-        double temp1 = sqrt(gravitationalParameter) * time;
-        double temp2 = pow(X, 3.0) * S;
-        double temp3 = (glm::dot(r0, v0) / sqrt(gravitationalParameter)) * pow(X, 2.0) * C;
-        double temp4 = r0l * X * (1.0 - p * S);
+        X = Xp - (F / Fd);
+
+        if (abs(X - Xp) <= epsilon)
+            break;
 
         Xp = X;
-        X  = Xp + (temp1 - temp2 - temp3 - temp4) / r;
     }
 
     double p = a * pow(X, 2);
@@ -421,15 +424,16 @@ glm::dvec3 keplerUniversal(double time, OrbitalObject orbital, double gravitatio
     else
         S = 1.0 / 6.0;
 
-    double r_1 = pow(X, 2.0) * C;
-    double r_2 = (glm::dot(r0, v0) / sqrt(gravitationalParameter)) * X * (1.0 - p * S);
-    r          = r_1 + r_2 + r0l * (1.0 - p * C);
+    double temp1 = (r0l * vr0) / sqrt(gravitationalParameter);
+    double temp2 = (1.0 - a * r0l);
+    F  = temp1 * pow(X, 2.0) * C   + temp2 * pow(X, 3.0) * S + r0l * X - sqrt(gravitationalParameter) * time;
+    Fd = temp1 * X * (1.0 - p * S) + temp2 * pow(X, 2.0) * C + r0l;
 
     double f = 1.0 - (pow(X, 2.0) * C) / r0l;
     double g = time - (pow(X, 3.0) * S) / sqrt(gravitationalParameter);
 
-    double fd = (sqrt(gravitationalParameter) / (r * r0l)) * X * (p * S - 1.0);
-    double gd = 1.0 - (pow(X, 2.0) * C) / r;
+    //double fd = (sqrt(gravitationalParameter) / (r * r0l)) * X * (p * S - 1.0);
+    //double gd = 1.0 - (pow(X, 2.0) * C) / r;
 
     return f * r0 + g * v0;
 }
@@ -438,45 +442,46 @@ glm::dvec3 keplerUniversal(double time, glm::dvec3 r0, glm::dvec3 v0, double gra
 {
     double r0l = glm::length(r0);
     double v0l = glm::length(v0);
+    double vr0 = glm::dot(r0, v0) / r0l;
 
     double a = (2.0 / r0l) - (pow(v0l, 2.0) / gravitationalParameter);
 
-    double X  = sqrt(gravitationalParameter) * time * a;
-    double Xp = 0.0;
+    double X  = sqrt(gravitationalParameter) * a * time;
+    double Xp = X;
 
-    double C, S, r;
-    while (abs(X - Xp) > epsilon)
+    double C, S, F, Fd;
+    for (unsigned int i = 0; i < 20; i++) // if something goes wrong and the X never converges then stop at 20 iterations to prevent infinite loop
     {
-        double p = a * pow(X, 2);
+        double z = a * pow(X, 2.0);
 
-        if (p > epsilon)
-            C = (1.0 - cos(sqrt(p))) / p;
-        else if (p < -epsilon)
-            C = (cosh(sqrt(-p)) - 1.0) / -p;
+        if (z > epsilon)
+            C = (1.0 - cos(sqrt(z))) / z;
+        else if (z < -epsilon)
+            C = (cosh(sqrt(-z)) - 1.0) / -z;
         else
             C = 1.0 / 2.0;
 
-        if (p > epsilon)
-            S = (sqrt(p) - sin(sqrt(p))) / pow(sqrt(p), 3.0);
-        else if (p < -epsilon)
-            S = (sinh(sqrt(-p)) - sqrt(-p)) / pow(sqrt(-p), 3.0);
+        if (z > epsilon)
+            S = (sqrt(z) - sin(sqrt(z))) / pow(sqrt(z), 3.0);
+        else if (z < -epsilon)
+            S = (sinh(sqrt(-z)) - sqrt(-z)) / pow(sqrt(-z), 3.0);
         else
             S = 1.0 / 6.0;
 
-        double r_1 = pow(X, 2.0) * C;
-        double r_2 = (glm::dot(r0, v0) / sqrt(gravitationalParameter)) * X * (1.0 - p * S);
-        r          = r_1 + r_2 + r0l * (1.0 - p * C);
+        double temp1 = (r0l * vr0) / sqrt(gravitationalParameter);
+        double temp2 = (1.0 - a * r0l);
+        F  = temp1 * pow(X, 2.0) * C   + temp2 * pow(X, 3.0) * S + r0l * X - sqrt(gravitationalParameter) * time;
+        Fd = temp1 * X * (1.0 - z * S) + temp2 * pow(X, 2.0) * C + r0l;
 
-        double temp1 = sqrt(gravitationalParameter) * time;
-        double temp2 = pow(X, 3.0) * S;
-        double temp3 = (glm::dot(r0, v0) / sqrt(gravitationalParameter)) * pow(X, 2.0) * C;
-        double temp4 = r0l * X * (1.0 - p * S);
+        X = Xp - (F / Fd);
+
+        if (abs(X - Xp) <= epsilon)
+            break;
 
         Xp = X;
-        X  = Xp + (temp1 - temp2 - temp3 - temp4) / r;
     }
 
-    double p = a * pow(X, 2);
+    double p = a * pow(X, 2.0);
 
     if (p > epsilon)
         C = (1.0 - cos(sqrt(p))) / p;
@@ -492,15 +497,16 @@ glm::dvec3 keplerUniversal(double time, glm::dvec3 r0, glm::dvec3 v0, double gra
     else
         S = 1.0 / 6.0;
 
-    double r_1 = pow(X, 2.0) * C;
-    double r_2 = (glm::dot(r0, v0) / sqrt(gravitationalParameter)) * X * (1.0 - p * S);
-    r          = r_1 + r_2 + r0l * (1.0 - p * C);
+    double temp1 = (r0l * vr0) / sqrt(gravitationalParameter);
+    double temp2 = (1.0 - a * r0l);
+    F  = temp1 * pow(X, 2.0) * C   + temp2 * pow(X, 3.0) * S + r0l * X - sqrt(gravitationalParameter) * time;
+    Fd = temp1 * X * (1.0 - p * S) + temp2 * pow(X, 2.0) * C + r0l;
 
-    double f = 1.0 - (pow(X, 2.0) * C) / r0l;
+    double f = 1.0  - (pow(X, 2.0) * C) / r0l;
     double g = time - (pow(X, 3.0) * S) / sqrt(gravitationalParameter);
 
-    double fd = (sqrt(gravitationalParameter) / (r * r0l)) * X * (p * S - 1.0);
-    double gd = 1.0 - (pow(X, 2.0) * C) / r;
+    //double fd = (sqrt(gravitationalParameter) / (r * r0l)) * X * (p * S - 1.0);
+    //double gd = 1.0 - (pow(X, 2.0) * C) / r;
 
     return f * r0 + g * v0;
 }
