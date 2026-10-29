@@ -1049,6 +1049,7 @@ int main(int argc, char* argv[]) {
         TrajectorySimulator mercuryTrajectory(bodies[1], bodies[0], 0);
         TrajectorySimulator venusTrajectory(  bodies[2], bodies[0], 0);
         TrajectorySimulator marsTrajectory(   bodies[5], bodies[0], 0);
+        TrajectorySimulator jupiterTrajectory(bodies[6], bodies[0], 0);
 
         if (orbitView && !menuState.inMenu)
         {
@@ -1058,6 +1059,7 @@ int main(int argc, char* argv[]) {
             mercuryTrajectory.simulateTrajectory();
             venusTrajectory.simulateTrajectory();
             marsTrajectory.simulateTrajectory();
+            jupiterTrajectory.simulateTrajectory();
         }
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1359,6 +1361,7 @@ int main(int argc, char* argv[]) {
                 mercuryTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.5f, 0.5f, 0.5f), lineShader);
                 venusTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 1.0f, 0.0f), lineShader);
                 marsTrajectory.renderTrajectory(   camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 0.0f, 0.0f), lineShader);
+                jupiterTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 0.5f, 0.0f), lineShader);
             }
 
             // render velocity arrows
