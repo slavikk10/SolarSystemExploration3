@@ -357,19 +357,33 @@ void RenderLine(glm::dvec3 pos1, glm::dvec3 pos2, const glm::mat4& view, const g
     glEnable(GL_SCISSOR_TEST);
     glScissor(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
-    std::vector<glm::vec2> data;
+    /*std::vector<glm::vec2> data;
     data.push_back(convert3Dto2D(pos1, view, projection, SCR_WIDTH, SCR_HEIGHT));
-    data.push_back(convert3Dto2D(pos2, view, projection, SCR_WIDTH, SCR_HEIGHT));
+    data.push_back(convert3Dto2D(pos2, view, projection, SCR_WIDTH, SCR_HEIGHT));*/
 
-    shader.use();
-    shader.setVec3("WorldPos", (pos1 + pos2) / 2.0);
+    glm::vec2 convertedPos1 = convert3Dto2D(pos1, view, projection, SCR_WIDTH, SCR_HEIGHT);
+    glm::vec2 convertedPos2 = convert3Dto2D(pos2, view, projection, SCR_WIDTH, SCR_HEIGHT);
 
-    glBindVertexArray(lineVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(data), &data[0], GL_STATIC_DRAW);
+    // render the line, if it's fully outside the screen then don't render it
+    // ----------------------------------------------------------------------
+    if ((convertedPos1.x > 0.0 && convertedPos1.x < SCR_WIDTH && convertedPos1.y > 0.0 && convertedPos1.y < SCR_HEIGHT) || (convertedPos2.x > 0.0 && convertedPos2.x < SCR_WIDTH && convertedPos2.y > 0.0 && convertedPos2.y < SCR_HEIGHT))
+    {
+        float data[]
+        {
+            convertedPos1.x, convertedPos1.y,
+            convertedPos2.x, convertedPos2.y
+        };
 
-    glBindVertexArray(lineVAO);
-    glDrawArrays(GL_LINES, 0, 2);
+        shader.use();
+        shader.setVec3("WorldPos", (pos1 + pos2) / 2.0);
+
+        glBindVertexArray(lineVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
+
+        glBindVertexArray(lineVAO);
+        glDrawArrays(GL_LINES, 0, 2);
+    }
 }
 
 void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color, bool centered)

@@ -115,9 +115,9 @@ constexpr float sscale = 1.0f; // scale of the Solar System (1:1)
 const std::vector<std::string> faces           = {"right", "left", "top", "bottom", "front", "back"}; // cubemap faces
 const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000}; // timewarp values
 const std::vector<unsigned int> numOfSteps     = {1, 1, 1, 1, 1,  1,  1,  5,   5,   5,   10,   10,   10,   50,    50,    50,    100,    100,    100,    100,     100,     100,     100}; // number of steps depending on time multiplier
-constexpr unsigned int numOfPlanets            = 11;
-const std::vector<unsigned int> parentBody     = {0, 0, 0, 0, 3, 0, 0, 6, 6, 6, 6, 0};
-const std::vector<std::string> planetSFNames   = {"mercury", "venus", "earth", "moon", "mars", "jupiter", "io", "europa", "ganymede", "callisto"};
+constexpr unsigned int numOfPlanets            = 14;
+const std::vector<unsigned int> parentBody     = {0, 0, 0, 0, 3, 0, 0, 6, 6, 6, 6, 0, 0, 0, 0};
+const std::vector<std::string> planetSFNames   = {"mercury", "venus", "earth", "moon", "mars", "jupiter", "io", "europa", "ganymede", "callisto", "saturn", "uranus", "neptune"};
 
 Date currentDate;
 
@@ -201,7 +201,7 @@ struct SphereCollision
 
 static std::map<PlanetKey, PlanetData> planetCache;
 static std::map<PlanetKey, PlanetData> cPlanetCache;
-std::vector<std::vector<glm::vec3>> planetVertices(11);
+std::vector<std::vector<glm::vec3>> planetVertices(numOfPlanets);
 
 bool orbitView = false;
 
@@ -341,6 +341,7 @@ int main(int argc, char* argv[]) {
     Model rocketModel(getFilePath("Resources/resources/models/simple_rocket.obj"));
     Model cylinder(   getFilePath("Resources/resources/models/cylinder.obj"));
     Model cone(       getFilePath("Resources/resources/models/cone.obj"));
+    Model saturnRings(getFilePath("Resources/resources/misc/rings/saturn_rings/saturn_rings.obj"));
 
     // setup cube vertices (for skybox)
     // --------------------------------
@@ -501,6 +502,9 @@ int main(int argc, char* argv[]) {
         "Resources/resources/planets/europa.json",
         "Resources/resources/planets/ganymede.json",
         "Resources/resources/planets/callisto.json",
+        "Resources/resources/planets/saturn.json",
+        "Resources/resources/planets/uranus.json",
+        "Resources/resources/planets/neptune.json"
     };
 
     std::unordered_map<std::string, Shader> shaderNames = {
@@ -596,8 +600,13 @@ int main(int argc, char* argv[]) {
         t.join();
     
     for (unsigned int i = 0; i < textureLoad.size(); i++)
+    {
         for (unsigned int j = 0; j < textureLoad[0].size(); j++)
+        {
+            //std::cout << "generating texture " << i << ";" << j << std::endl;
             loadedTextures[i][j] = genTexture(textureLoad[i][j]);
+        }
+    }
     
     // load cloud textures
     // -------------------
@@ -721,7 +730,7 @@ int main(int argc, char* argv[]) {
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
         bodies.push_back(parseCelestialJSONData(planetJSONPaths[i].c_str()));
 
-    std::vector<float> planetRotations;
+    std::vector<float> planetRotations{0.0f};
     for (unsigned int i = 1; i < numOfPlanets; i++)
     {
         if (std::filesystem::exists(getAppDataPath() + "/" + planetSFNames[i - 1] + ".txt"))
@@ -773,7 +782,7 @@ int main(int argc, char* argv[]) {
     // initialize buttons
     // ------------------
     HoverButton startButton([&]() {startCallback(bodies[numOfPlanets], playerSaveData);}, glm::vec2(0.15625f  * SCR_WIDTH, 0.463f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, start_button,   start_hover);;
-    HoverButton tutorialButton([&]() {tutorialCallback(bodies[11], bodies[3]);}, glm::vec2(300.0f, 420.0f), 0.2f, imageShader, tut_button,     tut_button);
+    HoverButton tutorialButton([&]() {tutorialCallback(bodies[numOfPlanets], bodies[3]);}, glm::vec2(300.0f, 420.0f), 0.2f, imageShader, tut_button,     tut_button);
     HoverButton optionsButton(optionsCallback,                                   glm::vec2(300.0f, 340.0f), 0.2f, imageShader, options_button, options_hover);
     HoverButton quitButton([window]() {quitCallback(window);},                   glm::vec2(300.0f, 260.0f), 0.2f, imageShader, quit_button,    quit_hover);
     Button optionsClose(optionsCloseCallback,                                    glm::vec2(SCR_WIDTH - SCR_WIDTH / 20.0f, SCR_HEIGHT - SCR_HEIGHT / 10.0f), 0.2f, imageShader, options_close);
@@ -1044,12 +1053,15 @@ int main(int argc, char* argv[]) {
         // initialize trajectories
         // -----------------------
         TrajectorySimulator rocketTrajectory( bodies[numOfPlanets], bodies[boundBody], boundBody);
-        TrajectorySimulator moonTrajectory(   bodies[4], bodies[3], 3);
-        TrajectorySimulator earthTrajectory(  bodies[3], bodies[0], 0);
-        TrajectorySimulator mercuryTrajectory(bodies[1], bodies[0], 0);
-        TrajectorySimulator venusTrajectory(  bodies[2], bodies[0], 0);
-        TrajectorySimulator marsTrajectory(   bodies[5], bodies[0], 0);
-        TrajectorySimulator jupiterTrajectory(bodies[6], bodies[0], 0);
+        TrajectorySimulator moonTrajectory(   bodies[4],  bodies[3], 3);
+        TrajectorySimulator earthTrajectory(  bodies[3],  bodies[0], 0);
+        TrajectorySimulator mercuryTrajectory(bodies[1],  bodies[0], 0);
+        TrajectorySimulator venusTrajectory(  bodies[2],  bodies[0], 0);
+        TrajectorySimulator marsTrajectory(   bodies[5],  bodies[0], 0);
+        TrajectorySimulator jupiterTrajectory(bodies[6],  bodies[0], 0);
+        TrajectorySimulator saturnTrajectory( bodies[11], bodies[0], 0);
+        TrajectorySimulator uranusTrajectory( bodies[12], bodies[0], 0);
+        TrajectorySimulator neptuneTrajectory(bodies[13], bodies[0], 0);
 
         if (orbitView && !menuState.inMenu)
         {
@@ -1060,6 +1072,9 @@ int main(int argc, char* argv[]) {
             venusTrajectory.simulateTrajectory();
             marsTrajectory.simulateTrajectory();
             jupiterTrajectory.simulateTrajectory();
+            saturnTrajectory.simulateTrajectory();
+            uranusTrajectory.simulateTrajectory();
+            neptuneTrajectory.simulateTrajectory();
         }
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1153,7 +1168,7 @@ int main(int argc, char* argv[]) {
                     float apparentSize       = bodies[i].averageRadius / distanceToPlanet;
                     float apparentSizePlayer = bodies[i].averageRadius / distanceFromPlayerToPlanet;
 
-                    if (apparentSize > 0.001)
+                    if (apparentSize > 0.001 || i == 0)
                     {
                         {
                             std::lock_guard<std::mutex> lock_rsm(renderStateMutex);
@@ -1163,11 +1178,15 @@ int main(int argc, char* argv[]) {
                         glm::dmat4 planet_model(1.0);
 
                         glm::dvec3 planetScale = glm::dvec3(bodies[i].equatorialRadius, bodies[i].polarRadius, bodies[i].equatorialRadius);
-                        float newRotationAroundAxis = glm::radians(bodies[i].rotationSpeed * timeMultiplier);
 
+                        if (i > 0)
                         {
-                            std::lock_guard<std::mutex> lock_rax(rotationsAroundAxisMutex);
-                            rotationsAroundAxis[i] += newRotationAroundAxis * deltaTime;
+                            float newRotationAroundAxis = glm::radians(bodies[i].rotationSpeed * timeMultiplier);
+
+                            {
+                                std::lock_guard<std::mutex> lock_rax(rotationsAroundAxisMutex);
+                                rotationsAroundAxis[i] += newRotationAroundAxis * deltaTime;
+                            }
                         }
 
                         setupPlanetModel(planet_model, bodies[i].position, planetScale, camera.Position, bodies[i].axialTilt, rotationsAroundAxis[i]);
@@ -1289,7 +1308,7 @@ int main(int argc, char* argv[]) {
 
             // collision
             // ---------
-            if (!firstFrame && !menuState.inMenu)
+            if (!firstFrame && !menuState.inMenu && collisionAnywhere)
             {
                 glm::dvec3 collisionPush = pushPlayerToSurface(bodies[numOfPlanets], bodies[collisionBody], planetVertices[collisionBody], numOfSegments[collisionBody], numOfSegments[collisionBody], bodies[collisionBody].equatorialRadius + 10.0);
                 if (collisionPush != glm::dvec3(0.0))
@@ -1345,6 +1364,19 @@ int main(int argc, char* argv[]) {
             shader.setVec3("albedo", glm::vec3(1.0f));
             rocketModel.DrawPatched(shader);
 
+            // render Saturn rings
+            // -------------------
+            glEnable(GL_BLEND);
+            model = glm::dmat4(1.0);
+            model = glm::translate(model, bodies[11].position - camera.Position);
+            model = glm::scale(model, glm::dvec3(1000000.0));
+            model = glm::rotate(model, glm::radians(26.7), glm::dvec3(0.0, 0.0, 1.0));
+
+            shaderTex.use();
+            shaderTex.setMat4("model", model);
+            saturnRings.DrawPatched(shaderTex);
+            glDisable(GL_BLEND);
+
             // render trajectories
             // -------------------
             glEnable(GL_DEPTH_TEST);
@@ -1362,6 +1394,9 @@ int main(int argc, char* argv[]) {
                 venusTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 1.0f, 0.0f), lineShader);
                 marsTrajectory.renderTrajectory(   camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 0.0f, 0.0f), lineShader);
                 jupiterTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 0.5f, 0.0f), lineShader);
+                saturnTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 1.0f, 0.5f), lineShader);
+                uranusTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.5f, 0.5f, 1.0f), lineShader);
+                neptuneTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.0f, 0.0f, 1.0f), lineShader);
             }
 
             // render velocity arrows
@@ -1703,7 +1738,7 @@ int main(int argc, char* argv[]) {
             // --------------------
             std::vector<PlanetSaveData> planetStates;
             for (unsigned int i = 1; i < numOfPlanets; i++)
-                planetStates.push_back(PlanetSaveData(ObjectState(bodies[i].position, bodies[i].velocity), rotationsAroundAxis[i - 1]));
+                planetStates.push_back(PlanetSaveData(ObjectState(bodies[i].position, bodies[i].velocity), rotationsAroundAxis[i]));
 
             // save planet states in binary
             // ----------------------------

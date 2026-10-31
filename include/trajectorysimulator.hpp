@@ -14,11 +14,14 @@ const std::vector<double> soiRadiuses = {
     1470000000.0,
     66100000.0,
     578000000.0,
-    48000000000.0,
+    48200000000.0,
     10200000.0,
     9700000.0,
     32200000.0,
     52200000.0,
+    54500000000.0,
+    51900000000.0,
+    86200000000.0
 };
 
 const std::vector<unsigned int> planetRelativeBody = {
@@ -32,7 +35,10 @@ const std::vector<unsigned int> planetRelativeBody = {
     6,
     6,
     6,
-    6
+    6,
+    0,
+    0,
+    0
 };
 
 class TrajectorySimulator
@@ -47,7 +53,6 @@ public:
     double     apoapsisd  = 0.0;
     
     bool orbit;
-
     unsigned int rbi;
 
     TrajectorySimulator(const CelestialBody& body, const CelestialBody& relativeBody, unsigned int relativeBodyIndex)
@@ -99,7 +104,6 @@ public:
             T = sqrt(-pow(a, 3) / system[1].mu) * ((eccentricity * sinh(Fl) - Fl) - (eccentricity * sinh(Fc) - Fc));
 
         double simulatedTime = 0.0;
-
         if (E < 0.0 && periapsisd > system[1].averageRadius && apoapsisd < soiRadiuses[rbi])
         {
             orbit = true;
