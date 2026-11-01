@@ -7,7 +7,7 @@
 
 #pragma once
 
-const std::vector<double> soiRadiuses = {
+std::vector<double> soiRadiuses = {
     4570000000000000.0,
     117000000.0,
     616000000.0,
@@ -21,10 +21,10 @@ const std::vector<double> soiRadiuses = {
     52200000.0,
     54500000000.0,
     51900000000.0,
-    86200000000.0
+    86200000000.0,
 };
 
-const std::vector<unsigned int> planetRelativeBody = {
+std::vector<unsigned int> planetRelativeBody = {
     0,
     0,
     0,
@@ -38,7 +38,7 @@ const std::vector<unsigned int> planetRelativeBody = {
     6,
     0,
     0,
-    0
+    0,
 };
 
 class TrajectorySimulator
@@ -54,6 +54,8 @@ public:
     
     bool orbit;
     unsigned int rbi;
+
+    bool skip = false;
 
     TrajectorySimulator(const CelestialBody& body, const CelestialBody& relativeBody, unsigned int relativeBodyIndex)
     {
@@ -103,6 +105,16 @@ public:
         else
             T = sqrt(-pow(a, 3) / system[1].mu) * ((eccentricity * sinh(Fl) - Fl) - (eccentricity * sinh(Fc) - Fc));
 
+        if (r <= system[1].averageRadius)
+        {
+            skip = true;
+            return;
+        }
+        else
+        {
+            skip = false;
+        }
+
         double simulatedTime = 0.0;
         if (E < 0.0 && periapsisd > system[1].averageRadius && apoapsisd < soiRadiuses[rbi])
         {
@@ -146,10 +158,13 @@ public:
         shader.use();
         shader.setVec3("color", color);
 
-        for (unsigned int i = 0; i < positions.size() - 1; i++)
-            RenderLine(positions[i] - camera.Position, positions[i + 1] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT, color, shader);
+        if (!skip)
+        {
+            for (unsigned int i = 0; i < positions.size() - 1; i++)
+                RenderLine(positions[i] - camera.Position, positions[i + 1] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT, color, shader);
 
-        if (orbit)
-            RenderLine(positions[positions.size() - 1] - camera.Position, positions[0] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT, color, shader);
+            if (orbit)
+                RenderLine(positions[positions.size() - 1] - camera.Position, positions[0] - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT, color, shader);
+        }
     }
 };

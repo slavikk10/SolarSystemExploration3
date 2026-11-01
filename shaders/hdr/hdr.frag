@@ -11,7 +11,7 @@ in GEOMETRY_OUT {
     vec3 WorldPos;
 } frag_in;
 
-uniform uint numOfPlanets = 2;
+uniform uint numOfPlanets = 3;
 
 uniform float densityFalloff[MAX_ARRAY_SIZE];
 uniform float scatteringStrength[MAX_ARRAY_SIZE];

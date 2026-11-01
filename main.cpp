@@ -115,9 +115,9 @@ constexpr float sscale = 1.0f; // scale of the Solar System (1:1)
 const std::vector<std::string> faces           = {"right", "left", "top", "bottom", "front", "back"}; // cubemap faces
 const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000}; // timewarp values
 const std::vector<unsigned int> numOfSteps     = {1, 1, 1, 1, 1,  1,  1,  5,   5,   5,   10,   10,   10,   50,    50,    50,    100,    100,    100,    100,     100,     100,     100}; // number of steps depending on time multiplier
-constexpr unsigned int numOfPlanets            = 14;
-const std::vector<unsigned int> parentBody     = {0, 0, 0, 0, 3, 0, 0, 6, 6, 6, 6, 0, 0, 0, 0};
-const std::vector<std::string> planetSFNames   = {"mercury", "venus", "earth", "moon", "mars", "jupiter", "io", "europa", "ganymede", "callisto", "saturn", "uranus", "neptune"};
+constexpr unsigned int numOfPlanets            = 21;
+
+std::vector<std::string> planetSFNames;
 
 Date currentDate;
 
@@ -504,7 +504,14 @@ int main(int argc, char* argv[]) {
         "Resources/resources/planets/callisto.json",
         "Resources/resources/planets/saturn.json",
         "Resources/resources/planets/uranus.json",
-        "Resources/resources/planets/neptune.json"
+        "Resources/resources/planets/neptune.json",
+        "Resources/resources/planets/mimas.json",
+        "Resources/resources/planets/enceladus.json",
+        "Resources/resources/planets/tethys.json",
+        "Resources/resources/planets/dione.json",
+        "Resources/resources/planets/rhea.json",
+        "Resources/resources/planets/titan.json",
+        "Resources/resources/planets/lapetus.json",
     };
 
     std::unordered_map<std::string, Shader> shaderNames = {
@@ -726,6 +733,15 @@ int main(int argc, char* argv[]) {
     spawnPos /= glm::dvec3(1000.0);
     spawnVel /= glm::dvec3(1000.0);
 
+    std::vector<std::string> bodyNames;
+    for (unsigned int i = 0; i < planetJSON.size(); i++)
+    {
+        std::string name = getJSONValue(planetJSON[i], "name");
+
+        bodyNames.push_back(name);
+        planetSFNames.push_back((char)tolower(name[0]) + name.substr(1));
+    }
+
     std::vector<CelestialBody> bodies;
     for (unsigned int i = 0; i < planetJSONPaths.size(); i++)
         bodies.push_back(parseCelestialJSONData(planetJSONPaths[i].c_str()));
@@ -748,17 +764,13 @@ int main(int argc, char* argv[]) {
         }
     }
     
-    bodies.push_back(CelestialBody(glm::dvec3(0.0), glm::dvec3(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)); // placeholder for player celestial data
+    //bodies.push_back(CelestialBody(glm::dvec3(0.0), glm::dvec3(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)); // placeholder for player celestial data
 
     Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y, spawnPos.z + 10000.0), spawnVel, 0.00000000266972, glm::vec3(5.0f));
-    bodies[numOfPlanets] = rocket;
+    bodies.push_back(rocket);
 
     if (!playerSaveData.isEmpty)
         rocket.rotationQuaternion = playerSaveData.rotationMatrix;
-
-    std::vector<std::string> bodyNames;
-    for (unsigned int i = 0; i < planetJSON.size(); i++)
-        bodyNames.push_back(getJSONValue(planetJSON[i], "name"));
 
     bodyNames.push_back("Rocket");
 
@@ -774,6 +786,16 @@ int main(int argc, char* argv[]) {
     std::vector<double> cloudHeights;
     for (unsigned int i = 0; i < cloudsJSON.size(); i++)
         cloudHeights.push_back(cloudsJSON[i].height);
+
+    for (unsigned int i = 0; i < planetJSON.size(); i++)
+    {
+        std::string srs = getJSONValue(planetJSON[i], "soiRadius");
+        if (!(srs == ""))
+        {
+            soiRadiuses.push_back(stod(srs));
+            planetRelativeBody.push_back(stod(getJSONValue(planetJSON[i], "parentBody")));
+        }
+    }
 
     // get world state from file
     // -------------------------
@@ -1448,7 +1470,6 @@ int main(int argc, char* argv[]) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         hdrShader.use();
-
         hdrShader.setInt("numOfPlanets", numOfAtmospheres);
 
         for (unsigned int i = 0; i < numOfAtmospheres; i++)
