@@ -114,8 +114,8 @@ int timeMultiplierIndex = 0;
 constexpr float sscale = 1.0f; // scale of the Solar System (1:1)
 const std::vector<std::string> faces           = {"right", "left", "top", "bottom", "front", "back"}; // cubemap faces
 const std::vector<unsigned int> timewarpValues = {1, 2, 3, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000}; // timewarp values
-const std::vector<unsigned int> numOfSteps     = {1, 1, 1, 1, 1,  1,  1,  5,   5,   5,   10,   10,   10,   50,    50,    50,    100,    100,    100,    100,     100,     100,     100}; // number of steps depending on time multiplier
-constexpr unsigned int numOfPlanets            = 21;
+const std::vector<unsigned int> numOfSteps     = {1, 1, 2, 2, 3,  3,  5,  5,   10,  10,  25,   25,   50,   50,    100,   100,   100,    100,    100,    100,     100,     100,     100};     // number of steps depending on time multiplier
+constexpr unsigned int numOfPlanets            = 26;
 
 std::vector<std::string> planetSFNames;
 
@@ -512,6 +512,11 @@ int main(int argc, char* argv[]) {
         "Resources/resources/planets/rhea.json",
         "Resources/resources/planets/titan.json",
         "Resources/resources/planets/lapetus.json",
+        "Resources/resources/planets/miranda.json",
+        "Resources/resources/planets/ariel.json",
+        "Resources/resources/planets/umbriel.json",
+        "Resources/resources/planets/titania.json",
+        "Resources/resources/planets/oberon.json",
     };
 
     std::unordered_map<std::string, Shader> shaderNames = {
@@ -766,7 +771,7 @@ int main(int argc, char* argv[]) {
     
     //bodies.push_back(CelestialBody(glm::dvec3(0.0), glm::dvec3(0.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)); // placeholder for player celestial data
 
-    Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x, spawnPos.y, spawnPos.z + 10000.0), spawnVel, 0.00000000266972, glm::vec3(5.0f));
+    Rocket rocket(camera, 1000.0f, glm::dvec3(spawnPos.x - 100000.0, spawnPos.y, spawnPos.z), spawnVel, 0.00000000266972, glm::vec3(5.0f));
     bodies.push_back(rocket);
 
     if (!playerSaveData.isEmpty)
@@ -792,10 +797,19 @@ int main(int argc, char* argv[]) {
         std::string srs = getJSONValue(planetJSON[i], "soiRadius");
         if (!(srs == ""))
         {
-            soiRadiuses.push_back(stod(srs));
-            planetRelativeBody.push_back(stod(getJSONValue(planetJSON[i], "parentBody")));
+            soiRadiuses.push_back(stod(srs) * 1000.0);
+            planetRelativeBody.push_back(stoi(getJSONValue(planetJSON[i], "parentBody")));
         }
     }
+    planetRelativeBody.push_back(0);
+
+    // read trajectory colors
+    // ----------------------
+    std::vector<glm::vec3> trajectoryColors;
+    for (unsigned int i = 1; i < planetJSON.size(); i++)
+        trajectoryColors.push_back(glm::vec3(stof(getJSONValue(planetJSON[i], "trajectoryR")), stof(getJSONValue(planetJSON[i], "trajectoryG")), stof(getJSONValue(planetJSON[i], "trajectoryB"))));
+
+    trajectoryColors.push_back(glm::vec3(1.0f));
 
     // get world state from file
     // -------------------------
@@ -1004,7 +1018,7 @@ int main(int argc, char* argv[]) {
         float deltaPitch = pitch - lastPitch;
 
         // calculate thrust acceleration of the rocket and calculate total acceleration
-        glm::dvec3 thrustAccel = glm::normalize(rocket.rotationQuaternion * glm::dvec3(0.0, 1.0, 0.0)) * 70.0;
+        glm::dvec3 thrustAccel = glm::normalize(rocket.rotationQuaternion * glm::dvec3(0.0, 1.0, 0.0)) * 150.0;
         glm::dvec3 totalAccel  = bodies[numOfPlanets].totalAcceleration + thrustAccel;
 
         bodies[numOfPlanets].velocity += (enginesOn ? (double)(throttle/100) : 0) * (totalAccel * ((double)deltaTime * timeMultiplier));
@@ -1072,31 +1086,24 @@ int main(int argc, char* argv[]) {
             if (glm::length(bodies[numOfPlanets].position - bodies[i].position) < soiRadiuses[i])
                 boundBody = i;
 
-        // initialize trajectories
-        // -----------------------
-        TrajectorySimulator rocketTrajectory( bodies[numOfPlanets], bodies[boundBody], boundBody);
-        TrajectorySimulator moonTrajectory(   bodies[4],  bodies[3], 3);
-        TrajectorySimulator earthTrajectory(  bodies[3],  bodies[0], 0);
-        TrajectorySimulator mercuryTrajectory(bodies[1],  bodies[0], 0);
-        TrajectorySimulator venusTrajectory(  bodies[2],  bodies[0], 0);
-        TrajectorySimulator marsTrajectory(   bodies[5],  bodies[0], 0);
-        TrajectorySimulator jupiterTrajectory(bodies[6],  bodies[0], 0);
-        TrajectorySimulator saturnTrajectory( bodies[11], bodies[0], 0);
-        TrajectorySimulator uranusTrajectory( bodies[12], bodies[0], 0);
-        TrajectorySimulator neptuneTrajectory(bodies[13], bodies[0], 0);
+        planetRelativeBody[numOfPlanets] = boundBody;
 
+        // initialize and simulate trajectories
+        // ------------------------------------
+        std::vector<TrajectorySimulator> trajectories(numOfPlanets);
         if (orbitView && !menuState.inMenu)
         {
-            rocketTrajectory.simulateTrajectory();
-            moonTrajectory.simulateTrajectory();
-            earthTrajectory.simulateTrajectory();
-            mercuryTrajectory.simulateTrajectory();
-            venusTrajectory.simulateTrajectory();
-            marsTrajectory.simulateTrajectory();
-            jupiterTrajectory.simulateTrajectory();
-            saturnTrajectory.simulateTrajectory();
-            uranusTrajectory.simulateTrajectory();
-            neptuneTrajectory.simulateTrajectory();
+            for (unsigned int i = 1; i < numOfPlanets; i++)
+            {
+                if (boundBody == planetRelativeBody[i])
+                {
+                    trajectories[i - 1] = TrajectorySimulator(bodies[i], bodies[planetRelativeBody[i]], planetRelativeBody[i]); // planet trajectories
+                    trajectories[i - 1].simulateTrajectory();
+                }
+            }
+
+            trajectories[numOfPlanets - 1] = TrajectorySimulator(bodies[numOfPlanets], bodies[boundBody], boundBody); // player trajectory
+            trajectories[numOfPlanets - 1].simulateTrajectory();
         }
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1407,19 +1414,11 @@ int main(int argc, char* argv[]) {
             lineShader.use();
             lineShader.setMat4("projection", orthoProjection);
 
+            // render trajectories
+            // -------------------
             if (orbitView && !menuState.inMenu)
-            {
-                rocketTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 1.0f, 1.0f), lineShader);
-                moonTrajectory.renderTrajectory(   camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.5f, 0.5f, 0.5f), lineShader);
-                earthTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.0f, 0.0f, 1.0f), lineShader);
-                mercuryTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.5f, 0.5f, 0.5f), lineShader);
-                venusTrajectory.renderTrajectory(  camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 1.0f, 0.0f), lineShader);
-                marsTrajectory.renderTrajectory(   camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 0.0f, 0.0f), lineShader);
-                jupiterTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 0.5f, 0.0f), lineShader);
-                saturnTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(1.0f, 1.0f, 0.5f), lineShader);
-                uranusTrajectory.renderTrajectory( camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.5f, 0.5f, 1.0f), lineShader);
-                neptuneTrajectory.renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.0f, 0.0f, 1.0f), lineShader);
-            }
+                for (unsigned int i = 0; i < trajectories.size(); i++)
+                    trajectories[i].renderTrajectory(camera, view, projection, SCR_WIDTH, SCR_HEIGHT, trajectoryColors[i], lineShader);
 
             // render velocity arrows
             // ----------------------
@@ -1548,13 +1547,20 @@ int main(int argc, char* argv[]) {
         // -------------------------
         if (!menuState.inMenu && orbitView)
         {
+            std::vector<glm::vec2> bpPositions(bodyNames.size());
             for (unsigned int i = 0; i < bodyNames.size(); i++)
             {
                 if (glm::dot(glm::normalize(bodies[i].position - (glm::dvec3)camera.Position), (glm::dvec3)camera.Right) > 0.0) // check if the target is in front of the camera
                 {
                     glm::vec2 bodyScreenPos = convert3Dto2D(bodies[i].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                    bpPositions[i] = bodyScreenPos;
 
-                    //RenderCenteredImage(imageShader, objectNavImg, bodyScreenPos, 0.15f);
+                    // skip if too close to parent body to avoid overlapping
+                    // -----------------------------------------------------
+                    if (planetRelativeBody[i] != 0)
+                        if (glm::length(bodyScreenPos - bpPositions[planetRelativeBody[i]]) < 10.0f)
+                            continue;
+
                     Button bp([i]() {setTransferBody(transferBody, i);}, bodyScreenPos, 0.15f, imageShader, objectNavImg);
                     bp.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
 
@@ -1605,17 +1611,17 @@ int main(int argc, char* argv[]) {
         {
             if (camera.Zoom <= 10000000000.0f)
             {
-                if (glm::length(rocketTrajectory.apoapsis) > 0.0)
+                if (glm::length(trajectories[numOfPlanets - 1].apoapsis) > 0.0)
                 {
-                    glm::vec2 a = glm::vec2(convert3Dto2D(rocketTrajectory.apoapsis + bodies[boundBody].position - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(rocketTrajectory.apoapsis + bodies[boundBody].position - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
-                    std::string apoapsiss  = std::to_string(std::round((rocketTrajectory.apoapsisd  - bodies[boundBody].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.apoapsisd   / 100.0)  / 10.0).find(".") + 2);
+                    glm::vec2 a = glm::vec2(convert3Dto2D(trajectories[numOfPlanets - 1].apoapsis + bodies[boundBody].position - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(trajectories[numOfPlanets - 1].apoapsis + bodies[boundBody].position - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
+                    std::string apoapsiss  = std::to_string(std::round((trajectories[numOfPlanets - 1].apoapsisd  - bodies[boundBody].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(trajectories[numOfPlanets - 1].apoapsisd   / 100.0)  / 10.0).find(".") + 2);
 
                     RenderCenteredImage(imageShader, apoap_periapsi, a.x, a.y, 0.05f);
                     RenderText(textShader, apoapsiss  + " km", a.x, a.y + 50.0f, 0.4f, glm::vec3(1.0f), true);
                 }
 
-                glm::vec2 p = glm::vec2(convert3Dto2D(rocketTrajectory.periapsis + bodies[boundBody].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(rocketTrajectory.periapsis + bodies[boundBody].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).y);
-                std::string periapsiss = std::to_string(std::round((rocketTrajectory.periapsisd - bodies[boundBody].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(rocketTrajectory.periapsisd  / 100.0)  / 10.0).find(".") + 2);
+                glm::vec2 p = glm::vec2(convert3Dto2D(trajectories[numOfPlanets - 1].periapsis + bodies[boundBody].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(trajectories[numOfPlanets - 1].periapsis + bodies[boundBody].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).y);
+                std::string periapsiss = std::to_string(std::round((trajectories[numOfPlanets - 1].periapsisd - bodies[boundBody].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(trajectories[numOfPlanets - 1].periapsisd  / 100.0)  / 10.0).find(".") + 2);
                 
                 RenderCenteredImage(imageShader, apoap_periapsi, p.x, p.y, 0.05f);
                 RenderText(textShader, periapsiss + " km", p.x, p.y + 50.0f, 0.4f, glm::vec3(1.0f), true);

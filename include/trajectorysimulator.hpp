@@ -55,7 +55,8 @@ public:
     bool orbit;
     unsigned int rbi;
 
-    bool skip = false;
+    bool skip  = false;
+    bool empty = true;
 
     TrajectorySimulator(const CelestialBody& body, const CelestialBody& relativeBody, unsigned int relativeBodyIndex)
     {
@@ -74,8 +75,10 @@ public:
 
     TrajectorySimulator() {}
 
-    void simulateTrajectory(unsigned int iterations=1000, const OrbitalObject& moonOrbital=OrbitalObject(), bool isRocket=false)
+    void simulateTrajectory(unsigned int iterations=1000, bool isRocket=false)
     {
+        empty = false;
+
         glm::dvec3 startPos  = system[0].position;
         glm::dvec3 startVel  = system[0].velocity;
 
@@ -157,6 +160,9 @@ public:
     {
         shader.use();
         shader.setVec3("color", color);
+
+        if (empty)
+            return;
 
         if (!skip)
         {

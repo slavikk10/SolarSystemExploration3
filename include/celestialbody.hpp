@@ -14,7 +14,7 @@ struct AccelOut
     glm::dvec3 accel;
     std::vector<glm::dvec3> accels;
 
-    AccelOut() {accel = glm::dvec3(0.0);}
+    AccelOut() {accel = glm::dvec3(0.0); accels = {};}
 };
 
 class CelestialBody 
@@ -53,28 +53,28 @@ public:
     AccelOut calculateAcceleration(std::vector<CelestialBody> &bodies) 
     {
         AccelOut accelOut = AccelOut();
-        for (CelestialBody &body : bodies) 
+        for (const CelestialBody &body : bodies) 
         {
-            if (&body == this) accelOut.accels.push_back(glm::dvec3(0.0));
-            if (&body == this) continue;
+            if (!(&body == this) && ((body.mass / glm::length(this->position - body.position)) >= 1e12))
+            {
+                glm::dvec3 accelerationTowardsBody(0.0);;
 
-            this->sqrDstVec.x = (body.position.x - this->position.x) * (body.position.x - this->position.x);
-            this->sqrDstVec.y = (body.position.y - this->position.y) * (body.position.y - this->position.y);
-            this->sqrDstVec.z = (body.position.z - this->position.z) * (body.position.z - this->position.z);
-            this->sqrDst = this->sqrDstVec.x + this->sqrDstVec.y + this->sqrDstVec.z;
+                this->sqrDstVec = (body.position - this->position) * (body.position - this->position);
+                this->sqrDst    = this->sqrDstVec.x + this->sqrDstVec.y + this->sqrDstVec.z;
 
-            if (this->sqrDst == 0.0) continue;
+                if (this->sqrDst == 0.0) continue;
 
-            this->forceDir.x = (body.position.x - this->position.x) / std::sqrt(this->sqrDst);
-            this->forceDir.y = (body.position.y - this->position.y) / std::sqrt(this->sqrDst);
-            this->forceDir.z = (body.position.z - this->position.z) / std::sqrt(this->sqrDst);
+                this->forceDir = (body.position - this->position) / std::sqrt(this->sqrDst);
 
-            this->acceleration.x = this->forceDir.x * ((G * body.mass) / this->sqrDst);
-            this->acceleration.y = this->forceDir.y * ((G * body.mass) / this->sqrDst);
-            this->acceleration.z = this->forceDir.z * ((G * body.mass) / this->sqrDst);
-
-            accelOut.accels.push_back(this->acceleration);
-            accelOut.accel         += this->acceleration;
+                accelerationTowardsBody = this->forceDir * ((G * body.mass) / this->sqrDst);
+                accelOut.accels.push_back(accelerationTowardsBody);
+                accelOut.accel     +=     accelerationTowardsBody;
+            }
+            else
+            {
+                accelOut.accels.push_back(glm::dvec3(0.0));
+            }
+            
         }
 
         return accelOut;
@@ -82,15 +82,14 @@ public:
 
     void updateObject(std::vector<CelestialBody> &bodies, double deltaTime) 
     {
-        AccelOut accelData = calculateAcceleration(bodies);
+        this->position += this->velocity * deltaTime + (this->acceleration * pow(deltaTime, 2.0)) / 2.0;
 
-        this->position += this->velocity * glm::dvec3(deltaTime) + this->totalAcceleration * glm::dvec3(deltaTime * deltaTime * 0.5);
-        glm::dvec3 newAcceleration = accelData.accel;
+        AccelOut newAccelData = calculateAcceleration(bodies);
 
-        this->velocity += (this->totalAcceleration + newAcceleration) * (deltaTime * 0.5);
-        this->totalAcceleration = newAcceleration;
-        
-        this->accelerations = accelData.accels;
+        this->velocity += (deltaTime / 2.0) * (this->acceleration + newAccelData.accel);
+
+        this->accelerations = newAccelData.accels;
+        this->acceleration  = newAccelData.accel;
     }
 
     void fillData()
