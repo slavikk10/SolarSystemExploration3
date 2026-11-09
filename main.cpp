@@ -56,7 +56,6 @@
 
 struct SphereCollision;
 
-void regenerate_buffers();
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void window_pos_callback(GLFWwindow* window, int xpos, int ypos);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -213,9 +212,9 @@ bool isFullscreen                = false;
 
 int transferBody = -1;
 
-int main(int argc, char* argv[]) {
-    bool inTutorial = false;
+bool texturesLoaded = false;
 
+int main(int argc, char* argv[]) {
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
@@ -318,8 +317,6 @@ int main(int argc, char* argv[]) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     glPatchParameteri(GL_PATCH_VERTICES, 3);
-
-    auto sstart = glfwGetTime();
 
     // build and compile shaders
     // -------------------------
@@ -576,7 +573,7 @@ int main(int argc, char* argv[]) {
 
     // start multiple threads to load textures faster
     // ----------------------------------------------
-    for (unsigned int i = 0; i < planetTexturePaths.size(); i++)
+    for (unsigned int i = 0; i < 14/*planetTexturePaths.size()*/; i++)
     {
         texturesLoadingThreads.emplace_back([i, &planetTexturePaths, &textureLoad]()
         {
@@ -611,14 +608,23 @@ int main(int argc, char* argv[]) {
     for (auto &t: texturesLoadingThreads)
         t.join();
     
+    double t0 = glfwGetTime();
+    std::cout << textureLoad.size() << std::endl;
     for (unsigned int i = 0; i < textureLoad.size(); i++)
     {
         for (unsigned int j = 0; j < textureLoad[0].size(); j++)
         {
             //std::cout << "generating texture " << i << ";" << j << std::endl;
             loadedTextures[i][j] = genTexture(textureLoad[i][j]);
+            //textureLoad[i][j] = Texture();
         }
+        //textureLoad[i] = {};
+        std::cout << "finished i " << i << std::endl;
     }
+    std::cout << "Loaded textures in " << (glfwGetTime() - t0) << " s\n";
+
+    textureLoad.clear();
+    texturesLoadingThreads.clear();
     
     // load cloud textures
     // -------------------
@@ -639,6 +645,7 @@ int main(int argc, char* argv[]) {
 
     // Load UI textures
     // ----------------
+    double t1 = glfwGetTime();
     Image objectNavImg   = loadImage(getFilePath("Resources/resources/textures/UI/objectnav.png").c_str());
     Image apoap_periapsi = loadImage(getFilePath("Resources/resources/textures/UI/apo-per.png").c_str());
     Image mmtl           = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/mmtl_sse3.png").c_str());
@@ -657,6 +664,17 @@ int main(int argc, char* argv[]) {
     Image drdown_item_bg = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/options/dropdown_item_bg.png").c_str());
     Image drdown_tri_dwn = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/options/dropdown_triangle_down.png").c_str());
     Image drdown_tri_up  = loadImage(getFilePath("Resources/resources/textures/UI/main_menu/options/dropdown_triangle_up.png").c_str());
+
+    Image game_bottom_panel = loadImage(getFilePath("Resources/resources/textures/UI/game/bottom_panel.png").c_str());
+    Image engines_off       = loadImage(getFilePath("Resources/resources/textures/UI/game/engines_off.png").c_str());
+    Image engines_on        = loadImage(getFilePath("Resources/resources/textures/UI/game/engines_on.png").c_str());
+
+    Image timewarp_panel = loadImage(getFilePath("Resources/resources/textures/UI/game/timewarp_panel/panel.png").c_str());
+    Image timewarp_left  = loadImage(getFilePath("Resources/resources/textures/UI/game/timewarp_panel/left.png").c_str());
+    Image timewarp_right = loadImage(getFilePath("Resources/resources/textures/UI/game/timewarp_panel/right.png").c_str());
+
+    Image throttle_arrow = loadImage(getFilePath("Resources/resources/textures/UI/game/throttle_arrow.png").c_str());
+    std::cout << "Finished loading UI textures in " << (glfwGetTime() - t1) << " s\n";
 
     // configure irradiance map
     // ------------------------
@@ -690,7 +708,9 @@ int main(int argc, char* argv[]) {
     shaderTex.setInt("heightMap", 6);
     shaderTex.setInt("normalMap", 7);
 
-    glm::vec3 lightPos   = glm::vec3(0.0f, 0.0f, 0.0f);
+    imageShader.use();
+    imageShader.setFloat("brightness", 1.0f);
+
     glm::vec3 lightColor = glm::vec3(400000000000000000000000.0f, 400000000000000000000000.0f, 400000000000000000000000.0f);
 
     glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
@@ -717,7 +737,7 @@ int main(int argc, char* argv[]) {
     glm::dvec3 spawnPos;
     glm::dvec3 spawnVel;
 
-    std::string rocketSaveFilePath = getAppDataPath() + "/save.txt";
+    std::string rocketSaveFilePath = getAppDataPath() + "/world1/save.txt";
     PlayerSaveData playerSaveData;
 
     if (!std::filesystem::exists(rocketSaveFilePath))
@@ -727,7 +747,7 @@ int main(int argc, char* argv[]) {
     }
     else
     {
-        playerSaveData = readPlayerSaveFileBinary("save");
+        playerSaveData = readPlayerSaveFileBinary("save", "world1");
 
         spawnPos = playerSaveData.state.r;
         spawnVel = playerSaveData.state.v;
@@ -754,9 +774,9 @@ int main(int argc, char* argv[]) {
     std::vector<float> planetRotations{0.0f};
     for (unsigned int i = 1; i < numOfPlanets; i++)
     {
-        if (std::filesystem::exists(getAppDataPath() + "/" + planetSFNames[i - 1] + ".txt"))
+        if (std::filesystem::exists(getAppDataPath() + "/world1/" + planetSFNames[i - 1] + ".txt"))
         {
-            PlanetSaveData bodyData = readPlanetSaveFileBinary(planetSFNames[i - 1]);
+            PlanetSaveData bodyData = readPlanetSaveFileBinary(planetSFNames[i - 1], "world1");
 
             bodies[i].position = bodyData.state.r;
             bodies[i].velocity = bodyData.state.v;
@@ -813,26 +833,60 @@ int main(int argc, char* argv[]) {
 
     // get world state from file
     // -------------------------
-    currentDate = readWorldStateBinary("world_state");
+    currentDate = readWorldStateBinary("world_state", "world1");
+
+    // initialize UI engine
+    // --------------------
+    UIEngine uiEngine(glm::uvec2(SCR_WIDTH, SCR_HEIGHT), window, {imageShader, textShader});
+
+    // main menu scene
+    // ---------------
+    UIScene mainMenuScene;
+    mainMenuScene.addImage(mmtl, glm::vec2(-(5.0 * SCR_WIDTH / 18.0), 29.0 * SCR_HEIGHT / 108.0), 0); // game title
+    mainMenuScene.addHoverButton(HoverButton([&]() {startCallback(bodies[numOfPlanets], playerSaveData);}, glm::vec2(-660.0f, -40.0f ), SCR_HEIGHT / 5400.0f, imageShader, start_button, start_hover), 0); // start button
+    mainMenuScene.addHoverButton(HoverButton([&]() {tutorialCallback(bodies[numOfPlanets], bodies[3]);},   glm::vec2(-660.0f, -120.0f), 0.2f, imageShader, tut_button, tut_button), 0);                                               // tutorial button
+    mainMenuScene.addHoverButton(HoverButton(optionsCallback,                                              glm::vec2(-660.0f, -200.0f), 0.2f, imageShader, options_button, options_hover), 0);                                        // options button
+    mainMenuScene.addHoverButton(HoverButton([window]() {quitCallback(window);},                           glm::vec2(-660.0f, -280.0f), 0.2f, imageShader, quit_button, quit_hover), 0);                                              // quit button
+
+    // options scene
+    // -------------
+    UIScene optionsScene;
+    optionsScene.addImage(options_panel, glm::vec2(0.0f), 0);
+    optionsScene.addButton(Button(optionsCloseCallback, glm::vec2(850.0f, 450.0f), 0.2f, imageShader, options_close), 1);
+
+    // game scene
+    // ----------
+    UIScene gameScene;
+    gameScene.addImage(game_bottom_panel, glm::vec2(0.0f), 0);
+    gameScene.addButton(Button([]() {enginesOn = !enginesOn;}, glm::vec2(210.0f, -470.0f), 1.0f, imageShader, engines_off), 1);
+    gameScene.addImage(timewarp_panel, glm::vec2(850.0f, 485.0f), 0, 0.7f);
+    gameScene.addButton(Button([]() {if (timeMultiplierIndex != 0)                                    {timeMultiplierIndex -= 1;}}, glm::vec2( 785.0f, 485.0f), 0.6f, imageShader, timewarp_left),  1);
+    gameScene.addButton(Button([]() {if (timeMultiplier != timewarpValues[timewarpValues.size() - 1]) {timeMultiplierIndex += 1;}}, glm::vec2( 915.0f, 485.0f), 0.6f, imageShader, timewarp_right), 1);
+    //gameScene.addImage(throttle_arrow, glm::vec2(0.0f), 1);
+    gameScene.addText(Text("", glm::vec2(850.0f, 475.0f), 0.5f, glm::vec3(1.0f), textShader, true, true, glm::uvec2(SCR_WIDTH, SCR_HEIGHT)), 1);
+    gameScene.addText(Text(std::to_string(round(throttle * 10.0f) / 10.0f) + "%", glm::vec2(300.0f, -495.0f), 1.0f, glm::vec3(1.0f), textShader, true, true, glm::uvec2(SCR_WIDTH, SCR_HEIGHT)), 1);
+
+    // escape menu scene
+    // -----------------
+    UIScene escapeMenuScene;
+    escapeMenuScene.addImage(black_overlap, glm::vec2(0.0f), 8);
+    escapeMenuScene.addButton(Button(rtmmCallback, glm::vec2(0.0f, -50.0f), 0.3f, imageShader, rtmm_button), 9);
+    escapeMenuScene.addButton(Button(rtgCallback,  glm::vec2(0.0f,  50.0f), 0.3f, imageShader, rtg_button),  9);
+
+    // add scenes to engine
+    // --------------------
+    uiEngine.addScene(mainMenuScene, menuState.inMenu && !menuState.options);
+    uiEngine.addScene(optionsScene, menuState.options);
+    uiEngine.addScene(gameScene, !menuState.inMenu);
+    uiEngine.addScene(escapeMenuScene, menuState.escMenu);
 
     // initialize buttons
     // ------------------
-    HoverButton startButton([&]() {startCallback(bodies[numOfPlanets], playerSaveData);}, glm::vec2(0.15625f  * SCR_WIDTH, 0.463f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, start_button,   start_hover);;
-    HoverButton tutorialButton([&]() {tutorialCallback(bodies[numOfPlanets], bodies[3]);}, glm::vec2(300.0f, 420.0f), 0.2f, imageShader, tut_button,     tut_button);
-    HoverButton optionsButton(optionsCallback,                                   glm::vec2(300.0f, 340.0f), 0.2f, imageShader, options_button, options_hover);
-    HoverButton quitButton([window]() {quitCallback(window);},                   glm::vec2(300.0f, 260.0f), 0.2f, imageShader, quit_button,    quit_hover);
-    Button optionsClose(optionsCloseCallback,                                    glm::vec2(SCR_WIDTH - SCR_WIDTH / 20.0f, SCR_HEIGHT - SCR_HEIGHT / 10.0f), 0.2f, imageShader, options_close);
-
-    Button rtgESCButton  = Button(rtgCallback,                                   glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + 50.0f), 0.3f, imageShader, rtg_button);
-    Button rtmmESCButton = Button(rtmmCallback,                                  glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f), 0.3f, imageShader, rtmm_button);
+    Button rtgESCButton  = Button(rtgCallback,  glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + 50.0f), 0.3f, imageShader, rtg_button);
+    Button rtmmESCButton = Button(rtmmCallback, glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - 50.0f), 0.3f, imageShader, rtmm_button);
 
     ThreadPool planetRenderThreads(numOfPlanets);
     std::atomic<int> threadsLeft = 0;
-
-    double majorRadius = 0.0;
-    double minorRadius = 99999999999999999999999999999.0;
-
-    glm::dvec3 semiMajorAxis, semiMinorAxis;
 
     // render to optical depth texture
     // -------------------------------
@@ -844,8 +898,6 @@ int main(int argc, char* argv[]) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     saveTexture(optDepthColor, getFilePath("Resources/resources/textures/HDR"), "optical_depth", 4096, 4096, GL_RED, GL_FLOAT, EXT_HDR);
-
-    glm::dmat4 prevRocketModel = glm::dmat4(1.0);
 
     double lastSemiMajorAxis = 0.0;
     double lastEccentricity  = 0.0;
@@ -955,17 +1007,6 @@ int main(int argc, char* argv[]) {
     while (!glfwWindowShouldClose(window))
     {
         timestamp += 1;
-
-        // update buttons
-        // --------------
-        startButton    = HoverButton([&]() {startCallback(bodies[numOfPlanets], playerSaveData);}, glm::vec2(0.15625f  * SCR_WIDTH, 0.463f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, start_button,   start_hover);
-        tutorialButton = HoverButton([&]() {tutorialCallback(bodies[numOfPlanets], bodies[3]);},   glm::vec2(0.15625f  * SCR_WIDTH, 0.389f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, tut_button,     tut_button);
-        optionsButton  = HoverButton(optionsCallback,                                              glm::vec2(0.15625f  * SCR_WIDTH, 0.315f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, options_button, options_hover);
-        quitButton     = HoverButton([window]() {quitCallback(window);},                           glm::vec2(0.15625f  * SCR_WIDTH, 0.241f * SCR_HEIGHT), SCR_HEIGHT / 5400.0f, imageShader, quit_button,    quit_hover);
-        optionsClose   = Button(     optionsCloseCallback,                                         glm::vec2(SCR_WIDTH - SCR_WIDTH / 20.0f,  SCR_HEIGHT - SCR_HEIGHT / 10.0f), SCR_HEIGHT / 5400.0f, imageShader, options_close);
-
-        rtgESCButton   = Button(rtgCallback,                                                       glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 + SCR_HEIGHT / 21.6f), SCR_HEIGHT / 3600.0f, imageShader, rtg_button);
-        rtmmESCButton  = Button(rtmmCallback,                                                      glm::vec2(SCR_WIDTH / 2, SCR_HEIGHT / 2 - SCR_HEIGHT / 21.6f), SCR_HEIGHT / 3600.0f, imageShader, rtmm_button);
 
         // input
         // -----
@@ -1553,6 +1594,8 @@ int main(int argc, char* argv[]) {
                 if (glm::dot(glm::normalize(bodies[i].position - (glm::dvec3)camera.Position), (glm::dvec3)camera.Right) > 0.0) // check if the target is in front of the camera
                 {
                     glm::vec2 bodyScreenPos = convert3Dto2D(bodies[i].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
+                    bodyScreenPos -= glm::dvec2(SCR_WIDTH, SCR_HEIGHT) / 2.0;
+
                     bpPositions[i] = bodyScreenPos;
 
                     // skip if too close to parent body to avoid overlapping
@@ -1564,7 +1607,7 @@ int main(int argc, char* argv[]) {
                     Button bp([i]() {setTransferBody(transferBody, i);}, bodyScreenPos, 0.15f, imageShader, objectNavImg);
                     bp.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
 
-                    RenderText(textShader, bodyNames[i], bodyScreenPos.x, bodyScreenPos.y + 35, 0.4f, glm::vec3(1.0f), true);
+                    RenderText(textShader, bodyNames[i], glm::vec2(bodyScreenPos.x, bodyScreenPos.y + 35.0f), 0.4f, glm::vec3(1.0f), true, true, glm::uvec2(SCR_WIDTH, SCR_HEIGHT));
                 }
             }
         }
@@ -1577,25 +1620,21 @@ int main(int argc, char* argv[]) {
         std::string tm_s       = "Time multiplier: " + std::to_string(timeMultiplier);
 
         textShader.use();
-        textShader.setMat4("projection", orthoProjection); // switch to orthographic projection for rending text
+        textShader.setMat4("projection", orthoProjection); // switch to orthographic projection for rendering text
         imageShader.use();
         imageShader.setMat4("projection", orthoProjection);
         imageShader.setFloat("transparency", 1.0f);
         if (!menuState.inMenu)
         {
-            RenderText(textShader, fps_s, 5.0f, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), false); // render at top-left corner with 0.3 size with white color
-            RenderText(textShader, throttle_s, SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
-            RenderText(textShader, enginesOn ? "Engines: on" : "Engines: off", SCR_WIDTH/2, 10.0f, 0.5f, enginesOn ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f), true);
+            RenderText(textShader, fps_s, glm::vec2(5.0f, SCR_HEIGHT - 15.0f), 0.3f, glm::vec3(1.0f), false);
+            /*RenderText(textShader, throttle_s, SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
             RenderText(textShader, fuel_s, 3*SCR_WIDTH/4, 10.0f, 0.5f, glm::vec3(1.0f), true);
             RenderText(textShader, tm_s, SCR_WIDTH / 2, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
-            RenderText(textShader, currentDate.date, 3*SCR_WIDTH/4, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);
+            RenderText(textShader, currentDate.date, 3*SCR_WIDTH/4, SCR_HEIGHT - 15.0f, 0.3f, glm::vec3(1.0f), true);*/
         }
 
         if (menuState.options)
         {
-            RenderCenteredImage(imageShader, options_panel, SCR_WIDTH / 2, SCR_HEIGHT / 2 - SCR_HEIGHT / 21.6f, SCR_HEIGHT / 1270.59f);
-            optionsClose.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
-
             RenderText(textShader, "Window mode", glm::vec2(SCR_WIDTH / 6.4f, SCR_HEIGHT / 1.27f), SCR_HEIGHT / 2160.0f, glm::vec3(1.0f), true);
 
             D_m_o_wm.position     = glm::vec2(SCR_WIDTH / 1.28f, SCR_HEIGHT / 1.27f);
@@ -1616,18 +1655,18 @@ int main(int argc, char* argv[]) {
                     glm::vec2 a = glm::vec2(convert3Dto2D(trajectories[numOfPlanets - 1].apoapsis + bodies[boundBody].position - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(trajectories[numOfPlanets - 1].apoapsis + bodies[boundBody].position - camera.Position,  view, projection, SCR_WIDTH, SCR_HEIGHT).y);
                     std::string apoapsiss  = std::to_string(std::round((trajectories[numOfPlanets - 1].apoapsisd  - bodies[boundBody].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(trajectories[numOfPlanets - 1].apoapsisd   / 100.0)  / 10.0).find(".") + 2);
 
-                    RenderCenteredImage(imageShader, apoap_periapsi, a.x, a.y, 0.05f);
-                    RenderText(textShader, apoapsiss  + " km", a.x, a.y + 50.0f, 0.4f, glm::vec3(1.0f), true);
+                    //RenderCenteredImage(imageShader, apoap_periapsi, a.x, a.y, 0.05f);
+                    RenderText(textShader, apoapsiss  + " km", glm::vec2(a.x, a.y + 50.0f), 0.4f, glm::vec3(1.0f), true);
                 }
 
                 glm::vec2 p = glm::vec2(convert3Dto2D(trajectories[numOfPlanets - 1].periapsis + bodies[boundBody].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).x, convert3Dto2D(trajectories[numOfPlanets - 1].periapsis + bodies[boundBody].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT).y);
                 std::string periapsiss = std::to_string(std::round((trajectories[numOfPlanets - 1].periapsisd - bodies[boundBody].averageRadius)  / 100.0)  / 10.0).substr(0, std::to_string(std::round(trajectories[numOfPlanets - 1].periapsisd  / 100.0)  / 10.0).find(".") + 2);
                 
-                RenderCenteredImage(imageShader, apoap_periapsi, p.x, p.y, 0.05f);
-                RenderText(textShader, periapsiss + " km", p.x, p.y + 50.0f, 0.4f, glm::vec3(1.0f), true);
+                //RenderCenteredImage(imageShader, apoap_periapsi, p.x, p.y, 0.05f);
+                RenderText(textShader, periapsiss + " km", glm::vec2(p.x, p.y + 50.0f), 0.4f, glm::vec3(1.0f), true);
 
                 glm::vec2 bp = glm::vec2(convert3Dto2D((bodies[numOfPlanets].position + transfer.burnDirection * 5.0) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
-                RenderCenteredImage(imageShader, apoap_periapsi, bp.x, bp.y, 0.05f); // burn direсtion point
+                //RenderCenteredImage(imageShader, apoap_periapsi, bp.x, bp.y, 0.05f); // burn direсtion point
             }
 
             if (transferBody != -1)
@@ -1635,8 +1674,8 @@ int main(int argc, char* argv[]) {
                 if (false)//glm::length(bodies[numOfPlanets].position - (transferWindow + bodies[0].position)) > 20000000.0)
                 {
                     glm::vec2 tw = glm::vec2(convert3Dto2D((transferWindow) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
-                    RenderCenteredImage(imageShader, apoap_periapsi, tw.x, tw.y, 0.05f);
-                    RenderText(textShader, "Transfer window", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
+                    //RenderCenteredImage(imageShader, apoap_periapsi, tw.x, tw.y, 0.05f);
+                    RenderText(textShader, "Transfer window", glm::vec2(tw.x, tw.y + 75.0f), 0.4f, glm::vec3(1.0f));
                 }
                 else
                 {
@@ -1656,7 +1695,7 @@ int main(int argc, char* argv[]) {
                         idk = true;
 
                     glm::vec2 tw = glm::vec2(convert3Dto2D(bodies[numOfPlanets].position - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
-                    RenderText(textShader, std::to_string(glm::length(lastRocketVelocity + lastVelocityVector - bodies[numOfPlanets].velocity) / 1000.0) + " km/s", tw.x, tw.y + 75.0f, 0.4f, glm::vec3(1.0f), true);
+                    RenderText(textShader, std::to_string(glm::length(lastRocketVelocity + lastVelocityVector - bodies[numOfPlanets].velocity) / 1000.0) + " km/s", glm::vec2(tw.x, tw.y + 75.0f), 0.4f, glm::vec3(1.0f));
                 }
             }
 
@@ -1683,19 +1722,19 @@ int main(int argc, char* argv[]) {
                 std::string sbfp = std::format("{:.1f}", velocityBackward)       + " m/s";
 
                 if (velocityTowardsPlanet > 0.0)
-                    RenderText(textShader, svtp, vtpp.x, vtpp.y, 0.4f, glm::vec3(1.0f), true);
+                    RenderText(textShader, svtp, glm::vec2(vtpp.x, vtpp.y), 0.4f, glm::vec3(1.0f));
                 else if (velocityAwayFromPlanet > 0.0)
-                    RenderText(textShader, svap, vapp.x, vapp.y, 0.4f, glm::vec3(1.0f), true);
+                    RenderText(textShader, svap, glm::vec2(vapp.x, vapp.y), 0.4f, glm::vec3(1.0f));
 
                 if (velocityRight > 0.0)
-                    RenderText(textShader, srfp, rfpp.x, rfpp.y, 0.4f, glm::vec3(1.0f), true);
+                    RenderText(textShader, srfp, glm::vec2(rfpp.x, rfpp.y), 0.4f, glm::vec3(1.0f));
                 else if (velocityLeftFromPlanet > 0.0)
-                    RenderText(textShader, slfp, lfpp.x, lfpp.y, 0.4f, glm::vec3(1.0f), true);
+                    RenderText(textShader, slfp, glm::vec2(lfpp.x, lfpp.y), 0.4f, glm::vec3(1.0f));
 
                 if (velocityForward > 0.0)
-                    RenderText(textShader, sffp, ffpp.x, ffpp.y, 0.4f, glm::vec3(1.0f), true);
+                    RenderText(textShader, sffp, glm::vec2(ffpp.x, ffpp.y), 0.4f, glm::vec3(1.0f));
                 else if (velocityBackward > 0.0)
-                    RenderText(textShader, sbfp, bfpp.x, bfpp.y, 0.4f, glm::vec3(1.0f), true);
+                    RenderText(textShader, sbfp, glm::vec2(bfpp.x, bfpp.y), 0.4f, glm::vec3(1.0f));
             }
 
             // render velocity text
@@ -1703,23 +1742,20 @@ int main(int argc, char* argv[]) {
             if (!isViewSwitchHeight && camera.Zoom <= 1000.0f)
             {
                 glm::vec2 vtp = convert3Dto2D((glm::normalize(bodies[numOfPlanets].velocity - bodies[boundBody].velocity) * (2 * velocityScale + 7.5) + bodies[numOfPlanets].position) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT);
-                RenderText(textShader, std::format("{:.4f}", glm::length(bodies[numOfPlanets].velocity - bodies[boundBody].velocity) / 1000.0) + " km/s", vtp.x, vtp.y, 0.4f, glm::vec3(1.0f), true);
+                RenderText(textShader, std::to_string(mouseInput.mouseX - SCR_WIDTH / 2.0) + ", " + std::to_string(-(mouseInput.mouseY - SCR_HEIGHT / 2.0))/*std::format("{:.4f}", glm::length(bodies[numOfPlanets].velocity - bodies[boundBody].velocity) / 1000.0) + " km/s"*/, glm::vec2(vtp.x, vtp.y), 0.4f, glm::vec3(1.0f));
             }
         }
 
         //glm::vec2 ecp = glm::vec2(convert3Dto2D((bodies[3].position + collisionPoint) - camera.Position, view, projection, SCR_WIDTH, SCR_HEIGHT));
         //RenderCenteredImage(imageShader, apoap_periapsi, ecp.x, ecp.y, 0.05f);
 
-        // main menu
+        uiEngine.scenes[2].buttons[1][0].image = enginesOn ? engines_on : engines_off;
+        uiEngine.scenes[2].texts[1][0].text    = std::to_string(timeMultiplier);
+        uiEngine.scenes[2].texts[1][1].text    = std::format("{:.1f}", round(throttle * 10.0f) / 10.0f) + "%";
+
+        // render UI
         // ---------
-        if (menuState.inMenu && !menuState.options)
-        {
-            RenderCenteredImage(imageShader, mmtl, SCR_WIDTH / 4.5, SCR_HEIGHT - SCR_HEIGHT / 4.32,  SCR_HEIGHT / 1080.0f);
-            startButton.Render(   glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
-            tutorialButton.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
-            optionsButton.Render( glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
-            quitButton.Render(    glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
-        }
+        uiEngine.update({menuState.inMenu && !menuState.options, menuState.options, !menuState.inMenu, menuState.escMenu});
 
         // tutorial text
         // -------------
@@ -1727,15 +1763,6 @@ int main(int argc, char* argv[]) {
         {
             for (unsigned int i = 0; i < tutorialTexts[tutorialSlide].size(); i++)
                 RenderText(textShader, tutorialTexts[tutorialSlide][i], glm::vec2(SCR_WIDTH / 2.0f, SCR_HEIGHT / 2.0f + SCR_HEIGHT / 3.0f - i * (SCR_HEIGHT / 25.0f)), 0.5f/*SCR_HEIGHT / 3840.0f*/, glm::vec3(1.0f), true);
-        }
-
-        // escape menu
-        // -----------
-        if (menuState.escMenu)
-        {
-            RenderCenteredImage(imageShader, black_overlap, SCR_WIDTH / 2, SCR_HEIGHT / 2, 1.0f);
-            rtgESCButton.Render( glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
-            rtmmESCButton.Render(glm::vec2(mouseInput.mouseX - SCR_WIDTH / 2, -(mouseInput.mouseY - SCR_HEIGHT / 2)), mouseInput.lmbPressed, mouseInput.lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
         }
 
         glDisable(GL_BLEND);
@@ -1755,7 +1782,9 @@ int main(int argc, char* argv[]) {
         {
             isFullscreen = D_m_o_wm.selected == 1;
             glfwSetWindowMonitor(window, (isFullscreen ? primary : NULL), WIN_X, WIN_Y, (isFullscreen ? mode->width : WIN_WIDTH), (isFullscreen ? mode->height : WIN_HEIGHT), GLFW_DONT_CARE);
-            createSaveFile("window_options", "{\n\t\"windowMode\": \"" + std::string(isFullscreen ? "fullscreen" : "windowed") + "\",\n\n\t\"windowWidth\": " + std::to_string(WIN_WIDTH) + ",\n\t\"windowHeight\": " + std::to_string(WIN_HEIGHT) + ",\n\n\t\"windowX\": " + std::to_string(WIN_X) + ",\n\t\"windowY\": " + std::to_string(WIN_Y) + "\n}", ".json");
+
+            std::string windowOptionsContents = "{\n\t\"windowMode\": \"" + std::string(isFullscreen ? "fullscreen" : "windowed") + "\",\n\n\t\"windowWidth\": " + std::to_string(WIN_WIDTH) + ",\n\t\"windowHeight\": " + std::to_string(WIN_HEIGHT) + ",\n\n\t\"windowX\": " + std::to_string(WIN_X) + ",\n\t\"windowY\": " + std::to_string(WIN_Y) + "\n}";
+            createSaveFile("window_options", "", windowOptionsContents, ".json");
         }
         windowModeLastFrame = D_m_o_wm.selected;
 
@@ -1770,15 +1799,15 @@ int main(int argc, char* argv[]) {
             // save planet states in binary
             // ----------------------------
             for (unsigned int i = 0; i < planetStates.size(); i++)
-                createSaveFileBinary(planetSFNames[i], planetStates[i]);
+                createSaveFileBinary(planetSFNames[i], "world1", planetStates[i]);
             
             // save player data
             // ----------------
-            createSaveFileBinary("save", PlayerSaveData(ObjectState(bodies[numOfPlanets].position, bodies[numOfPlanets].velocity), fuel, glm::mat4_cast(rocket.rotationQuaternion)));
+            createSaveFileBinary("save", "world1", PlayerSaveData(ObjectState(bodies[numOfPlanets].position, bodies[numOfPlanets].velocity), fuel, glm::mat4_cast(rocket.rotationQuaternion)));
 
             // save world state (time, etc.)
             // -----------------------------
-            createSaveFileBinary("world_state", currentDate);
+            createSaveFileBinary("world_state", "world1", currentDate);
 
             // reset save timer
             // ----------------
@@ -1961,7 +1990,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
         WIN_HEIGHT = height;
     }
 
-    createSaveFile("window_options", "{\n\t\"windowMode\": \"" + std::string("windowed") + "\",\n\n\t\"windowWidth\": " + std::to_string(WIN_WIDTH) + ",\n\t\"windowHeight\": " + std::to_string(WIN_HEIGHT) + ",\n\n\t\"windowX\": " + std::to_string(WIN_X) + ",\n\t\"windowY\": " + std::to_string(WIN_Y) + "\n}", ".json");
+    createSaveFile("window_options", "", "{\n\t\"windowMode\": \"" + std::string("windowed") + "\",\n\n\t\"windowWidth\": " + std::to_string(WIN_WIDTH) + ",\n\t\"windowHeight\": " + std::to_string(WIN_HEIGHT) + ",\n\n\t\"windowX\": " + std::to_string(WIN_X) + ",\n\t\"windowY\": " + std::to_string(WIN_Y) + "\n}", ".json");
     regenerate_buffers(colorBuffer, depthBuffer);
 }
 
@@ -1972,7 +2001,7 @@ void window_pos_callback(GLFWwindow* window, int xpos, int ypos)
     WIN_X = xpos;
     WIN_Y = ypos;
 
-    createSaveFile("window_options", "{\n\t\"windowMode\": \"" + std::string("windowed") + "\",\n\n\t\"windowWidth\": " + std::to_string(WIN_WIDTH) + ",\n\t\"windowHeight\": " + std::to_string(WIN_HEIGHT) + ",\n\n\t\"windowX\": " + std::to_string(WIN_X) + ",\n\t\"windowY\": " + std::to_string(WIN_Y) + "\n}", ".json");
+    createSaveFile("window_options", "", "{\n\t\"windowMode\": \"" + std::string("windowed") + "\",\n\n\t\"windowWidth\": " + std::to_string(WIN_WIDTH) + ",\n\t\"windowHeight\": " + std::to_string(WIN_HEIGHT) + ",\n\n\t\"windowX\": " + std::to_string(WIN_X) + ",\n\t\"windowY\": " + std::to_string(WIN_Y) + "\n}", ".json");
 }
 
 // glfw: whenever the mouse moves, this callback is called

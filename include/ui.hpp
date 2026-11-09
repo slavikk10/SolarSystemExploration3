@@ -6,6 +6,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <functional>
+#include <string>
+#include <string_view>
 
 #include <ft2build.h>
 #include <freetype/freetype.h>
@@ -16,7 +18,8 @@
 
 #pragma once
 
-struct Character {
+struct Character 
+{
     unsigned char*     Texture;   // The actual glyph texture
     unsigned int       TextureID; // ID handle of the glyph texture
     glm::ivec2         Size;      // Size of glyph
@@ -155,7 +158,7 @@ struct Image {
     glm::ivec2 Size;
 };
 
-void RenderCenteredImage(Shader &s, Image image, float x, float y, float scale)
+void RenderCenteredImage(Shader& s, Image image, float x, float y, float scale, glm::uvec2 screenRes)
 {
     unsigned int imageVBO, imageVAO;
     glGenBuffers(1, &imageVBO);
@@ -173,6 +176,12 @@ void RenderCenteredImage(Shader &s, Image image, float x, float y, float scale)
 
     float width  = image.Size.x * scale;
     float height = image.Size.y * scale;
+
+    // convert coordinates
+    // -------------------
+    x += (double)screenRes.x / 2.0;
+    y += (double)screenRes.y / 2.0;
+    y = -y;
 
     float vertices[6][4] = {
         {x - width / 2, y + height / 2, 0.0f, 0.0f},
@@ -196,7 +205,7 @@ void RenderCenteredImage(Shader &s, Image image, float x, float y, float scale)
     glDeleteVertexArrays(1, &imageVAO);
 }
 
-void RenderCenteredImage(Shader &s, Image image, glm::vec2 pos, float scale)
+void RenderCenteredImage(Shader& s, Image image, glm::vec2 pos, float scale, glm::uvec2 screenRes)
 {
     unsigned int imageVBO, imageVAO;
     glGenBuffers(1, &imageVBO);
@@ -214,6 +223,10 @@ void RenderCenteredImage(Shader &s, Image image, glm::vec2 pos, float scale)
 
     float width  = image.Size.x * scale;
     float height = image.Size.y * scale;
+
+    // convert coordinates
+    // -------------------
+    pos += (glm::dvec2)screenRes / 2.0;
 
     float vertices[6][4] = {
         {pos.x - width / 2, pos.y + height / 2, 0.0f, 0.0f},
@@ -246,37 +259,22 @@ struct Button
     Shader s;
     Image image;
 
-    inline Button() : action(), position(), scale(), s(), image() {}
-    inline Button(std::function<void()> func, glm::vec2 pos, float sc, Shader shader, Image img) : action(func), position(pos), scale(sc), s(shader), image(img) {}
+    Button() {}
+    Button(std::function<void()> func, glm::vec2 pos, float sc, Shader shader, Image img)
+    {
+        action   = func;
+        position = pos;
+        scale    = sc;
+        s        = shader;
+        image    = img;
+    }
 
     void Render(glm::vec2 mouse, bool lmbPressed, bool lmbPressedLastFrame, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
     {
-        RenderCenteredImage(s, image, position.x, position.y, scale);
-        if (mouse.x > (position.x - SCR_WIDTH / 2) - (image.Size.x * scale / 2) && mouse.x < (position.x - SCR_WIDTH / 2) + (image.Size.x * scale / 2)) // check if cursor is inside the button hitbox
+        RenderCenteredImage(s, image, position, scale, glm::uvec2(SCR_WIDTH, SCR_HEIGHT));
+        if (mouse.x > position.x - (image.Size.x * scale / 2) && mouse.x < position.x + (image.Size.x * scale / 2)) // check if cursor is inside the button hitbox
         {
-            if (mouse.y > (position.y - SCR_HEIGHT / 2) - (image.Size.y * scale / 2) && mouse.y < (position.y - SCR_HEIGHT / 2) + (image.Size.y * scale / 2))
-            {
-                if (lmbPressed && !lmbPressedLastFrame)
-                    action();
-            }
-        }
-    }
-};
-
-struct TransparentButton
-{
-    std::function<void()> action;
-    glm::vec2 position;
-    unsigned int width, height;
-
-    inline TransparentButton() : action(), position(), width(), height() {}
-    inline TransparentButton(std::function<void()> func, glm::vec2 pos, unsigned int w, unsigned int h) : action(func), position(pos), width(w), height(h) {}
-
-    void checkForActivation(glm::vec2 mouse, bool lmbPressed, bool lmbPressedLastFrame)
-    {
-        if (mouse.x > (position.x - width / 2.0) && mouse.x < (position.x + width / 2.0)) // check if cursor is inside the button hitbox
-        {
-            if (mouse.y > (position.y - height / 2.0) && mouse.y < (position.y + width / 2.0))
+            if (mouse.y > position.y - (image.Size.y * scale / 2) && mouse.y < position.y + (image.Size.y * scale / 2))
             {
                 if (lmbPressed && !lmbPressedLastFrame)
                     action();
@@ -298,26 +296,35 @@ struct HoverButton
     bool mousePressed;
     bool mousePressedLastFrame;
 
-    inline HoverButton(std::function<void()> func, glm::vec2 pos, float sc, Shader shader, Image img, Image himg) : action(func), position(pos), scale(sc), s(shader), image(img), hoverImage(himg) {}
+    HoverButton() {}
+    HoverButton(std::function<void()> func, glm::vec2 pos, float sc, Shader shader, Image img, Image himg)
+    {
+        action     = func;
+        position   = pos;
+        scale      = sc;
+        s          = shader;
+        image      = img;
+        hoverImage = himg;
+    }
 
     void Render(glm::vec2 mouse, bool lmbPressed, bool lmbPressedLastFrame, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
     {
-        if (mouse.x > (position.x - SCR_WIDTH / 2) - (image.Size.x * scale / 2) && mouse.x < (position.x - SCR_WIDTH / 2) + (image.Size.x * scale / 2)) // check if cursor is inside the button hitbox
+        if (mouse.x > position.x - (image.Size.x * scale / 2) && mouse.x < position.x + (image.Size.x * scale / 2)) // check if cursor is inside the button hitbox
         {
-            if (mouse.y > (position.y - SCR_HEIGHT / 2) - (image.Size.y * scale / 2) && mouse.y < (position.y - SCR_HEIGHT / 2) + (image.Size.y * scale / 2))
+            if (mouse.y > position.y - (image.Size.y * scale / 2) && mouse.y < position.y + (image.Size.y * scale / 2))
             {
-                RenderCenteredImage(s, hoverImage, position.x, position.y, scale);
+                RenderCenteredImage(s, hoverImage, position, scale, glm::uvec2(SCR_WIDTH, SCR_HEIGHT));
                 if (lmbPressed && !lmbPressedLastFrame)
                     action();
             }
             else
             {
-                RenderCenteredImage(s, image, position.x, position.y, scale);
+                RenderCenteredImage(s, image, position, scale, glm::uvec2(SCR_WIDTH, SCR_HEIGHT));
             }
         }
         else
         {
-            RenderCenteredImage(s, image, position.x, position.y, scale);
+            RenderCenteredImage(s, image, position, scale, glm::uvec2(SCR_WIDTH, SCR_HEIGHT));
         }
     }
 };
@@ -386,82 +393,13 @@ void RenderLine(glm::dvec3 pos1, glm::dvec3 pos2, const glm::mat4& view, const g
     }
 }
 
-void RenderText(Shader &s, std::string text, float x, float y, float scale, glm::vec3 color, bool centered)
+void RenderText(Shader &s, std::string text, glm::vec2 pos, float scale, glm::vec3 color, bool centered=true, bool convert=false, glm::uvec2 screenRes=glm::uvec2(0))
 {
-    // text VAO and VBO
-    // ----------------
-    unsigned int textVBO, textVAO;
+    // convert coordinates
+    // -------------------
+    if (convert)
+        pos += (glm::dvec2)screenRes / 2.0;
 
-    glGenBuffers(1, &textVBO);
-    glGenVertexArrays(1, &textVAO);
-    glBindVertexArray(textVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, textVBO);
-    glBufferData(GL_ARRAY_BUFFER, 6 * 4 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    s.use();
-    s.setVec3("textColor", color);
-    glActiveTexture(GL_TEXTURE0);
-    glBindVertexArray(textVAO);
-
-    glBindTexture(GL_TEXTURE_2D, textAtlas);
-
-    float totalWidth = 0;
-
-    std::string::const_iterator c2;
-    for (c2 = text.begin(); c2 != text.end(); c2++)
-        totalWidth += Characters[*c2].Size.x * scale;
-
-    if (centered)
-        x -= totalWidth / 2;
-
-    std::vector<float> totalVertices;
-
-    std::string::const_iterator c;
-    unsigned int i = 0;
-    for (c = text.begin(); c != text.end(); c++)
-    {
-        Character ch = Characters[*c];
-
-        float xpos = x + ch.Bearing.x * scale;
-        float ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
-
-        float w = ch.Size.x * scale;
-        float h = ch.Size.y * scale + (maxHMB - (ch.Size.y - ch.Bearing.y)) * scale;
-
-        float s1 = ch.TexCoords[0];
-        float s2 = ch.TexCoords[1];
-
-        float vertices[6][4] = {
-            { xpos,     ypos + h,   s1, 0.0f },
-            { xpos,     ypos,       s1, 1.0f },
-            { xpos + w, ypos,       s2, 1.0f },
-
-            { xpos,     ypos + h,   s1, 0.0f },
-            { xpos + w, ypos,       s2, 1.0f },
-            { xpos + w, ypos + h,   s2, 0.0f }
-        };
-
-        for (unsigned int j = 0; j < 6; j++)
-            for (unsigned int k = 0; k < 4; k++)
-                totalVertices.push_back(vertices[j][k]);
-
-        x += (ch.Advance >> 6) * scale;
-        i++;
-    }
-
-    glBindBuffer(GL_ARRAY_BUFFER, textVBO);
-    glBufferData(GL_ARRAY_BUFFER, totalVertices.size() * sizeof(float), totalVertices.data(), GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glDrawArrays(GL_TRIANGLES, 0, 6 * text.size());
-}
-
-void RenderText(Shader &s, std::string text, glm::vec2 pos, float scale, glm::vec3 color, bool centered)
-{
     // text VAO and VBO
     // ----------------
     unsigned int textVBO, textVAO;
@@ -534,11 +472,46 @@ void RenderText(Shader &s, std::string text, glm::vec2 pos, float scale, glm::ve
     glDrawArrays(GL_TRIANGLES, 0, 6 * text.size());
 }
 
-void renderLabeledButton(Image &bg, std::string text, float bg_scale, float text_scale, Shader &image_shader, Shader &text_shader, std::function<void()> action, glm::vec2 position, glm::vec3 text_color)
+struct Text
+{
+    std::string text;
+    glm::vec2 pos;
+    float scale;
+    glm::vec3 color;
+
+    Shader shader;
+
+    bool isCentered;
+    bool convert;
+
+    glm::uvec2 screenResolution;
+
+    Text() {}
+    Text(std::string t, glm::vec2 p, float s, glm::vec3 c, const Shader& sh, bool ic=true, bool co=false, glm::uvec2 sr=glm::uvec2(0))
+    {
+        text   = t;
+        pos    = p;
+        scale  = s;
+        color  = c;
+        shader = sh;
+
+        isCentered = ic;
+        convert    = co;
+
+        screenResolution = sr;
+    }
+
+    void render()
+    {
+        RenderText(shader, text, pos, scale, color, isCentered, true, screenResolution);
+    }
+};
+
+/*void renderLabeledButton(Image &bg, std::string text, float bg_scale, float text_scale, Shader &image_shader, Shader &text_shader, std::function<void()> action, glm::vec2 position, glm::vec3 text_color)
 {
     RenderCenteredImage(image_shader, bg, position, bg_scale);
     RenderText(text_shader, text, position, text_scale, text_color, true);
-}
+}*/
 
 class Dropdown
 {
@@ -590,7 +563,7 @@ public:
         updateButtons();
 
         dropdown_button.Render(mouse, lmbPressed, lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
-        RenderText(text_shader, button_texts[selected], position.x, position.y - (70.0f * button_scale), text_scale, glm::vec3(1.0f), true);
+        RenderText(text_shader, button_texts[selected], glm::vec2(position.x, position.y - (70.0f * button_scale)), text_scale, glm::vec3(1.0f));
 
         if (activated)
         {
@@ -598,7 +571,7 @@ public:
             for (auto &button : buttons)
             {
                 button.Render(mouse, lmbPressed, lmbPressedLastFrame, SCR_WIDTH, SCR_HEIGHT);
-                RenderText(text_shader, button_texts[i], button.position.x, button.position.y - (70.0f * button_scale), text_scale, glm::vec3(1.0f), true);
+                RenderText(text_shader, button_texts[i], glm::vec2(button.position.x, button.position.y - (70.0f * button_scale)), text_scale, glm::vec3(1.0f));
 
                 i++;
             }
@@ -626,4 +599,192 @@ private:
 
         dropdown_button = Button([this]() {dropdown_button_clicked();}, position, button_scale, image_shader, dropdown_image);
     }
+};
+
+/*class Popup
+{
+public:
+    bool isOpen = false;
+
+    std::string text;
+    Shader textShader;
+    Shader imageShader;
+
+    Image panel;
+
+    glm::vec2 pos;
+
+    Popup() {}
+    Popup(std::string_view t, const Shader& ts, const Shader& is, const Image& p, unsigned int SCR_WIDTH, unsigned int SCR_HEIGHT)
+    {
+        text        = t;
+        textShader  = ts;
+        imageShader = is;
+
+        panel = p;
+
+        pos = glm::vec2(SCR_WIDTH / 2.0, SCR_HEIGHT / 2.0);
+    }
+
+    void open()
+    {
+        isOpen = true;
+    }
+
+    void close()
+    {
+        isOpen = false;
+    }
+
+    void update()
+    {
+        if (isOpen)
+            render();
+    }
+
+private:
+    void render()
+    {
+        RenderCenteredImage(imageShader, panel, pos, 0.2f);
+        RenderText(textShader, text, pos + glm::vec2(0.0f, 250.0f), 0.1f, glm::vec3(1.0f), true);
+    }
+};*/
+
+struct PImage
+{
+    Image image;
+    glm::vec2 position;
+    float scale;
+
+    PImage() {}
+    PImage(Image i, glm::vec2 pos, float s) {image = i; position = pos; scale = s;}
+};
+
+// UI scene struct
+// ---------------
+struct UIScene
+{
+    std::vector<std::vector<Button>> buttons{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}}; // 10 max layers
+    std::vector<std::vector<HoverButton>> hoverButtons{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    std::vector<std::vector<PImage>> images{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    std::vector<std::vector<Text>> texts{{}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+
+    void addButton(const Button& button, unsigned int layer)
+    {
+        buttons[layer].push_back(button);
+    }
+
+    void addHoverButton(const HoverButton& button, unsigned int layer)
+    {
+        hoverButtons[layer].push_back(button);
+    }
+
+    void addImage(const Image& image, glm::vec2 position, unsigned int layer, float scale=1.0f)
+    {
+        images[layer].push_back(PImage(image, position, scale));
+    }
+
+    void addText(const Text& text, unsigned int layer)
+    {
+        texts[layer].push_back(text);
+    }
+
+    void render(glm::uvec2 screenRes, glm::vec2 mousePos, bool lmb, bool lmbLF, Shader& imageShader, const Shader& textShader)
+    {
+        for (unsigned int layer = 0; layer < 10; layer++) // per layer
+        {
+            // render buttons
+            for (Button button : buttons[layer])
+                button.Render(mousePos, lmb, lmbLF, screenRes.x, screenRes.y);
+
+            // render hover buttons
+            for (HoverButton button : hoverButtons[layer])
+                button.Render(mousePos, lmb, lmbLF, screenRes.x, screenRes.y);
+
+            // render images
+            for (PImage image : images[layer])
+                RenderCenteredImage(imageShader, image.image, image.position, image.scale, screenRes);
+
+            // render texts
+            for (Text text : texts[layer])
+                text.render();
+        }
+    }
+};
+
+// UI engine class
+// ---------------
+class UIEngine
+{
+public:
+    // public variables
+    // ----------------
+    glm::uvec2 screenResolution = glm::uvec2(0);
+
+    // mouse settings
+    // --------------
+    glm::dvec2 mousePosition = glm::dvec2(0.0);
+    std::vector<bool> mbcf   = {false, false, false};
+    std::vector<bool> mblf   = {false, false, false};
+
+    // the vector that holds all the UI scenes
+    // ---------------------------------------
+    std::vector<UIScene> scenes;
+    std::vector<bool> showScenes;
+
+    // the vector that holds the shaders (index 0: image shader, index 1: text shader)
+    // -------------------------------------------------------------------------------
+    std::vector<Shader> shaders;
+
+    GLFWwindow* window;
+
+    // constructors
+    // ------------
+    UIEngine() {}
+    UIEngine(glm::uvec2 screenRes, GLFWwindow*& w, const std::vector<Shader>& shs) {screenResolution = screenRes; window = w; shaders = shs;}
+
+    // function to add a scene to the game's UI
+    // ----------------------------------------
+    void addScene(UIScene scene, bool showCondition)
+    {
+        scenes.push_back(scene);
+    }
+
+    // update the UI
+    // -------------
+    void update(const std::vector<bool>& ssc)
+    {
+        // get mouse position
+        // ------------------
+        glfwGetCursorPos(window, &mousePosition.x, &mousePosition.y);
+        mousePosition -= (glm::dvec2)screenResolution / 2.0;
+        mousePosition.y = -mousePosition.y;
+
+        // get mouse button presses
+        // ------------------------
+        for (unsigned int i = 0; i < 3; i++)
+            mbcf[i] = (glfwGetMouseButton(window, i) == GLFW_PRESS ? true : false);
+
+        // replace local vector with provided
+        // ----------------------------------
+        showScenes = ssc;
+        
+        // render the UI contents
+        // ----------------------
+        for (unsigned int i = 0; i < scenes.size(); i++)
+            if (showScenes[i])
+                scenes[i].render(screenResolution, mousePosition, mbcf[0], mblf[0], shaders[0], shaders[1]);
+
+        mblf = mbcf;
+    }
+
+    // deletes everything from the scenes vector
+    // -----------------------------------------
+    void clear()
+    {
+        scenes.clear();
+    }
+
+private:
+    /* private stuff here */
 };

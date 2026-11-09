@@ -38,6 +38,8 @@ void saveTextureCache(std::string cacheFileName, std::string texturePath) {
     std::cout << nrComponents << "; " << width << "; " << height << std::endl;
     textureCacheFile.write(reinterpret_cast<char*>(data), nrComponents * width * height); // write raw pixel data
     textureCacheFile.close();
+
+    stbi_image_free(data);
 }
 
 struct Texture
@@ -45,6 +47,7 @@ struct Texture
     int width, height, nrComponents;
     unsigned char* data;
 
+    Texture() {}
     Texture(int w, int h, int nc, unsigned char* d): width(w), height(h), nrComponents(nc), data(d) {};
 
     bool operator==(const Texture& compared) const 

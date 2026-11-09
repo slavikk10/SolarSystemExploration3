@@ -42,9 +42,11 @@ std::string getAppDataPath()
         return std::getenv("HOME") + std::string("/.local/share/SolarSystemExploration3");
 }
 
-void createSaveFile(std::string name, std::string contents, std::string extension=".txt")
+void createSaveFile(std::string name, std::string worldName, std::string_view contents, std::string extension=".txt")
 {
     std::filesystem::path p = std::filesystem::path(getAppDataPath());
+    if (worldName != "")
+        p /= worldName;
 
     // create directory if it doesn't exist yet
     // ----------------------------------------
@@ -63,9 +65,11 @@ void createSaveFile(std::string name, std::string contents, std::string extensio
 }
 
 template <typename T>
-void createSaveFileBinary(std::string name, T contents, std::string extension=".txt")
+void createSaveFileBinary(std::string name, std::string worldName, T contents, std::string extension=".txt")
 {
     std::filesystem::path p = std::filesystem::path(getAppDataPath());
+    if (worldName != "")
+        p /= worldName;
 
     // create directory if it doesn't exist yet
     // ----------------------------------------
@@ -83,9 +87,9 @@ void createSaveFileBinary(std::string name, T contents, std::string extension=".
     savefile.close();
 }
 
-PlayerSaveData readPlayerSaveFileBinary(std::string name, std::string extension=".txt")
+PlayerSaveData readPlayerSaveFileBinary(std::string name, std::string worldName, std::string extension=".txt")
 {
-    std::filesystem::path p = std::filesystem::path(getAppDataPath());
+    std::filesystem::path p = std::filesystem::path(getAppDataPath()) / worldName;
     if (!std::filesystem::exists(p))
         return PlayerSaveData();
 
@@ -106,9 +110,9 @@ PlayerSaveData readPlayerSaveFileBinary(std::string name, std::string extension=
     return output;
 }
 
-PlanetSaveData readPlanetSaveFileBinary(std::string name, std::string extension=".txt")
+PlanetSaveData readPlanetSaveFileBinary(std::string name, std::string worldName, std::string extension=".txt")
 {
-    std::filesystem::path p = std::filesystem::path(getAppDataPath());
+    std::filesystem::path p = std::filesystem::path(getAppDataPath()) / worldName;
     if (!std::filesystem::exists(p))
         return PlanetSaveData();
 
@@ -129,7 +133,7 @@ PlanetSaveData readPlanetSaveFileBinary(std::string name, std::string extension=
     return output;
 }
 
-Date readWorldStateBinary(std::string name, std::string extension=".txt")
+Date readWorldStateBinary(std::string name, std::string worldName, std::string extension=".txt")
 {
     std::filesystem::path p = std::filesystem::path(getAppDataPath());
     if (!std::filesystem::exists(p))
